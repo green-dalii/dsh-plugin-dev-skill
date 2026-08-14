@@ -2,6 +2,12 @@
 
 本项目遵循 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 与 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [Unreleased]
+
+### 变更
+
+- **README 双语化**：默认 README 改为英文（`README.md`），原中文说明移至 `README.zh-CN.md`；两个文件互相提供语言导航链接。
+
 ## [0.1.0] - 2026-08-14
 
 ### 新增
