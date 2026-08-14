@@ -58,12 +58,12 @@ DSH 的 skill 系统接受“目录包（`<name>/SKILL.md`）”或“平铺 Mar
 | `<项目根>/.agents/skills` | 项目级（rank 200） |
 | `$DSH_HOME/skills`（即 `~/.dsh/skills`） | 用户级（rank 400） |
 
-例如安装为用户级技能：
+例如安装为用户级技能（**安装目录名必须与 SKILL.md frontmatter 中的 `name` 一致**，即 `dsh-plugin-dev-skill`）：
 
 ```sh
-mkdir -p ~/.dsh/skills/dsh-plugin-dev
-cp SKILL.md ~/.dsh/skills/dsh-plugin-dev/SKILL.md
-cp -r References ~/.dsh/skills/dsh-plugin-dev/References
+mkdir -p ~/.dsh/skills/dsh-plugin-dev-skill
+cp SKILL.md ~/.dsh/skills/dsh-plugin-dev-skill/SKILL.md
+cp -r References ~/.dsh/skills/dsh-plugin-dev-skill/References
 ```
 
 技能名需符合 kebab-case（`^[a-z0-9]+(?:-[a-z0-9]+)*$`）。

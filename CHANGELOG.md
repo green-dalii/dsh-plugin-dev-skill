@@ -4,6 +4,11 @@
 
 ## [Unreleased]
 
+### 修复
+
+- **`SKILL.md` 补上 DSH 要求的 YAML frontmatter**：缺失 frontmatter 的 skill 会被 DSH 本地提供方忽略（`missing YAML frontmatter`）。现已添加 `name` / `description` / `whenToUse`（均为必填/受支持字段），并用真实 `dsh-skill` + `dsh-skill-filesystem` 注册表验证：`ctx.skills.list()` 能发现该技能、frontmatter 字段解析正确、`ctx.skills.get()` 能加载正文。
+- **技能名与安装目录名一致**：frontmatter `name` 与文件夹名统一为 `dsh-plugin-dev-skill`（kebab-case），README 安装示例同步更新。
+
 ### 变更
 
 - **README 双语化**：默认 README 改为英文（`README.md`），原中文说明移至 `README.zh-CN.md`；两个文件互相提供语言导航链接。

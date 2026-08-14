@@ -1,3 +1,9 @@
+---
+name: dsh-plugin-dev-skill
+description: 指导任何 Agent 正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。涵盖 Tool（defineTool）、LLM 适配器、服务与依赖、事件系统、配置、打包发布，以及 Cordis 框架的心智模型、代码模板与验证清单。
+whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool、LLM adapter、服务提供方、钩子、UI、协议桥等），编写或修改 cordis.yml / cordis.patch.yml / dsh.profile / dsh.bundle 配置，使用 dsh plugin 命令，或需要理解 ctx.tools、ctx.llm、ctx.agents、ctx.sessions 等服务与 tools/*、agent/*、session/event 等事件时，加载本技能。
+---
+
 # DeepSeek Harness Plugin Dev Skill
 
 > 让任何 Agent 都能正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。

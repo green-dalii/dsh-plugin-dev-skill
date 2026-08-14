@@ -60,12 +60,12 @@ The DSH skill system accepts both directory bundles (`<name>/SKILL.md`) and flat
 | `<projectRoot>/.agents/skills` | Project (rank 200) |
 | `$DSH_HOME/skills` (i.e. `~/.dsh/skills`) | User (rank 400) |
 
-Example — install as a user-level skill:
+Example — install as a user-level skill (the folder name must match the `name` in the SKILL.md frontmatter, `dsh-plugin-dev-skill`):
 
 ```sh
-mkdir -p ~/.dsh/skills/dsh-plugin-dev
-cp SKILL.md ~/.dsh/skills/dsh-plugin-dev/SKILL.md
-cp -r References ~/.dsh/skills/dsh-plugin-dev/References
+mkdir -p ~/.dsh/skills/dsh-plugin-dev-skill
+cp SKILL.md ~/.dsh/skills/dsh-plugin-dev-skill/SKILL.md
+cp -r References ~/.dsh/skills/dsh-plugin-dev-skill/References
 ```
 
 The skill name must be kebab-case (`^[a-z0-9]+(?:-[a-z0-9]+)*$`).
