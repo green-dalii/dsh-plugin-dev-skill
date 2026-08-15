@@ -68,6 +68,50 @@ cp -r References ~/.dsh/skills/dsh-plugin-dev-skill/References
 
 技能名需符合 kebab-case（`^[a-z0-9]+(?:-[a-z0-9]+)*$`）。
 
+## 在其他 Agent 中使用（Claude Code、Codex 等）
+
+本技能遵循开放的 [Agent Skills 标准](https://agentskills.io)：一个包含 `SKILL.md` 与 YAML frontmatter（`name` / `description` / `whenToUse`）及配套 `References/` 目录的文件夹——与 Claude Code、Codex 及众多 Agent 宿主使用的形态一致，凡是支持 Agent Skills 的地方都可以安装。
+
+### 方式 A：让 Agent 自己安装（推荐）
+
+最简单的方式：**直接把仓库地址告诉你的 Agent**，让它自行克隆并安装。例如在 Claude Code 会话里粘贴：
+
+> 请把 https://github.com/green-dalii/dsh-plugin-dev-skill 这个技能安装到 `~/.claude/skills/dsh-plugin-dev-skill/`，之后我处理 DeepSeek Harness 插件开发时加载 `SKILL.md`。
+
+或者在 Codex CLI 会话里粘贴：
+
+> 请把 https://github.com/green-dalii/dsh-plugin-dev-skill 这个技能安装到 `~/.agents/skills/dsh-plugin-dev-skill/`。
+
+通用说法（适用于任何 Agent）：
+
+> 请把 https://github.com/green-dalii/dsh-plugin-dev-skill 安装到你的技能目录（文件夹 `dsh-plugin-dev-skill`，内含 `SKILL.md` 与 `References/`），当任务涉及开发 DeepSeek Harness（DSH）插件时使用它。
+
+### 方式 B：手动安装
+
+| Agent / 宿主 | 安装位置 | 调用方式 |
+|---|---|---|
+| Claude Code（个人级） | `~/.claude/skills/dsh-plugin-dev-skill/SKILL.md` | `/dsh-plugin-dev-skill`，或描述匹配时自动加载 |
+| Claude Code（项目级） | `<仓库>/.claude/skills/dsh-plugin-dev-skill/SKILL.md` | 同上 |
+| Codex CLI（用户级） | `~/.agents/skills/dsh-plugin-dev-skill/SKILL.md` | `/skills` 浏览，`$dsh-plugin-dev-skill` 提及 |
+| Codex CLI（仓库级） | `<仓库>/.agents/skills/dsh-plugin-dev-skill/SKILL.md` | 同上 |
+| DSH | `~/.dsh/skills/dsh-plugin-dev-skill/SKILL.md` | 见上方 DSH 安装小节 |
+| 任意 Agent Skills 宿主 | `<技能目录>/dsh-plugin-dev-skill/SKILL.md` | 按宿主说明 |
+
+用 git clone 直接安装（或用符号链接——Claude Code 与 Codex 都支持 symlink，`git pull` 即可保持技能更新）：
+
+```sh
+git clone https://github.com/green-dalii/dsh-plugin-dev-skill.git ~/.claude/skills/dsh-plugin-dev-skill
+# 或：
+ln -s /path/to/dsh-plugin-dev-skill ~/.claude/skills/dsh-plugin-dev-skill
+```
+
+注意事项：
+
+- 文件夹名请保持 `dsh-plugin-dev-skill`——必须与 frontmatter 中的 `name` 一致（Claude Code 会用它作为命令名）。
+- 不支持的宿主会忽略 `whenToUse` 等扩展 frontmatter 字段，不影响加载。
+- 技能正文目前为中文（与官方 DSH 文档一致），代码模板与语言无关。
+- 彩蛋：DSH 同样读取项目级 `.agents/skills`，所以在 `<仓库>/.agents/skills/dsh-plugin-dev-skill/` 放一份，Codex 与 DSH 可以共用。
+
 ## 资料来源
 
 - 官方文档站（中文/英文）：https://deepseek-harness.github.io/deepseek-harness/develop/basic/

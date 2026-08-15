@@ -4,6 +4,16 @@
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-08-15
+
+### 新增
+
+- **README 新增“在其他 Agent 中使用”章节**：给出 Claude Code、Codex 等主流 Agent 的 skill 安装位置与用法，并推荐“直接把仓库地址告诉 Agent、由 Agent 自动克隆安装”的方式：
+  - Claude Code：个人级 `~/.claude/skills/`、项目级 `.claude/skills/`，用 `/dsh-plugin-dev-skill` 调用或按描述自动加载
+  - Codex CLI：用户级 `~/.agents/skills/`、仓库级 `.agents/skills/`，用 `/skills` 浏览、`$dsh-plugin-dev-skill` 提及
+  - 说明本项目遵循开放 [Agent Skills 标准](https://agentskills.io)（`SKILL.md` + YAML frontmatter），任何兼容宿主均可直接加载；DSH 与 Codex 共用 `.agents/skills` 约定，一份拷贝两个宿主可用
+  - 支持 git clone 直装与符号链接（两个宿主均支持 symlink，便于 git pull 更新）
+
 ### 修复
 
 - **`SKILL.md` 补上 DSH 要求的 YAML frontmatter**：缺失 frontmatter 的 skill 会被 DSH 本地提供方忽略（`missing YAML frontmatter`）。现已添加 `name` / `description` / `whenToUse`（均为必填/受支持字段），并用真实 `dsh-skill` + `dsh-skill-filesystem` 注册表验证：`ctx.skills.list()` 能发现该技能、frontmatter 字段解析正确、`ctx.skills.get()` 能加载正文。

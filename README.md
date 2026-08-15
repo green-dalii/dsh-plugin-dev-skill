@@ -70,6 +70,50 @@ cp -r References ~/.dsh/skills/dsh-plugin-dev-skill/References
 
 The skill name must be kebab-case (`^[a-z0-9]+(?:-[a-z0-9]+)*$`).
 
+## Use with other agents (Claude Code, Codex, etc.)
+
+This skill follows the open [Agent Skills](https://agentskills.io) standard: a folder with `SKILL.md` plus YAML frontmatter (`name`, `description`, `whenToUse`) and a supporting `References/` folder — the same shape used by Claude Code, Codex, and many other agent hosts. Install it anywhere you install agent skills.
+
+### Option A — let your agent install it (recommended)
+
+The simplest way: **just tell your agent the repo address** and let it clone and install the skill itself. For example, paste this into a Claude Code session:
+
+> Install the skill from https://github.com/green-dalii/dsh-plugin-dev-skill into `~/.claude/skills/dsh-plugin-dev-skill/` and load `SKILL.md` when I work on DeepSeek Harness plugin development.
+
+Or into a Codex CLI session:
+
+> Install the skill from https://github.com/green-dalii/dsh-plugin-dev-skill into `~/.agents/skills/dsh-plugin-dev-skill/`.
+
+A generic version that works with any agent:
+
+> Please install the skill from https://github.com/green-dalii/dsh-plugin-dev-skill into your skills directory (folder `dsh-plugin-dev-skill` containing `SKILL.md` and `References/`), then use it whenever the task involves developing DeepSeek Harness (DSH) plugins.
+
+### Option B — manual install
+
+| Agent / host | Location | Invocation |
+|---|---|---|
+| Claude Code (personal) | `~/.claude/skills/dsh-plugin-dev-skill/SKILL.md` | `/dsh-plugin-dev-skill`, or auto-loaded when the description matches |
+| Claude Code (project) | `<repo>/.claude/skills/dsh-plugin-dev-skill/SKILL.md` | same |
+| Codex CLI (user) | `~/.agents/skills/dsh-plugin-dev-skill/SKILL.md` | browse `/skills`, mention `$dsh-plugin-dev-skill` |
+| Codex CLI (repo) | `<repo>/.agents/skills/dsh-plugin-dev-skill/SKILL.md` | same |
+| DSH | `~/.dsh/skills/dsh-plugin-dev-skill/SKILL.md` | see the DSH section above |
+| Any Agent Skills host | `<skills-dir>/dsh-plugin-dev-skill/SKILL.md` | per host |
+
+Install with git clone (or symlink — both Claude Code and Codex follow symlinks, so `git pull` keeps the skill up to date):
+
+```sh
+git clone https://github.com/green-dalii/dsh-plugin-dev-skill.git ~/.claude/skills/dsh-plugin-dev-skill
+# or:
+ln -s /path/to/dsh-plugin-dev-skill ~/.claude/skills/dsh-plugin-dev-skill
+```
+
+Notes:
+
+- Keep the folder name `dsh-plugin-dev-skill` — it must match the frontmatter `name` (Claude Code uses it as the command name).
+- Extra frontmatter fields such as `whenToUse` are ignored by hosts that don't support them.
+- The skill body is currently authored in Chinese (matching the official DSH docs); code templates are language-neutral.
+- Bonus: DSH reads `.agents/skills` for project-level skills too, so one copy in `<repo>/.agents/skills/dsh-plugin-dev-skill/` serves both Codex and DSH.
+
 ## Sources
 
 - Official docs (中文 / English): https://deepseek-harness.github.io/deepseek-harness/develop/basic/
