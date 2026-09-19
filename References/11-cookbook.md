@@ -1,6 +1,6 @@
 # 11 · 扩展模式（Extension Cookbook）
 
-> 精简提炼自 reference/cookbook/extension-cookbook 与 reference/cookbook/adding-a-conversation-node。
+> 精简提炼自 reference/cookbook/extension-cookbook 与 reference/subsystems/conversation。
 > 代码片段省略 import 与辅助实现，不可直接复制运行——它们是模式参考。
 
 ## 1. 工具插件
@@ -35,11 +35,13 @@ export function apply(ctx: Context) {
 - 需要单调最终拒绝的不变式 → `ctx.tools.guard()`
 - 包裹实际分发生命周期（超时/重试/指标；仅 `exec.signal` 可替换）→ `tools/execute`
 - 显式结果变换 → `tools/post-execute`
+- 改写 `run_code` 子分派的持久日志副本 → `tools/ptc-dispatch-log`
 - 对不可变最终结果的受限观察 → `tools/result`
+- 工具集变化通知 → `tools/change`
 
 ## 3. UI 插件
 
-UI 插件从 `session/event` 事件流渲染（助手 token 流以 `assistant/chunk` 到达，加上轮次/步骤边界与工具活动），并通过 `agent.followup()` / `agent.steer()` 把输入驱动回去：
+UI 插件把**持久的** `session/event` record（Assistant settlement、轮次/步骤边界与工具活动）与**瞬态的** `agent/assistant-stream` frame（实时 token 呈现）组合起来渲染，并通过 `agent.followup()` / `agent.steer()` 把输入驱动回去：
 
 ```ts
 export const name = 'my-ui'
@@ -73,17 +75,17 @@ export function apply(ctx: Context) {
 
 ## 5. Conversation Node（向内置 Web Client 添加业务行）
 
-步骤（详见官方 `adding-a-conversation-node` 页面）：
+步骤（详见官方 Conversation 子系统参考）：
 
 1. 声明 `ConversationNodeDefinition`：节点类型（`chat`）、keyed renderer、schema/元数据。
-2. 在 `conversation/chat` 渲染注册表中注册 renderer。
+2. 在 `conversation.chat.node` keyed renderer 注册表中注册 renderer。
 3. 插件注册为 client 侧包（`dsh.client` manifest + `./client` 导出 + tsdown client preset——见 `cookbook/adding-a-package`）。
 
 ## 6. 可运行的组装示例
 
-- 产品 `dsh` 启动器负责 Web 与一次性 headless 执行。
-- ACP 叶子：`@deepseek-ai/dsh-acp-demo`；JSON-RPC 叶子：`@deepseek-ai/dsh-sdk-jsonrpc-demo`。
-- headless 快照叶子：显式挂载 `@deepseek-ai/dsh-agent-spine-demo` + JSONL 持久化，通过示例自有测试 fixture 驱动。
+交付应用通过 `packages/bundle/*/cordis.patch.yml` 提供 profile 层；产品 `dsh` 启动器用具名 profile 负责 Web、ACP、SDK 与一次性 headless 执行。可选用户 overlay 在 `apps/cli/config/examples/`；profile 集成测试在 `apps/cli/tests/profiles/`；包专属的 Loader 组合留在各包自己的测试目录里。
+
+（注意：上游已退役早先的顶层示例包——不要再按旧名 `dsh-acp-demo` / `dsh-sdk-jsonrpc-demo` / `dsh-agent-spine-demo` 去找参考实现；现在看 `@deepseek-ai/dsh-acp-app`、`dsh-sdk-app`/`dsh-sdk-minimal`、`dsh-sdk-jsonrpc-server` 等已交付包。）
 
 ## 7. 功能 → 机制映射（微内核宣言）
 
@@ -115,7 +117,7 @@ export function apply(ctx: Context) {
 
 ## 8. `system-prompt/assemble` 的注意义务
 
-`system-prompt/assemble` 是专家协作式的整体装配变换：**返回的装配结果具有权威性**，监听器作者有责任保留活跃的 Code Mode 与结构化输出协议的贡献。需要展示/查找/执行对齐的工具过滤，优先用 `ctx.tools.restrict()`。
+`system-prompt/assemble` 是专家协作式的整体装配变换：**返回的装配结果具有权威性**，监听器作者有责任保留活跃的 PTC mode 与结构化输出协议的贡献。需要展示/查找/执行对齐的工具过滤，优先用 `ctx.tools.restrict()`。
 
 ---
 
@@ -124,4 +126,4 @@ export function apply(ctx: Context) {
 > 本文为精简提炼，官方文档更新时请从以下 URL 获取新内容并修订本文：
 
 - **扩展插件形态（cookbook）**：https://deepseek-harness.github.io/deepseek-harness/reference/cookbook/extension-cookbook
-- **新增 Conversation Node（cookbook）**：https://deepseek-harness.github.io/deepseek-harness/reference/cookbook/adding-a-conversation-node
+- **Conversation 子系统（含 Conversation Node / keyed renderer）**：https://deepseek-harness.github.io/deepseek-harness/reference/subsystems/conversation

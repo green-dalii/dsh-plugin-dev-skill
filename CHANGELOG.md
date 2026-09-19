@@ -4,6 +4,50 @@
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-09-19
+
+对官方 DSH 文档与真实 SDK 做了全量复核（官方仓库自 0.1.0 起有大量更新），并据此修订全部内容。**SDK 基线：`@deepseek-ai/*` 0.1.5-rc.2（cordis 4.0.2）**。
+
+### 修复
+
+- **破坏性重命名同步**：
+  - `Code Mode` / `code-mode` → **PTC mode** / `ptc`（SKILL.md、References/03、08、11）
+  - `CallId` → **`ToolCallId`**（SKILL.md §2/§8、References/05）；旧名已从 `@deepseek-ai/dsh-llm` 删除，原示例代码在现行 SDK 下**无法编译**
+  - `LlmError(..., 'UNSUPPORTED')` → `'UNSUPPORTED_OPTION'`（SKILL.md、References/05）
+- **API 形状错误修正**：`ctx.waterfall(name, ...args, next)` → `ctx.waterfall(name, ...args)`（`next` 由分发器注入、只有监听器收到）；`bail` 补为同步方法且返回首个 bail 值；补 `waterfall` 有返回值、五种分发均有 `(thisArg, name, ...)` 重载。
+- **删除不存在的 API**：`ctx.scope`（References/09）——作用域由 `@deepseek-ai/dsh-scope` 的 `createScope`/`scopeOf`/`scopeTarget` 承担。
+- **卡片词汇收窄**：`presentCall` 仅 `'generic' | 'terminal' | 'diff'`；`'search' | 'web' | 'read'` 只属 `presentResult`（SKILL.md §4）。
+- **嵌套 schema DSL 精确化**：参数属性 `required` 只能写 `true` 或省略（写 `false` 会类型报错）；object 节点必须显式声明 `additionalProperties` 且**没有 `required: [...]` 数组**（必填靠每个属性自己的 `required: true`）；补 `type: 'json'` 节点与 `oneOf` 至少 2 个分支。
+- **失效链接修复**：`adding-a-conversation-node` 页已被上游移除（改指 `reference/subsystems/conversation`）；`defensive-patterns`、`event-producer-consumer`、`architecture`、`glossary` 等**未发布到文档站**（改指 GitHub 源码链接）；移除 404 的 `turtle-ui` 链接。
+- 示例包引用修正：上游已退役 `dsh-acp-demo` / `dsh-sdk-jsonrpc-demo` / `dsh-agent-spine-demo`，改为现行 `dsh-acp-app`、`dsh-sdk-app` 等（References/11）。
+- UI 插件模式更新：持久 `session/event` record + 瞬态 `agent/assistant-stream` frame；keyed renderer 注册键为 `conversation.chat.node`。
+
+### 新增
+
+- **PTC mode 完整语义**（References/03 §8）：`mode: native | ptc | both`；`ptc` 下 model-direct 调用只能写 `run_code`，程序内子分派才能调用全部可见工具；需要带 SDK 渲染器的 code runtime；`maxParallelSubCalls` 默认 10。
+- **作用域过滤分发（scoped dispatch）与事件生产方契约**（References/06、References/09、SKILL.md §7）：`Scoped<Agent>` + `scopeTarget` carrier、祖先链向上流动、`{ global: true }` 逃生舱、注册表主体事件有意不过滤；生产方的 `@mode` 声明、监听器异常隔离、payload 只读且可无损 JSON、`emit`/`bail` 同步限制。
+- **工具新增机制**：定义级运行时元数据 `timeoutMs` / `isConcurrencySafe`（只有精确 `true` 才并行）/ `finalizeContent`；`exec.deferContext()` / `exec.concludeTurn()`；`ctx.tools.presentAs()` 按作用域切换呈现；事件 `tools/ptc-dispatch-log`、`tools/change`。
+- **配置**：校验是**同步**的（schema 返回 Promise 会抛 `TypeError: Async config validation is not supported`）；`Config` 可整体省略；校验失败以 `ValidationError` 停在 `FAILED`、`apply` 不执行；`ctx.settings.installSection()` 上 Web 设置页；HMR 的真实前提（`patchReload: live` + base 的 `hmr` 行默认 `disabled: true`、模块热替换需显式开启）。
+- **打包发布**：`dsh --from-default-profile <template>` 与随附 profile 模板（`web`/`headless`/`sdk`/`sdk-minimal`/`acp`，保留名 `desktop`）；`dsh.profile.patchReload`；`--dump-default-config`；profile 目录第三个文件 `pnpm-workspace.yaml`；相对 spec 按调用目录锚定；组合包成员变化需重启；内置组合包**两级解析**与运行时依赖归属；已构建 tarball / 本地 checkout 不需要 `allowBuilds`。
+- **LLM 适配器**：`StreamChunk` 分片全集（补 `reasoning-delta` 与 `finish` 的 `max-tokens`/`error`/`aborted`）、`TokenUsage` 计数互不重叠规则、`AdapterRegistrationHandle.replace()`、`registerConfigurableProviders()`/`registerModelDiscovery()`、`providerInfo()`/`listModels()`/`imageRequestPricing()`、`LlmFailure` 与规范错误码（`CONTEXT_WINDOW_EXCEEDED`/`QUOTA`/`EMPTY_RESPONSE`）、`@deepseek-ai/dsh-llm-retry` 策略、`streamIdleTimeoutMs`、`ReplayEnvelope`、提供方扩展注册表。
+- 能力 seam 目录大幅扩充（覆盖约 82 个 `ctx.*` 服务），并区分**本地 0.1.5-rc.2 尚未出现**的上游 seam（References/08）。
+- `ctx.skills` 补全发现根与 rank、kebab-case 命名、`<name>/SKILL.md` / `<name>.md`（不递归）、frontmatter 必填/可选键（References/08）。
+- `References/00-INDEX.md` 新增**术语对照表**（上游重命名备忘）与「站点文档 vs 仓库文档」说明。
+- 心智模型补「没有特权内核」（含 agent loop 可替换）、随附 profile 名录、三个事件域、步骤/轮次定义；能力分层补硬约束「Definition 必须是 Cordis `Service`，绝不能是 TS `interface`」。
+
+### 变更
+
+- **SKILL.md 顶部声明 SDK 基线**（0.1.5-rc.2 / cordis 4.0.2），并在相关位置标注上游文档领先于已发布 SDK 的差异（如 `ctx.codeRuntime` → `ctx.ptcRuntime`）。
+- **README 新增「相关项目 / Related projects」章节**：`dsh-shift-router`、`pi-shift-router`、`GD4AI/obsidian-llm-wiki`、`obsidian-llm-wiki-cli` 的极简介绍（中英双语）。
+- README 补全 skill 发现根（rank 300 `customSkillDirs`、500 `~/.agents/skills`、600 内置）与「发现不递归」说明。
+- `References/11-cookbook.md` 的「可运行的组装示例」改写为当前上游口径（`packages/bundle/*/cordis.patch.yml` + 具名 profile）。
+
+### 验证
+
+- 全部模板对真实 `@deepseek-ai/*` 0.1.5-rc.2 通过 `tsc --strict` 类型检查（tool 基础/复杂/oneOf、config、service+consumer、typed events、LLM adapter）。
+- 项目中 **44 个**官方文档站 / GitHub 源码 URL 全部实测 HTTP 200。
+- 关键破坏性结论均以 SDK 类型定义与实现源码为证据（如 `CallId` 已不导出、`ctx.scope` 不存在、`bail` 为同步）。
+
 ## [0.2.0] - 2026-08-15
 
 ### 新增

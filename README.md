@@ -11,6 +11,8 @@ A skill pack that enables **any agent** to develop **DeepSeek Harness (DSH)** pl
 **Core deliverable**: [`SKILL.md`](SKILL.md) — an operating manual an agent can load directly, covering the mental model, copy-pasteable code templates, a step-by-step development workflow, and a verification checklist. Deeper background lives in the condensed reference docs under [`References/`](References/00-INDEX.md).
 
 > Note: the skill itself (`SKILL.md`) and the reference docs are currently authored in Chinese (matching the official DSH documentation). Code templates and API names are language-neutral.
+>
+> **SDK baseline**: API statements are verified against the real `@deepseek-ai/*` **0.1.5-rc.2** type definitions (cordis 4.0.2). Where upstream docs run ahead of the published SDK (e.g. the `ctx.codeRuntime` → `ctx.ptcRuntime` seam rename), the difference is flagged in the relevant reference doc.
 
 ## Highlights
 
@@ -52,13 +54,16 @@ dsh-plugin-dev-skill/
 
 ## Install as a DSH skill (optional)
 
-The DSH skill system accepts both directory bundles (`<name>/SKILL.md`) and flat Markdown files (`<name>.md`). Local discovery roots, in priority order:
+The DSH skill system accepts both directory bundles (`<name>/SKILL.md`) and flat Markdown files (`<name>.md`). Discovery is **not** recursive (`**/SKILL.md` is deliberately unsupported). Local discovery roots, in priority order:
 
 | Root | Scope |
 |---|---|
 | `<projectRoot>/.dsh/skills` | Project (rank 100) |
 | `<projectRoot>/.agents/skills` | Project (rank 200) |
+| `customSkillDirs` (host config) | Host-configured (rank 300) |
 | `$DSH_HOME/skills` (i.e. `~/.dsh/skills`) | User (rank 400) |
+| `$DSH_HOME/../agents/skills` (i.e. `~/.agents/skills`) | User agents home (rank 500) |
+| bundled skill directory | Shipped with DSH (rank 600) |
 
 Example — install as a user-level skill (the folder name must match the `name` in the SKILL.md frontmatter, `dsh-plugin-dev-skill`):
 
@@ -121,6 +126,17 @@ Notes:
 - Paper: *A Programming Paradigm for Spatiotemporal Composability* (the academic foundation of Cordis): https://github.com/cordiverse/paper/blob/main/paper.pdf
 
 All reference docs are **condensed digests** (not verbatim copies of the official docs), organized around the goal of "developing correct, efficient, convention-compliant plugins".
+
+## Related projects
+
+Other projects by the same author:
+
+| Project | What it is |
+|---|---|
+| [`green-dalii/dsh-shift-router`](https://github.com/green-dalii/dsh-shift-router) | A **two-tier model router for DSH**: LLM-Judge routing, multi-model fallback chains, exponential-backoff runtime failover, and task-level orchestration. Also a real-world DSH plugin built with the conventions in this skill. |
+| [`green-dalii/pi-shift-router`](https://github.com/green-dalii/pi-shift-router) | The original Pi coding-agent extension that `dsh-shift-router` adapts: an LLM judge routes every agent turn to the right model — fast execution for routine work, smart reasoning for hard problems — with multi-model failover. [Homepage](https://shiftrouter.greenerai.top) |
+| [`GD4AI/obsidian-llm-wiki`](https://github.com/GD4AI/obsidian-llm-wiki) | Obsidian community plugin (id `karpathywiki`) implementing Karpathy's LLM Wiki: turns notes and PDFs into a linked, LLM-powered knowledge base with entity/concept pages, graph-powered Q&A, and local-first privacy. [Homepage](https://llmwiki.greenerai.top) |
+| [`green-dalii/obsidian-llm-wiki-cli`](https://github.com/green-dalii/obsidian-llm-wiki-cli) | Headless ingest CLI (npm [`karpathywiki-cli`](https://www.npmjs.com/package/karpathywiki-cli), `llm-wiki` binary) that runs the plugin's production `WikiEngine` under Node — no Obsidian renderer, zero `obsidian` imports. |
 
 ## Contributing
 

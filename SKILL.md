@@ -8,6 +8,8 @@ whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool
 
 > 让任何 Agent 都能正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。
 > 本技能是 DSH 插件开发的操作手册：先给出心智模型与铁律，再给出可直接照抄的代码模板与分步流程，最后给出验证清单。深度背景见 `References/` 目录下的精简提炼文档。
+>
+> **SDK 基线**：本文 API 陈述以 `@deepseek-ai/*` **0.1.5-rc.2**（cordis 4.0.2）的类型定义实测为准。上游文档偶尔领先于已发布 SDK（例如 seam 改名 `ctx.codeRuntime` → `ctx.ptcRuntime`、`dsh-experimental-auto-review`、Plugin Manager 等），这类差异在各 `References/` 文件中均已标注；升级 SDK 后请按对应文件末尾的官方链接复查。
 
 ---
 
@@ -28,6 +30,12 @@ whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool
 ## 1. 心智模型：DSH 是构建在 Cordis 之上的插件化系统
 
 一句话概括：**DeepSeek Harness 是一个 Agent Harness SDK，其中每一项能力——工具、LLM 适配器、文件访问、agent loop 本身——都是一个插件（component），挂载到一个共享的上下文（context）上。**
+
+**没有特权内核**：DSH 没有「核心源码」可供打补丁——扩展方式是挂载插件，而不是修改循环。工具（`dsh-tools`）、LLM 运行时（`dsh-llm`）、文件系统（`dsh-fs`）、沙箱、持久化，乃至 **agent loop 本身**都是可替换的插件；换掉某个能力通常只是改 `cordis.yml` 里的提供方。
+
+随发行版交付的可启动 profile：`web`、`headless`、`sdk`、`sdk-minimal`、`acp`（`desktop` 被 CLI 保留但不直接启动）。用户自有 profile 位于 `$DSH_HOME/profiles/<name>`。
+
+**三个事件域**（动手前第一个决定就是选对事件域）：① **会话事件**——`session/event` 中持久化的 `turn/*`、`step/*`、`tool/call`、`tool/result`；② **agent 事件**——`agent/*`，围绕一次 agent 生命周期与步骤边界；③ **能力事件**——`tools/*`、`llm/*`、`fs/*` 等子系统各自的扩展点。术语：**步骤（step）= 一次模型请求及其工具调用**；**轮次（turn）= 0..n 个步骤**，以「没有待执行工具调用」结束。
 
 三个核心概念（来自论文《A Programming Paradigm for Spatiotemporal Composability》，见 `References/10-spatiotemporal.md`）：
 
@@ -55,7 +63,7 @@ whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool
   - `@deepseek-ai/cordis` — 插件框架（context、fiber、事件、注册表）
   - `@deepseek-ai/schemastery` — 配置 schema 校验（Standard Schema 实现）
   - `@deepseek-ai/dsh-tools` — `defineTool` 与工具注册表服务
-  - `@deepseek-ai/dsh-llm` — `LlmAdapter`、`StreamChunk`、`GenerateOptions`、`CallId`
+  - `@deepseek-ai/dsh-llm` — `LlmAdapter`、`StreamChunk`、`GenerateOptions`、`ToolCallId`（注意：旧名 `CallId` 已废弃，SDK 不再导出）
   - 各能力 seam 包：`dsh-shell`、`dsh-session`、`dsh-agent`、`dsh-system-prompt`、`dsh-fs`、`dsh-jobs`、`dsh-credentials` 等（完整清单见 `References/08-capability-layering.md`）
 - 两个开发入口（任选）：
   - **源码检出**（推荐，教程场景）：克隆 `deepseek-ai/deepseek-harness`，`pnpm install`，用 `pnpm dsh web --patch <你的cordis.yml>` 启动 Web UI，用 `node --import tsx ../../vendor/cordis/bin.js` 跑纯 Cordis 教程示例。
@@ -93,9 +101,17 @@ export function apply(ctx: Context) {
    export function apply(ctx: Context) { /* ... */ }
    ```
 2. **对象形态**：`export default { name, inject, apply(ctx) {} }`
-3. **类形态**（需要对外提供服务时）：`export default class MyService extends Service { constructor(ctx) { super(ctx, 'myService') } }`
+3. **类形态**（需要对外提供服务时）：`export default class MyService extends Service { static inject = [...]; constructor(ctx) { super(ctx, 'myService') } }`
+
+三种形态共享同一组静态元数据：`name`、`Config`、`inject`、`provide`、`intercept`；类形态用 `static inject` / `static provide`。
+
+**带配置的形态**：`export function apply(ctx: Context, config: Config)` —— 第二个参数是校验后（已填默认值）的配置对象，见 §5。
 
 > 在需要提供服务之前一律用函数形态。
+
+**加载失败语义**：`Config` 校验失败时插件以 `ValidationError` 停在 `FAILED`，`apply` 永不执行——所以「配置错误要响亮」是免费的，前提是你真的声明了 schema。
+
+**HMR 提醒**：默认只热重载**配置**；插件模块（代码）变更通常仍需重启进程（profile 层的 `patchReload` 可调整，见 `References/07-publish.md`）。
 
 ---
 
@@ -133,17 +149,19 @@ export function apply(ctx: Context) {
 
 ### defineTool 的完整契约（务必遵守）
 
-- **`parameters`**：参数 schema 映射，根是隐式开放对象；每属性可 `required: true`。支持 `string`/`number`/`integer`/`boolean`/`null`/`array`/`object`/`oneOf`；显式 object 节点必须声明 `additionalProperties: true | false`。
-- **`output.schema`**：声明 `execute` 返回的规范 JSON 值（对象/数组/标量/null 皆可）。这是给**程序化调用方**（Code Mode 的 `await tools.xxx()`）用的 API，要设计成直接返回句柄与字段；**面向人的解释放 `output.render`**。
+- **`parameters`**：参数 schema 映射，根是隐式开放对象；每属性用 `required: true` 标注必填（**只能写 `true` 或省略**——写 `required: false` 会类型报错）。支持 `string`/`number`/`integer`/`boolean`/`null`/`array`/`object`/`json`（无约束的任意 JSON 值）/`oneOf`（至少 2 个分支）。
+- **嵌套 object 节点**：写 `{ type: 'object', properties: { ... }, additionalProperties: false }`——`additionalProperties` **必须显式声明**（否则会拿到意外的 JSON Schema 默认开放语义）；并且**没有 `required: [...]` 数组**，必填同样靠每个属性自己的 `required: true`。
+- **`output.schema`**：声明 `execute` 返回的规范 JSON 值（对象/数组/标量/null 皆可）。这是给**程序化调用方**（PTC mode 的 `await tools.xxx()`）用的 API，要设计成直接返回句柄与字段；**面向人的解释放 `output.render`**。
 - **`execute(args, exec)`**：
   - args 已经过运行时校验，但 schema DSL 表达不了的约束（非空字符串、正数、跨字段）要自己 `throw new Error(...)`。
   - 返回 `output.schema` 声明的规范值。**不要返回内容块**，不要逼调用方从自然语言里解析 id。
   - 遵守 `exec.signal`：信号触发时取消进行中的工作。
   - 基础设施故障（抛异常/无效返回值）→ 结果标记为 `isError`。**成功但结果不理想**（如非零退出码）→ 仍返回规范值，在 render 里解释。
+  - 组合工具可额外用 `exec.deferContext(msg)` 把上下文延迟到本工具 `tool/result` 之后再交给循环（按调用序），或用 `exec.concludeTurn()` 标记本成功结果为当前轮次终点。
 - **`output.render(args, value)`**：纯函数，把规范值转成 `ContentBlock[]`（模型看到的文本）。绝不在此做 I/O、读会话状态。
 - **可选 `output.presentationMeta(args, value)`**：从规范值派生可回放的 UI 元数据（纯函数）。
-- **可选 `presentCall(args)` / `presentResult(args, result)`**：声明工具在 UI 中的卡片渲染意图（`card: 'generic' | 'terminal' | 'diff' | 'search' | 'web' | 'read'`）。必须**纯函数**（会在实时流和会话回放中运行），不做 I/O。
-- **不要**把 `timeoutMs`、`isConcurrencySafe`、`finalizeContent` 等运行时元数据当作模型可见 schema——它们不会泄漏给模型。
+- **可选 `presentCall(args)` / `presentResult(args, result)`**：声明工具在 UI 中的卡片渲染意图。`presentCall` 可用 `'generic' | 'terminal' | 'diff'`；`presentResult` 额外支持 `'search' | 'web' | 'read'`。必须**纯函数**（会在实时流和会话回放中运行），不做 I/O。
+- **定义级运行时元数据**（都不进入模型请求，`schemas()` 只白名单 name/description/parameters）：`timeoutMs`（协作式超时预算，由 `@deepseek-ai/dsh-tool-call-timeout-policy` 强制）、`isConcurrencySafe(args)`（**只有精确返回 `true`** 才允许与兄弟调用并行，否则独占并构成排序屏障）、`finalizeContent(exec, result)`（对每个归一化结果恰好一次的最终内容变换，必须全函数、不抛错）。语义细节见 `References/03-tools.md` §2。
 - 参数不可变：把 `args` 当只读；注册后不要改 schema 或替换回调。
 
 ### 长时间运行的任务（后台任务）
@@ -152,7 +170,7 @@ export function apply(ctx: Context) {
 
 ```ts
 const jobs = ctx.get('jobs')
-if (!jobs) throw new Error('background jobs unavailable: load @deepseek-ai/dsh-jobs')
+if (!jobs) throw new Error('background jobs unavailable: load @deepseek-ai/dsh-jobs and @deepseek-ai/dsh-tool-jobs')
 return {
   kind: 'background',
   jobId: jobs.start({
@@ -174,9 +192,13 @@ return {
 | `ctx.tools.guard()` | 单调守卫 | 最终拒绝，后续监听器无法撤销（返回 reason 即拒绝） |
 | `tools/execute` | waterfall | 包裹分发：超时/重试/指标；可替换 `exec.signal` 但不可移除 |
 | `tools/post-execute` | waterfall | 替换内容/值、阻止结果、附加模型上下文 |
+| `tools/ptc-dispatch-log` | waterfall | 改写 `run_code` 子分派**持久日志副本**的内容（返回 `ContentBlock[]`；程序本身已收到完整值） |
 | `tools/result` | emit | 只读观测不可变最终结果（日志、审计） |
+| `tools/change` | emit | 工具集变化通知（不受作用域过滤；影响每个 agent 的下一次装配） |
 
 策略不要内建进工具；把部署策略放进钩子插件（普通 Cordis 插件监听这些事件即可，如权限门禁示例见 `References/11-cookbook.md`）。
+
+需要**同一进程内让不同 agent 用不同呈现方式**（PTC 与 native 并存）时，用 `ctx.tools.presentAs('native' | 'ptc' | 'both')` 按作用域声明，就近作用域胜出；进程级默认值走 `dsh-tools` 的 `mode` 配置。
 
 ---
 
@@ -215,10 +237,14 @@ export function apply(ctx: Context, config: Config) {
 ```
 
 要点：
-- **`Config` 必须是一个 Standard Schema 对象**（用 Schemastery 构建），不能导出普通对象。
+- **`Config` 必须是一个 Standard Schema 对象**（用 Schemastery 构建），不能导出普通对象——Cordis 只接受 Standard Schema 接口。
+- **校验必须是同步的**：schema 返回 Promise 会让 Cordis 抛 `TypeError: Async config validation is not supported`。`Config` 也可以整体省略（等于无校验、无默认值、配置原样透传）。
+- 校验失败 → fiber 停在 `FAILED`，`apply` 不执行，CLI 非零退出。错误信息形如 `$.targets expected array but got not-an-array (at targets)`。
 - 常用构造：`Schema.string().required()` / `.default(x)`、`Schema.number()`、`Schema.boolean()`、`Schema.array(String)`、`Schema.union(['a','b'])`、`Schema.object({...})` 嵌套。
-- 支持 `!!js` 表达式在加载时求值（如 `greeting: !!js process.env.GREETING ?? 'Hello'`）；`!!js` 仅对 `config` 与 `disabled` 字段有效。
-- 配置变更会触发 HMR：旧实例卸载（注册自动清理）→ 新实例加载。**不要在插件外部缓存配置**。
+- 支持 `!!js` 表达式在加载时求值（如 `greeting: !!js process.env.GREETING ?? 'Hello'`），在 `config` 内**递归生效**；`!!js` 仅对 `config` 与 `disabled` 字段有效。注意 `--dump-config` 原样打印 `!!js` 而不求值。
+- 配置变更触发旧实例卸载（注册是 effect，自动清理）→ 新实例加载。**不要在插件外部缓存配置**。
+- HMR 有前提：配置热重载靠 profile 的 `patchReload: live`（自定义 profile 默认值，由 launcher 的只监视 patch 文件的回退承担）；**源码模块热替换是按 profile 显式开启的**（base 的 `hmr` 行默认 `disabled: true`）。
+- 想让配置出现在 Web「插件配置」页：用 `ctx.settings.installSection(...)`，细节见 `References/04-config.md` §7。
 
 ---
 
@@ -233,7 +259,7 @@ export function apply(ctx: Context) {
 }
 ```
 
-可选依赖：不写 `inject`，使用时 `ctx.get('service')` 探测（返回 `undefined` 表示没有提供方）。
+`inject` 也支持对象形式（服务名 → 拦截配置）。**可选依赖**：不写 `inject`，使用时 `ctx.get('service')` 探测（`undefined` 表示没有可用提供方；`strict` 默认 `true`，只返回提供方 fiber 处于 `ACTIVE` 的实现）。
 
 ### 提供服务（提供方）
 
@@ -262,13 +288,15 @@ export function apply(ctx: Context) {
 }
 ```
 
-低层 API（不常用但要知道）：`ctx.provide(name, value)` 注册服务实现（effect，卸载自动注销）、`ctx.set/get` 读写存储、`ctx.accessor` 定义计算属性、`ctx.mixin` 把服务成员挂到 ctx 上。
+**轻量替代（无需写类）**：`ctx.provide(name, value, check?)` 直接注册服务实现（effect，卸载自动注销）。第三个参数 `check` 是可用性谓词，依赖方据此判断是否就绪——需要「已注册但暂时不可用」的中间态时用它。
+
+其他低层 API：`ctx.set/get` 读写存储（对未提供的名字 `set` 会抛错）、`ctx.accessor` 定义计算属性、`ctx.mixin` 把服务成员挂到 ctx 上。
 
 ### 服务行为语义（理解而非背诵）
 
 - `inject` 不是一次性启动检查：运行期间必需服务消失 → 依赖插件自动 dispose；服务恢复 → 自动重载。这保证消费方永远不会持有对已卸载服务的引用。
-- 服务名是**扁平全局命名空间**：`tools`、`llm` 等已被占用；自有服务名要有辨识度前缀（如 `myCap`、`metrics`）。
-- **服务隔离**：`cordis.yml` 中用 group + `isolate` 让不同插件组看到同一服务名的不同实例（如两组各自配置不同 timeout 的 `shell` 提供方）。
+- 服务名共用**扁平命名空间**：`tools`、`llm` 等已被占用，自有服务名要加辨识度前缀（如 `myCap`、`metrics`）。**服务名与公开方法以子系统页面生成的 `cordis-surface` 区块和 TS 接口为准，不要自己维护静态清单。**
+- **服务隔离**：`cordis.yml` 中用 group + `isolate` 让不同插件组看到同一服务名的不同实例（如两组各自配置不同 timeout 的 `shell` 提供方）；隔离后同名服务按 scope 分别解析。
 
 ---
 
@@ -279,10 +307,10 @@ export function apply(ctx: Context) {
 | 模式 | 调用 | 语义 |
 |---|---|---|
 | `emit` | `ctx.emit(name, ...args)` | 同步广播，不等待、不收集返回值 |
-| `parallel` | `await ctx.parallel(...)` | 所有监听器并发运行并等待 |
-| `serial` | `await ctx.serial(...)` | 按序执行等待，第一个非 null/false/undefined 返回值胜出并停止 |
-| `bail` | `ctx.bail(...)` | serial 的同步版 |
-| `waterfall` | `await ctx.waterfall(name, ...args, next)` | 环绕中间件；监听器收到 `next`，包装下游返回值 |
+| `parallel` | `await ctx.parallel(name, ...args)` | 所有监听器并发运行并等待（返回 `Promise<void>`） |
+| `serial` | `await ctx.serial(name, ...args)` | 按序 await，首个非 null/false/undefined 返回值胜出并终止后续 |
+| `bail` | `ctx.bail(name, ...args)` | serial 的**同步**版，返回首个 bail 值（不是 Promise） |
+| `waterfall` | `await ctx.waterfall(name, ...args)` | 环绕中间件；**监听器**额外收到内置 `next`，包装下游返回值；返回最外层监听器的返回值 |
 
 **waterfall 铁律：只观察/标注的监听器必须调用 `next()`；不调用 `next()` 直接返回 = 有意短路（否决/拦截）。** 忘记调用 `next()` 会静默吞掉下游默认行为。
 
@@ -297,17 +325,32 @@ declare module '@deepseek-ai/cordis' {
 }
 ```
 
-事件命名约定 `namespace/action`（如 `agent/step`、`tools/result`、`session/event`）。监听器用 `ctx.on()` 注册即自动随插件卸载清理。
+事件命名约定 `namespace/action`（如 `agent/step`、`tools/result`、`session/event`）。监听器用 `ctx.on()` 注册即自动随插件卸载清理（返回 disposer）；`ctx.once()` 只触发一次；选项支持 `{ prepend: true }`（插到现有监听器之前）与 `{ global: true }`（跳过作用域过滤）。
+
+### 作用域过滤分发（最容易踩的坑）
+
+Harness 中「关于某个 agent 的活动」的事件（`agent/*`、`tools/*`、`session/*`、`system-prompt/assemble`）以该 agent 的 **scope carrier** 作为 `thisArg` 分发，监听器按注册上下文的作用域标签过滤：
+
+- 事件签名写作 `(this: Scoped<Agent>, payload)`；分发方传 carrier（`ctx.emit(scopeTarget(agent, agent), 'agent/status', payload)`）。
+- 无标签监听器（普通 `ctx.on`）收到全部事件；带标签监听器（在 `agent.ctx` 上注册）只收到**本 scope 及其祖先链**的事件——事件向上流动，绝不向下。
+- 注册表主体事件（如 `tools/change`）**有意不过滤**：全局变化对所有 agent 的下一次装配都成立。
+- 关键区别：通过 `agent.ctx` 注册只决定 **effect 的作用域归属**；分发是否过滤始终取决于分发方是否传 carrier。
+
+### 自己发事件时（生产方契约）
+
+- 命名 + 在声明处标 `@mode`，只按声明的模式分发（类型系统强制方法名）。
+- **隔离监听器异常**：一个抛错的订阅者不得 reject 分发 promise，也不得饿死后面的监听器——分发循环用 try/catch 包裹并记录。
+- payload 视为只读且可无损 JSON 序列化；`emit` / `bail` 是同步的，不要在其中做异步工作。
 
 ### 常用 Harness 事件（开发时经常用到）
 
-- `tools/pre-execute` / `tools/execute` / `tools/post-execute` / `tools/result` — 工具流水线（见上表）
-- `agent/*`（`agent/request`、`agent/pre-step`、`agent/session-start`、`agent/turn-stopping` 等）— agent 生命周期与请求构造
-- `session/event` — 持久化的会话事件流（`turn/*`、`step/*`、`tool/call`、`tool/result`、`assistant/chunk` 都是这里的 `event.type`，**不是**同名 Cordis 事件）
+- `tools/pre-execute` / `tools/execute` / `tools/post-execute` / `tools/ptc-dispatch-log` — waterfall；`tools/result` / `tools/change` — emit（工具流水线见上表）
+- `agent/request`（waterfall，替换冻结的模型调用配置）、`agent/request-error`（waterfall，单次请求失败的重试策略）、`agent/pre-step`（waterfall）、`agent/session-start`（emit）、`agent/assistant-stream`（emit，进程内实时流分片）、`agent/turn-stopping`（serial，轮次停止边界，异议者用 `agent.steer()` 继续跑）
+- `session/event` — 持久化的会话事件流（`turn/*`、`step/*`、`tool/call`、`tool/result`、`assistant/chunk` 都是这里的 `event.type`，**不是**同名 Cordis 事件）；另有 `session/created` / `session/disposed`（emit）、`session/flush`（parallel）
 - `approval/request` — 审批 waterfall
-- `system-prompt/assemble` — 系统提示词整体装配（权威返回，监听者有责任保留既有贡献）
+- `system-prompt/assemble` — 系统提示词整体装配（作用域过滤；权威返回，监听者有责任保留既有贡献）
 
-完整签名/触发模式见各子系统页面生成的 `cordis-surface` 区块（`References/08-capability-layering.md` 有指引）。
+完整签名与分发模式见各子系统页面生成的 `cordis-surface` 区块（`References/08-capability-layering.md` 有指引）；**谁派发、谁监听**查官方 `event-producer-consumer` 矩阵（该页未发布到文档站，链接见 `References/06-framework-services-events.md`）。
 
 ---
 
@@ -343,14 +386,16 @@ export function apply(ctx: Context, config: Config) {
 ### StreamChunk 协议（严格遵守）
 
 ```ts
+import { ToolCallId, type StreamChunk } from '@deepseek-ai/dsh-llm'
+
 async function* chunks(): AsyncIterable<StreamChunk> {
   yield { type: 'block-start', index: 0, blockType: 'text' }
   yield { type: 'text-delta', index: 0, text: 'Hello' }
   yield { type: 'block-end', index: 0, block: { type: 'text', text: 'Hello world' } }
   // 工具调用块：
   yield { type: 'block-start', index: 1, blockType: 'tool-call' }
-  yield { type: 'tool-call-delta', index: 1, id: CallId('c1'), name: 'bash', argumentsDelta: '{"command":"ls"}' }
-  yield { type: 'block-end', index: 1, block: { type: 'tool-call', id: CallId('c1'), name: 'bash', arguments: '{"command":"ls"}' } }
+  yield { type: 'tool-call-delta', index: 1, id: ToolCallId('c1'), name: 'bash', argumentsDelta: '{"command":"ls"}' }
+  yield { type: 'block-end', index: 1, block: { type: 'tool-call', id: ToolCallId('c1'), name: 'bash', arguments: '{"command":"ls"}' } }
   yield { type: 'usage', usage: { inputTokens: 100, outputTokens: 50 } }   // 必须在 finish 前
   yield { type: 'finish', reason: { kind: 'stop' } }                        // 必须最后
 }
@@ -361,7 +406,7 @@ async function* chunks(): AsyncIterable<StreamChunk> {
 ### 错误与元数据
 
 - 传输/协议故障：`throw new LlmError(msg, 'STABLE_CODE')`（带稳定 code），不要依赖普通 `Error` 自动转换。
-- 提供方不支持 `GenerateOptions` 中的某个字段：`throw new LlmError(..., 'UNSUPPORTED')`，绝不静默丢弃。
+- 提供方不支持 `GenerateOptions` 中的某个字段：`throw new LlmError(..., 'UNSUPPORTED_OPTION')`，绝不静默丢弃。
 - 每个 HTTP 请求合并 `attributionHeaders()`，并传递 `options.signal`。
 - 可选：覆写 `resolveModel()`（返回提供方/模型身份 + 可选 context/reasoning 元数据）与 `listModels()`（公布模型选项）。
 
@@ -374,10 +419,15 @@ async function* chunks(): AsyncIterable<StreamChunk> {
 当一个能力需要可替换的提供方（如 Bash 执行），拆成三个角色、放入不同包：
 
 1. **Service Definition**（如 `dsh-shell`）：定义 Cordis 服务接口 + Request/Result 类型。`abstract class MyCapService extends Service { super(ctx,'myCap'); abstract execute(req): Promise<res> }`
+
+   > **硬约束**：Definition **必须是一个 Cordis `Service`**（抽象类或具体注册表），**绝不能是 TypeScript `interface`**——接口在运行时不存在，无法参与服务解析。术语「seam」指 Definition + Provider + Consumer 这**三个角色的整体**，不是单指接口。
+
 2. **Service Provider**（如 `dsh-bash-local`）：实现接口。`class MyCapLocal extends MyCapService { ... }`；`apply(ctx){ ctx.plugin(MyCapLocal) }`
 3. **Consumer**（如 `dsh-tool-bash`）：把能力暴露为模型工具。`inject: ['tools','myCap']`
 
 **依赖方向**：Provider 依赖 Definition；Consumer 依赖 Definition；Provider 与 Consumer **互不依赖**。更换提供方只改 `cordis.yml` 一行，Definition 与 Consumer 不动。
+
+> **先看有没有现成的扩展点**：只想附加策略或适配器时**不要新增 seam**——优先挂已有的事件/钩子（见 §7 与 `References/11-cookbook.md`）。完整 seam 目录见 `References/08-capability-layering.md`。
 
 > **不要预防性拆分**：只有角色需要独立演进才拆包。简单工具插件一个包就够。
 
@@ -388,7 +438,15 @@ async function* chunks(): AsyncIterable<StreamChunk> {
 ### 两个概念
 
 - **组合包（bundle）**：附带一个配置层的 npm 包，manifest 声明 `dsh.bundle`。是你编写并分发的东西。
-- **profile**：位于 `$DSH_HOME/profiles/<name>` 的可启动组合，manifest 声明 `dsh.profile`（含有序 `bundles` 列表）。是用户启动的东西。
+- **profile**：位于 `$DSH_HOME/profiles/<name>` 的可启动组合，manifest 声明 `dsh.profile`（含有序 `bundles` 列表，可选 `patchReload: 'live' | 'startup'`，默认 `live`）。是用户启动的东西。
+
+**不要手写 profile manifest**：`web` / `headless` / `sdk` / `sdk-minimal` / `acp` 首次使用时自动从随附模板初始化。要派生自定义 profile：
+
+```sh
+dsh --profile demo --from-default-profile web    # 从随附模板派生（不复制依赖与 patch）
+```
+
+目标名不能是随附模板名，也不能用保留名 `desktop`。
 
 ### 打包一个组合包
 
@@ -422,10 +480,15 @@ hello-plugin/
 
 ```sh
 dsh plugin --profile demo add ./hello-plugin        # 或 github:you/hello-plugin，或 npm 包名
-dsh --profile demo --dump-config                    # 先验证配置层
+dsh plugin --profile demo add .                     # 相对 spec 按调用目录锚定 → 装当前 checkout
+dsh --profile demo --dump-config                    # 先验证完整配置层（含 --patch）
+dsh --profile demo --dump-default-config            # 只看组合包各层（不能与 --patch 同用）
 dsh --profile demo                                  # 再启动
 dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 ```
+
+- `add` 后 `dsh.profile.bundles` 会按依赖顺序**重算**；组合包成员变化后**需要重启 profile**；profile / `$DSH_HOME` 的 `cordis.patch.yml` 编辑在 `patchReload: live` 时热重载。
+- 包只有在声明了 `dsh.bundle` 时才会作为组合包生效；`update` 后才获得声明的包会被自动激活。
 
 ### 配置层顺序（理解覆盖语义）
 
@@ -434,13 +497,15 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 3. `$DSH_HOME/cordis.patch.yml`（机器级偏好）
 4. 每个 `--patch <path>` overlay（按 argv 顺序）
 
-**后应用者按行胜出，且 patch 会替换目标行整个 `config` 值（不是深合并）**。因此：覆盖别层某行时要重述该行需要的每一个键；优先给出用户大概率保留的默认值，其余交给 schema。
+**后应用者按行胜出，且 patch 会替换目标行整个 `config` 值（不是深合并）**。因此：覆盖别层某行时要重述该行需要的每一个键；优先给出用户大概率保留的默认值，其余交给 schema。省略的键回落到**插件 schema 的默认值**，而不是保留上一层写入的值。
+
+⚠️ 副作用：如果你用 `!!js` 从运行时读值（如 `port: !!js ctx.webStartup.port ?? 8080`），用户用**字面量替换整个 `config`** 会把这次运行时读取一起抹掉。
 
 ### 从 git 安装的两个坑
 
 - git 安装拉源码不跑 `build`，**作者必须提供自包含的 `prepare` 脚本**。
 - pnpm ≥10 默认拒绝 git 依赖的 `prepare`，**用户需在 profile 的 `pnpm-workspace.yaml` 加 `allowBuilds: <pkg>: true`** 并重新 `add`。要诚实告知用户：这等于允许该包在安装时执行代码。
-- 不想让用户授权构建 → 发布 npm 或交付 tarball（`pnpm pack`）。
+- 不想让用户授权构建 → 发布 npm，或交付**已构建的** tarball（`pnpm pack`）：tarball 与本地 checkout 安装都**不需要** `allowBuilds`。
 
 ---
 
@@ -463,7 +528,7 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 1. 类型检查与构建通过（如 `pnpm run typecheck && pnpm run build`，在 DSH 仓库内）。
 2. 用 `--patch` 或 `dsh plugin add` 加载，用 `--dump-config` 确认配置层。
 3. 启动运行，确认：插件日志出现、工具/服务/事件按预期工作。
-4. 测试卸载/重载：改配置或源码触发 HMR，确认注册被清理、无泄漏、无残留监听。
+4. 测试卸载/重载：改**配置**确认注册被清理、无泄漏、无残留监听（`patchReload: live` 时热重载，自定义 profile 默认生效）；**源码模块热替换需按 profile 显式启用**，否则重启进程验证。
 5. 测试依赖缺失场景：去掉提供方 → 插件 PENDING 不崩溃；恢复 → 自动加载。
 6. 测试错误配置：传非法 config → 明确报错。
 
@@ -509,3 +574,5 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 
 官方文档入口：https://deepseek-harness.github.io/deepseek-harness/develop/basic/ （中文）与 `/en/develop/basic/`（英文）
 源码仓库：https://github.com/deepseek-ai/deepseek-harness
+
+> 索引与**术语对照表**（上游重命名备忘，如 Code Mode → PTC mode、`CallId` → `ToolCallId`）见 `References/00-INDEX.md`；注意文档站只发布 `develop/**`、`reference/**` 与 `guide/quickstart`，`architecture`、`glossary`、`event-producer-consumer` 等仅存在于仓库中（相关文件内已给出 GitHub 链接）。

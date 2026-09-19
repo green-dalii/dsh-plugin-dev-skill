@@ -10,6 +10,10 @@
 
 **核心交付物**：[`SKILL.md`](SKILL.md) —— 一份 Agent 可直接加载的操作手册，包含心智模型、代码模板、分步开发流程与验证清单；深度背景见 [`References/`](References/00-INDEX.md) 下的精简提炼资料。
 
+> 技能正文（`SKILL.md`）与参考资料目前为中文（与官方 DSH 文档一致）；代码模板与 API 名与语言无关。
+>
+> **SDK 基线**：所有 API 陈述均以真实 `@deepseek-ai/*` **0.1.5-rc.2** 类型定义（cordis 4.0.2）实测为准。上游文档领先于已发布 SDK 之处（如 seam 改名 `ctx.codeRuntime` → `ctx.ptcRuntime`）已在对应参考文件中标注。
+
 ## 特点
 
 - 🧠 **基于第一性原理**：把 DSH 底层框架 Cordis 的"可逆效应 + 反应式余效应"理论落到可执行的铁律与模板
@@ -50,13 +54,16 @@ dsh-plugin-dev-skill/
 
 ## 作为 DSH 技能安装（可选）
 
-DSH 的 skill 系统接受“目录包（`<name>/SKILL.md`）”或“平铺 Markdown（`<name>.md`）”两种形态，本地发现根目录按优先级：
+DSH 的 skill 系统接受“目录包（`<name>/SKILL.md`）”或“平铺 Markdown（`<name>.md`）”两种形态；发现**不递归**（刻意不支持 `**/SKILL.md`）。本地发现根目录按优先级：
 
 | 根目录 | 适用场景 |
 |---|---|
 | `<项目根>/.dsh/skills` | 项目级（rank 100） |
 | `<项目根>/.agents/skills` | 项目级（rank 200） |
+| `customSkillDirs`（宿主配置） | 宿主指定（rank 300） |
 | `$DSH_HOME/skills`（即 `~/.dsh/skills`） | 用户级（rank 400） |
+| `$DSH_HOME/../agents/skills`（即 `~/.agents/skills`） | 用户 agents 目录（rank 500） |
+| 内置技能目录 | 随 DSH 发行（rank 600） |
 
 例如安装为用户级技能（**安装目录名必须与 SKILL.md frontmatter 中的 `name` 一致**，即 `dsh-plugin-dev-skill`）：
 
@@ -119,6 +126,17 @@ ln -s /path/to/dsh-plugin-dev-skill ~/.claude/skills/dsh-plugin-dev-skill
 - 论文：《A Programming Paradigm for Spatiotemporal Composability》（Cordis 框架的学术基础）：https://github.com/cordiverse/paper/blob/main/paper.pdf
 
 所有参考文档均为**精简提炼**（不是官方文档照搬），以“开发出正确、高效、符合规范的插件”为目标组织。
+
+## 相关项目
+
+同一作者的其它项目：
+
+| 项目 | 简介 |
+|---|---|
+| [`green-dalii/dsh-shift-router`](https://github.com/green-dalii/dsh-shift-router) | **DSH 的双层模型路由器**：LLM Judge 路由、多模型回退链、指数退避的运行时故障转移，以及任务级编排。同时也是一个按本技能所讲规范构建的真实 DSH 插件实例。 |
+| [`green-dalii/pi-shift-router`](https://github.com/green-dalii/pi-shift-router) | `dsh-shift-router` 所改编的原版 Pi coding-agent 扩展：由 LLM judge 把每一轮 agent 交给合适的模型——例行工作走快速执行，难题走强推理——并带多模型故障转移。[主页](https://shiftrouter.greenerai.top) |
+| [`GD4AI/obsidian-llm-wiki`](https://github.com/GD4AI/obsidian-llm-wiki) | Obsidian 社区插件（id `karpathywiki`），实现 Karpathy 的 LLM Wiki：把笔记与 PDF 变成互相链接的 LLM 知识库——实体页/概念页、图驱动的问答、本地优先隐私。[主页](https://llmwiki.greenerai.top) |
+| [`green-dalii/obsidian-llm-wiki-cli`](https://github.com/green-dalii/obsidian-llm-wiki-cli) | 无头摄取 CLI（npm [`karpathywiki-cli`](https://www.npmjs.com/package/karpathywiki-cli)，`llm-wiki` 可执行文件）：在 Node 下直接跑插件生产环境的 `WikiEngine`，不需要 Obsidian 渲染器、零 `obsidian` 导入。 |
 
 ## 贡献
 

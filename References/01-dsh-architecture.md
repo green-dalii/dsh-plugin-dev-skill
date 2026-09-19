@@ -1,6 +1,6 @@
 # 01 · DSH 架构总览
 
-> 精简提炼自官方文档（guide + develop/basic/publish + CLI 参考）。目标：建立“DSH 是什么、插件如何被加载与组合”的整体地图。
+> 精简提炼自官方文档（guide + develop/basic/publish + CLI 参考 + architecture）。目标：建立“DSH 是什么、插件如何被加载与组合”的整体地图。
 
 ## 1. DeepSeek Harness 是什么
 
@@ -10,20 +10,26 @@ DeepSeek Harness 是**用于构建 Agent Harness 的插件化 SDK**。它不是�
 - 源码仓库：https://github.com/deepseek-ai/deepseek-harness （monorepo，`packages/<group>/<pkg>` 布局）
 - 底层框架：**Cordis**（v4，vendor 引入）—— 一个“时空可组合性”的元框架（见 `10-spatiotemporal.md`）
 
+**没有特权内核**：不存在需要打补丁的核心。扩展 dsh 的方式是把插件挂载到其他插件旁边；所有注册都是副作用，随所属插件卸载而撤销。连 agent loop 本身也是插件，因此可以被替换。
+
 ## 2. CLI 入口（dsh）
 
 | 命令 | 用途 |
 |---|---|
 | `dsh --profile <name>` | 启动指定 profile（`$DSH_HOME/profiles/<name>`） |
-| `dsh --profile headless "job"` | 无界面一次性执行：新建持久化会话、打印最终答案并退出 |
+| `dsh --profile <name> --from-default-profile <template>` | 基于随附模板创建一个新 profile，然后启动它 |
 | `dsh web` | `--profile web` 的别名（Web UI） |
+| `dsh --profile headless "job"` | 无界面一次性执行：新建持久化会话、打印最终答案并退出 |
+| `dsh --profile sdk` / `sdk-minimal` | 以 JSON-RPC stdio 服务 SDK client（`sdk-minimal` 用独立极简配置树） |
+| `dsh --profile acp` | 通过 ACP stdio 服务自动化 client，直至断开 |
 | `dsh plugin --profile <name> <pnpm args...>` | 在 profile 目录里转发给 pnpm 管理插件依赖与 bundle |
 | `dsh --profile <name> --dump-config` | 不启动，打印叠加后的完整配置树（验证配置层用） |
 | `dsh --profile <name> --dump-default-config` | 打印默认配置树 |
 
-- 启动器只解析自身 flag，其后的 token 交给 profile 中的应用插件（`dsh-cmdline` 提供 `cmdlineArgs` 服务解析共享的不可变参数快照）。
+- `web`/`headless`/`sdk`/`sdk-minimal`/`acp` 在首次使用时从随附模板自动初始化；`desktop` 名称保留给 Electron 持有的 profile，CLI 会拒绝针对它的启动、配置 dump 与插件管理请求。
+- 启动器只解析自身 flag；**第一个无法识别的 token 标志应用参数的开始**，其后的 token 交给 profile 中的应用插件（`dsh-cmdline` 提供 `cmdlineArgs` 服务解析共享的不可变参数快照）。
 - 运行命令的目录作为默认 workspace 根目录。
-- 从源码运行时，把 `dsh` 换成 `pnpm dsh`。
+- 从源码运行时，先 `pnpm run build`，再把 `dsh` 换成 `pnpm dsh`。
 
 ## 3. Profile 与 Bundle：两个概念、两种 manifest
 
@@ -32,11 +38,13 @@ DeepSeek Harness 是**用于构建 Agent Harness 的插件化 SDK**。它不是�
 | | 组合包（bundle） | profile |
 |---|---|---|
 | 回答的问题 | “这个包贡献什么？” | “这套配置由哪些组合包按什么顺序组成？” |
-| manifest | `dsh.bundle`（指向一个 patch 文件） | `dsh.profile`（有序 `bundles` 列表） |
+| manifest | `dsh.bundle.patch`（指向一个 patch 文件） | `dsh.profile.bundles`（有序列表）+ 可选 `patchReload` |
 | 角色 | 你编写并分发的东西 | 用户用 `dsh --profile <name>` 启动的东西 |
 | 位置 | npm 包 | `$DSH_HOME/profiles/<name>/` |
 
-profile 目录含：`package.json`（树外插件依赖 + `dsh.profile` manifest）、`cordis.patch.yml`（用户自己的 patch 层）。profile manifest 由 `dsh plugin` 自动创建维护，无需手写。
+profile 目录含：`package.json`（树外插件依赖 + `dsh.profile` manifest）、`cordis.yml`（**空的条目列表 `[]`，不要编辑**）、`cordis.patch.yml`（用户自己的 patch 层）、`pnpm-workspace.yaml`。`patchReload: live` 监视 profile 与 home 级 patch 文件，`startup` 只应用一次。profile manifest 由 `dsh plugin` 自动创建维护，无需手写。
+
+随发行版交付的组合包：`dsh-base`（`web`/`headless`/`sdk`/`acp` 的共享第一层）、`dsh-web-app`、`dsh-headless`、`dsh-sdk-app`、`dsh-acp-app`，以及刻意不应用 base 的独立配置树 `dsh-sdk-minimal`。它们先从 dsh 安装目录解析，再从 profile 自身的 `node_modules` 解析；pnpm 只管理树外包。
 
 ## 4. 配置层顺序（决定生效配置）
 
@@ -49,10 +57,9 @@ profile 目录含：`package.json`（树外插件依赖 + `dsh.profile` manifest
 
 关键语义：
 
-- **patch 替换目标行整个 `config` 值，不是深度合并**。
-- 推论 1：覆盖别层某行时（按 `id`），必须重述该行需要的**每一个键**。
+- **patch 按 `id` 定位某一行，替换该行的整个 `config` 值，不是深度合并**。
+- 推论 1：覆盖别层某行时，必须重述该行需要的**每一个键**；被省略的键回落到插件 **schema 默认值**，而不是保留上一层写入的值。
 - 推论 2：用户可以在自己 profile 的 patch 里覆盖你的行而不改你的包 → 优先给出用户大概率保留的默认值，其余交给 schema。
-- 内置组合包（`@deepseek-ai/dsh-base`、`dsh-web-app`、`dsh-headless`）始终从 dsh 安装目录解析；pnpm 只管理树外包。
 
 ## 5. 插件加载机制
 
@@ -74,18 +81,28 @@ profile 目录含：`package.json`（树外插件依赖 + `dsh.profile` manifest
 
 > 插件路径必须是绝对路径；patch 只贡献配置，不改变 loader 解析模块路径时使用的 profile 目录。
 
-## 7. 内核主干（六个包）
+## 7. 内核主干与核心包
 
-一个轮次（turn）沿同一条循环流经六个核心包：
+一个轮次（turn）沿同一条循环流经以下核心包（向 Cordis 树贡献内容的部分核心包）：
 
 1. `session/` — 仅追加的 `SessionEvent` 日志与内存 store（唯一真源，`ctx.sessions`）
 2. `system-prompt/` — 提示词段落与工具 schema 组装（`ctx.systemPrompt`）
 3. `tools/` — 带作用域的工具注册表与受保护执行流水线（`ctx.tools`）
 4. `agent/` — `Agent` 接口、实时注册表、发起者作用域、`agent/*` 事件（`ctx.agents`）
 5. `agent-loop/` — 实现公开 `Agent` 约定的具体 driver（`ctx.agentLoop`）
-6. `scope/` — 按 agent 作用域注册的库原语（非服务）
+6. `scope/` — 按 agent 作用域注册的库原语（非服务，无 ctx 键）
+7. `llm/llm` — 消息与流式词汇表 + 适配器 seam（`ctx.llm`）
+8. `webhook/webhook` — 已认证 delivery 分派与 Workspace Session 创建（`ctx.webhookRuntime`）
 
 > 扩展插件依赖 `agent` 而**绝不直接依赖 `agent-loop`**，循环因此可替换。
+
+## 8. 事件域、轮次与步骤
+
+- **三类事件域**：**会话事件**（追加到日志并经 `session/event` 广播的持久事实——事实需要跨 reload 存活时用它）；**Agent 事件**（`agent/*`，携带活跃 `Agent`：inbox、步骤、状态、请求、验证、续跑）；**能力事件**（`fs/*`、`tools/*`、`telemetry/*` 等，向某个 seam 附加策略与适配器，无需导入循环）。
+- **步骤**是一次模型请求加上它调用的工具；**轮次**包含零个或多个步骤，在领取首条输入之前打开、在不再欠下任何工作时关闭。
+- `agent/pre-step`、`agent/request`、`llm/stream` 与三个 `tools/*` 事件是 **waterfall**（监听器必须调用 `next()` 才委托下去）；`agent/turn-stopping` 是 **serial**（无 `next()`，会停止轮次）。
+- 模型可见即已记录：抵达模型请求的一切都必须能从会话日志重建。新增模型可见输入需要一个会话事件，或用 `agent.inject()` 落到下一次获准请求。
+- 新行为的归属位置以官方 architecture 的映射表为准；实验性 `ctx.agentTeams` 是显式启用的协作 seam。
 
 ---
 
@@ -93,6 +110,8 @@ profile 目录含：`package.json`（树外插件依赖 + `dsh.profile` manifest
 
 > 本文为精简提炼，官方文档更新时请从以下 URL 获取新内容并修订本文：
 
+- **架构总览（中文源码）**：https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.zh.md
 - **入门（Web UI / 模型配置）**：https://deepseek-harness.github.io/deepseek-harness/guide/quickstart
 - **打包与安装插件（profile/bundle/配置层）**：https://deepseek-harness.github.io/deepseek-harness/develop/basic/publish
+- **能力 Seams 与核心服务（服务总表）**：https://deepseek-harness.github.io/deepseek-harness/reference/capability-seams
 - **CLI 行为参考（源码仓库）**：https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/cli/reference/README.md
