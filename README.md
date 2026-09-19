@@ -3,10 +3,13 @@
 **English** | [简体中文](README.zh-CN.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Updated](https://img.shields.io/badge/updated-2026--09--19-informational)](CHANGELOG.md)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.1.5--rc.2-blue)](https://github.com/deepseek-ai/deepseek-harness)
+[![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-A skill pack that enables **any agent** to develop **DeepSeek Harness (DSH)** plugins correctly, efficiently, and in accordance with the official conventions.
+A skill pack that enables **any agent** to develop **[DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness)** plugins correctly, efficiently, and in accordance with the official conventions.
 
 **Core deliverable**: [`SKILL.md`](SKILL.md) — an operating manual an agent can load directly, covering the mental model, copy-pasteable code templates, a step-by-step development workflow, and a verification checklist. Deeper background lives in the condensed reference docs under [`References/`](References/00-INDEX.md).
 

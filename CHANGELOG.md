@@ -4,6 +4,15 @@
 
 ## [Unreleased]
 
+### 变更
+
+- **README 徽章列补充**（中英双语同步）：
+  - 「更新日期」徽章（`updated-2026--09--19`，链接到本 CHANGELOG）
+  - 「适配的 DeepSeek Harness 版本」徽章（`DeepSeek Harness-0.1.5--rc.2`，链接到官方仓库）
+  - 「deepseek-harness」GitHub 仓库徽章（带 star 计数，链接到官方仓库）
+  - 正文中的 **DeepSeek Harness（DSH）** 现链接到官方仓库 https://github.com/deepseek-ai/deepseek-harness
+- **`CONTRIBUTING.md` 新增「同步与发布清单」**：列出每次同步官方更新/发版时需要一并更新的位置（README 徽章日期与版本、`SKILL.md` 的 SDK 基线、`00-INDEX.md`、`CHANGELOG.md`、git tag），避免静态徽章与实际漂移；并补充可直接复制的实测验证命令（`tsc --strict`、全量链接 200 检查、真实 skill 注册表加载）。
+
 ## [0.3.0] - 2026-09-19
 
 对官方 DSH 文档与真实 SDK 做了全量复核（官方仓库自 0.1.0 起有大量更新），并据此修订全部内容。**SDK 基线：`@deepseek-ai/*` 0.1.5-rc.2（cordis 4.0.2）**。
