@@ -29,6 +29,7 @@
 ```
 dsh-plugin-dev-skill/
 ├── SKILL.md                     # 主技能文件：操作手册（Agent 接入后先读这个）
+├── VERSION                      # 技能版本号；SKILL.md §0.1 要求载入时检查它
 ├── README.md                    # 英文说明（默认）
 ├── README.zh-CN.md              # 本文件（中文说明）
 ├── CHANGELOG.md                 # 变更日志
@@ -71,12 +72,25 @@ DSH 的 skill 系统接受“目录包（`<name>/SKILL.md`）”或“平铺 Mar
 例如安装为用户级技能（**安装目录名必须与 SKILL.md frontmatter 中的 `name` 一致**，即 `dsh-plugin-dev-skill`）：
 
 ```sh
+# 推荐：符号链接到 git 检出，之后一句 git pull 即可保持最新
+git clone https://github.com/green-dalii/dsh-plugin-dev-skill.git ~/src/dsh-plugin-dev-skill
+ln -s ~/src/dsh-plugin-dev-skill ~/.dsh/skills/dsh-plugin-dev-skill
+
+# 或者：普通拷贝（更新时需要重新拷贝）
 mkdir -p ~/.dsh/skills/dsh-plugin-dev-skill
-cp SKILL.md ~/.dsh/skills/dsh-plugin-dev-skill/SKILL.md
+cp SKILL.md VERSION ~/.dsh/skills/dsh-plugin-dev-skill/
 cp -r References ~/.dsh/skills/dsh-plugin-dev-skill/References
 ```
 
 技能名需符合 kebab-case（`^[a-z0-9]+(?:-[a-z0-9]+)*$`）。
+
+### 保持最新
+
+本技能自带 [`VERSION`](VERSION) 文件，并在 `SKILL.md` §0.1 中要求 Agent **载入技能后的第一件事就是检查是否有新版本**：取远端 `VERSION` 做语义化比较，若远端更新则先更新（符号链接/git 检出走 `git pull`，普通拷贝走重新 clone + `rsync`），**更新完再使用本技能**。
+
+推荐的安装形态就是上面的**符号链接**：这样一句 `git pull` 就地把已加载的技能更新掉。DSH 会跟随符号链接的技能目录（`watchFollowSymlinks` 默认开启），Claude Code 与 Codex 同样支持。
+
+如果无法检查（离线、无网络、无写权限），Agent 应明确说明「未能检查更新」，并基于本地版本继续，而不是假装检查过。
 
 ## 在其他 Agent 中使用（Claude Code、Codex 等）
 

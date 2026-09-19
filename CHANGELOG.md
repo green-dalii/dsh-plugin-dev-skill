@@ -4,6 +4,19 @@
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-09-19
+
+### 新增
+
+- **`VERSION` 文件**（单行版本号）与 `SKILL.md` frontmatter 的 `metadata`（`version` / `upstream` / `sdk-baseline`），作为更新检查的机器可读依据。
+- **`SKILL.md` §0.1「载入后第一件事：检查 skill 是否最新」强制流程**：要求 Agent 每次载入本技能后先比对本机 `VERSION` 与远端 `VERSION`（`curl` 单个小文件、短超时，失败则回退 `git ls-remote --tags`），远端更高则**先更新再使用**：
+  - 符号链接 / git 检出安装 → `git pull --ff-only`
+  - 普通拷贝安装 → `git clone` + `rsync -a --delete`
+  - 更新后**重新读取** `SKILL.md` 与相关 `References/`（API 与术语可能已变）
+  - 无法联网时明确说明「未能检查更新」后继续，不阻塞、也不假装检查过；同一会话内可跳过重复检查
+  - 顶部前言加了醒目提示，避免被略读跳过
+- README（中英）新增「保持最新 / Keeping it up to date」小节：把**符号链接**列为推荐安装形态，并说明自动更新流程与降级保护（远端低于本地时不降级）。
+
 ### 变更
 
 - **README 徽章列补充**（中英双语同步）：
@@ -11,7 +24,7 @@
   - 「适配的 DeepSeek Harness 版本」徽章（`DeepSeek Harness-0.1.5--rc.2`，链接到官方仓库）
   - 「deepseek-harness」GitHub 仓库徽章（带 star 计数，链接到官方仓库）
   - 正文中的 **DeepSeek Harness（DSH）** 现链接到官方仓库 https://github.com/deepseek-ai/deepseek-harness
-- **`CONTRIBUTING.md` 新增「同步与发布清单」**：列出每次同步官方更新/发版时需要一并更新的位置（README 徽章日期与版本、`SKILL.md` 的 SDK 基线、`00-INDEX.md`、`CHANGELOG.md`、git tag），避免静态徽章与实际漂移；并补充可直接复制的实测验证命令（`tsc --strict`、全量链接 200 检查、真实 skill 注册表加载）。
+- **`CONTRIBUTING.md` 新增「同步与发布清单」**：列出每次同步官方更新/发版时需要一并更新的位置（`VERSION`、`SKILL.md` 的 `metadata` 与 SDK 基线、README 徽章日期与版本、`00-INDEX.md`、`CHANGELOG.md`、git tag），并强调三处版本号必须一致，否则更新检查失效；同时补充可直接复制的实测验证命令（`tsc --strict`、全量链接 200 检查、真实 skill 注册表加载）。
 
 ## [0.3.0] - 2026-09-19
 

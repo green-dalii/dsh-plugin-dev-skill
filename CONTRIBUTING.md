@@ -38,11 +38,15 @@
 
 | 位置 | 需要更新什么 |
 |---|---|
+| `VERSION`（单行，如 `0.4.0`） | 技能版本号。**必须与 `SKILL.md` frontmatter 的 `metadata.version`、以及 `CHANGELOG.md` 最新条目标题三处一致** |
+| `SKILL.md` frontmatter `metadata` | 同步 `version` 与 `sdk-baseline` |
 | `README.md` / `README.zh-CN.md` 徽章行 | `updated-YYYY--MM--DD`（更新日期，双连字符转义）；`DeepSeek Harness-<版本>`（本轮实测适配的 DSH 版本） |
 | `SKILL.md` 顶部「SDK 基线」 | 实测所用的 `@deepseek-ai/*` 版本（含 cordis 版本） |
 | `References/00-INDEX.md` | 「SDK 基线」说明与术语对照表（上游重命名备忘） |
 | `CHANGELOG.md` | 新增版本条目（[Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式） |
 | git | 提交、打 tag（`vX.Y.Z`）并推送 |
+
+> `VERSION` 是 Agent 在载入技能时用于比对更新的依据（见 `SKILL.md` §0.1），所以**发版必须同步它**，否则更新检查会失效。
 
 徽章是 shields.io 静态徽章，改完可用下面的命令确认能正常渲染：
 

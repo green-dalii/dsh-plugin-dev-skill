@@ -29,6 +29,7 @@ A skill pack that enables **any agent** to develop **[DeepSeek Harness (DSH)](ht
 ```
 dsh-plugin-dev-skill/
 ├── SKILL.md                     # Main skill file: the operating manual (read this first)
+├── VERSION                      # Skill version; SKILL.md §0.1 requires checking it on load
 ├── README.md                    # This file (English)
 ├── README.zh-CN.md              # 中文说明
 ├── CHANGELOG.md                 # Changelog
@@ -71,12 +72,25 @@ The DSH skill system accepts both directory bundles (`<name>/SKILL.md`) and flat
 Example — install as a user-level skill (the folder name must match the `name` in the SKILL.md frontmatter, `dsh-plugin-dev-skill`):
 
 ```sh
+# Recommended: symlink to a git checkout, so `git pull` keeps it current
+git clone https://github.com/green-dalii/dsh-plugin-dev-skill.git ~/src/dsh-plugin-dev-skill
+ln -s ~/src/dsh-plugin-dev-skill ~/.dsh/skills/dsh-plugin-dev-skill
+
+# Or: plain copy (must be re-copied to update)
 mkdir -p ~/.dsh/skills/dsh-plugin-dev-skill
-cp SKILL.md ~/.dsh/skills/dsh-plugin-dev-skill/SKILL.md
+cp SKILL.md VERSION ~/.dsh/skills/dsh-plugin-dev-skill/
 cp -r References ~/.dsh/skills/dsh-plugin-dev-skill/References
 ```
 
 The skill name must be kebab-case (`^[a-z0-9]+(?:-[a-z0-9]+)*$`).
+
+### Keeping it up to date
+
+The skill ships a [`VERSION`](VERSION) file and instructs the agent to **check for a newer version as the first step after loading it** (`SKILL.md` §0.1): fetch the remote `VERSION`, compare semantically, and if the remote is newer, update (via `git pull` on a symlinked/checkout install, or re-clone + `rsync` for a plain copy) **before** using the skill.
+
+Symlinking (above) is the recommended install shape, because then a single `git pull` updates the loaded skill in place. [DSH follows symlinked skill directories](https://github.com/deepseek-ai/deepseek-harness) (`watchFollowSymlinks` defaults to true), and so do Claude Code and Codex.
+
+If the version check is impossible (offline, no network, no write access), the agent should say so and continue with the local version rather than silently pretending it checked.
 
 ## Use with other agents (Claude Code, Codex, etc.)
 

@@ -2,12 +2,18 @@
 name: dsh-plugin-dev-skill
 description: 指导任何 Agent 正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。涵盖 Tool（defineTool）、LLM 适配器、服务与依赖、事件系统、配置、打包发布，以及 Cordis 框架的心智模型、代码模板与验证清单。
 whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool、LLM adapter、服务提供方、钩子、UI、协议桥等），编写或修改 cordis.yml / cordis.patch.yml / dsh.profile / dsh.bundle 配置，使用 dsh plugin 命令，或需要理解 ctx.tools、ctx.llm、ctx.agents、ctx.sessions 等服务与 tools/*、agent/*、session/event 等事件时，加载本技能。
+metadata:
+  version: 0.4.0
+  upstream: https://github.com/green-dalii/dsh-plugin-dev-skill
+  sdk-baseline: 0.1.5-rc.2
 ---
 
 # DeepSeek Harness Plugin Dev Skill
 
 > 让任何 Agent 都能正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。
 > 本技能是 DSH 插件开发的操作手册：先给出心智模型与铁律，再给出可直接照抄的代码模板与分步流程，最后给出验证清单。深度背景见 `References/` 目录下的精简提炼文档。
+>
+> ⚠️ **载入本技能后，先执行 §0.1「检查 skill 是否最新」**：不是最新版就先更新，再开始使用本技能。
 >
 > **SDK 基线**：本文 API 陈述以 `@deepseek-ai/*` **0.1.5-rc.2**（cordis 4.0.2）的类型定义实测为准。上游文档偶尔领先于已发布 SDK（例如 seam 改名 `ctx.codeRuntime` → `ctx.ptcRuntime`、`dsh-experimental-auto-review`、Plugin Manager 等），这类差异在各 `References/` 文件中均已标注；升级 SDK 后请按对应文件末尾的官方链接复查。
 
@@ -24,6 +30,38 @@ whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool
 - 研究 DSH 的插件模型（Cordis 框架）如何工作
 
 先读本 SKILL.md 全篇，再动手。动手前先读项目里已有的 `cordis.yml` / profile / 相关源码，确认现有约定。
+
+### 0.1 载入后第一件事：检查 skill 是否最新（强制流程）
+
+**本技能会随官方 DSH 演进而更新。每次载入本技能后，先确认自己用的是最新版；若不是最新版，先更新、再开始用它干活。**
+理由很实际：上游有过破坏性改名（`Code Mode` → PTC mode、`CallId` → `ToolCallId`），用过期版本会写出**编译不过**的插件。
+
+1. **读本地版本**：`VERSION` 文件与本 `SKILL.md` 同目录，内容形如 `0.4.0`（frontmatter 的 `metadata.version` 是同值副本）。
+2. **取远端版本**（一次约 5 字节的 GET，用短超时，不要拖慢主任务）：
+   ```sh
+   curl -fsSL --max-time 8 https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/VERSION | tr -d '[:space:]'
+   ```
+   若上一步失败，退而求其次可用 `git ls-remote --tags https://github.com/green-dalii/dsh-plugin-dev-skill | tail -1`。
+3. **比较（语义化版本）**：
+   - 远端 **高于** 本地 → 执行第 4 步，更新完再继续。
+   - 两端**相同** → 直接用。
+   - 远端 **低于** 本地 → 说明本地是开发中的更新版，**不要降级**，直接用。
+4. **更新到最新版**，按安装形态二选一：
+   - **符号链接 / git 检出**（推荐形态）：
+     ```sh
+     cd "$(readlink -f <本 SKILL.md 所在目录>)" && git pull --ff-only
+     ```
+     若该目录不是 git 仓库（纯拷贝安装），改用下一条。
+   - **普通拷贝**：
+     ```sh
+     git clone --depth 1 https://github.com/green-dalii/dsh-plugin-dev-skill /tmp/dsh-plugin-dev-skill-new
+     rsync -a --delete --exclude .git /tmp/dsh-plugin-dev-skill-new/ <本 SKILL.md 所在目录>/
+     ```
+   更新后**重新读取 `SKILL.md` 与本次要用到的 `References/`**——内容可能已变（尤其是 API、术语与包名）。
+5. **无法联网 / 检查失败时**：不要卡住，也不要假装检查过。明确说一句「未能检查 skill 更新（原因）」，然后基于当前本地版本继续工作，并在需要新 API 时提示用户可能存在版本差异。
+6. **同一会话内**：已成功比较过且远端版本未变时，可以跳过重复检查（不必每次工具调用都发请求）；但**每次载入技能都要检查**。
+
+> 检查成本是一个几字节的 GET，而用过期技能写出编译不过或不符合规范的插件，代价要高得多。
 
 ---
 
@@ -574,5 +612,7 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 
 官方文档入口：https://deepseek-harness.github.io/deepseek-harness/develop/basic/ （中文）与 `/en/develop/basic/`（英文）
 源码仓库：https://github.com/deepseek-ai/deepseek-harness
+
+本技能自身：仓库 https://github.com/green-dalii/dsh-plugin-dev-skill ，版本见同目录 `VERSION` 文件（更新检查流程见 §0.1）。
 
 > 索引与**术语对照表**（上游重命名备忘，如 Code Mode → PTC mode、`CallId` → `ToolCallId`）见 `References/00-INDEX.md`；注意文档站只发布 `develop/**`、`reference/**` 与 `guide/quickstart`，`architecture`、`glossary`、`event-producer-consumer` 等仅存在于仓库中（相关文件内已给出 GitHub 链接）。
