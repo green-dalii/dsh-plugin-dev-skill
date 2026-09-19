@@ -1,0 +1,39 @@
+# DeepSeek Harness (DSH) Plugin Development Skill
+
+> An agent skill that teaches any AI coding agent how to develop DeepSeek Harness (DSH) plugins correctly, efficiently, and in line with the official conventions. Repository: https://github.com/green-dalii/dsh-plugin-dev-skill (skill id `dsh-plugin-dev-skill`, MIT).
+
+DeepSeek Harness is an agent harness SDK in which every capability — tools, LLM adapters, filesystem access, sandboxing, persistence, and the agent loop itself — is a plugin attached to a shared context, built on the Cordis framework. This repository is a documentation-only skill pack (no runtime dependency) that is verified against `@deepseek-ai/*` 0.1.5-rc.2 (cordis 4.0.2). The skill body and reference docs are written in Chinese, matching the official DSH documentation; code templates, API names and commands are language-neutral.
+
+Key entry points: `SKILL.md` is the operating manual an agent loads (mental model, `defineTool` contracts, code templates, workflow, verification checklist); `References/` holds condensed digests of the official docs plus the real SDK type definitions; `VERSION` is the skill version the agent compares against the published one on every load.
+
+## Skill
+
+- [SKILL.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/SKILL.md): the operating manual — mental model and hard rules, plugin shapes, `defineTool` contract, configuration (Schemastery), services and dependencies, event system and scoped dispatch, LLM adapters (`LlmAdapter.stream()` / `StreamChunk`), capability layering, packaging and install, development workflow, common mistakes, reference index.
+- [VERSION](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/VERSION): single-line skill version used by the load-time update check (SKILL.md section 0.1).
+- [CHANGELOG.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/CHANGELOG.md): version history, including upstream vocabulary renames (Code Mode → PTC mode, `CallId` → `ToolCallId`).
+
+## Reference docs
+
+- [References/00-INDEX.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/00-INDEX.md): index, SDK baseline, and a rename glossary mapping old upstream vocabulary to current terms.
+- [References/01-dsh-architecture.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/01-dsh-architecture.md): DSH architecture — CLI, profiles, bundles, patch layers, plugin loading, event domains.
+- [References/02-plugin-basics.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/02-plugin-basics.md): minimal plugin, three plugin shapes, `Config` validation, `inject`, effects, fiber lifecycle, HMR.
+- [References/03-tools.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/03-tools.md): tool development with `defineTool` — parameter/output schema DSL, execution pipeline, runtime metadata, background jobs, PTC mode, UI cards.
+- [References/04-config.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/04-config.md): plugin configuration and Schemastery, `!!js` expressions, validation failures, settings pages.
+- [References/05-llm-adapter.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/05-llm-adapter.md): LLM adapter guide — `LlmAdapter.stream()`, the `StreamChunk` protocol, `GenerateOptions`, provider metadata, errors and retry policy.
+- [References/06-framework-services-events.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/06-framework-services-events.md): services and dependencies, the five event dispatch modes, scoped dispatch, event producer contract, common harness events.
+- [References/07-publish.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/07-publish.md): packaging and install — `dsh.bundle` / `dsh.profile`, profile templates, `dsh plugin add`, config layer order, git install caveats.
+- [References/08-capability-layering.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/08-capability-layering.md): three-role capability design (service definition / provider / consumer) and the seam catalog of `ctx.*` services.
+- [References/09-cordis-primer.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/09-cordis-primer.md): Cordis primer — context, fiber, effects, registry, `ctx` API cheat sheet.
+- [References/10-spatiotemporal.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/10-spatiotemporal.md): summary of the paper "A Programming Paradigm for Spatiotemporal Composability", the formal foundation of Cordis.
+- [References/11-cookbook.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/References/11-cookbook.md): extension patterns — permission gate hooks, UI plugins, protocol drivers, feature-to-mechanism map.
+
+## Upstream sources
+
+- [DeepSeek Harness repository](https://github.com/deepseek-ai/deepseek-harness): the SDK this skill targets.
+- [DeepSeek Harness documentation](https://deepseek-harness.github.io/deepseek-harness/develop/basic/): official developer documentation.
+- [A Programming Paradigm for Spatiotemporal Composability](https://github.com/cordiverse/paper/blob/main/paper.pdf): the paper behind Cordis, the framework DSH is built on.
+
+## Optional
+
+- [README.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/README.md): install instructions for DSH, Claude Code, Codex CLI and other Agent Skills hosts, plus a FAQ.
+- [CONTRIBUTING.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/CONTRIBUTING.md): contribution guide, verification commands and the release/sync checklist.

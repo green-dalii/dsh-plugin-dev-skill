@@ -3,7 +3,7 @@ name: dsh-plugin-dev-skill
 description: 指导任何 Agent 正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。涵盖 Tool（defineTool）、LLM 适配器、服务与依赖、事件系统、配置、打包发布，以及 Cordis 框架的心智模型、代码模板与验证清单。
 whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool、LLM adapter、服务提供方、钩子、UI、协议桥等），编写或修改 cordis.yml / cordis.patch.yml / dsh.profile / dsh.bundle 配置，使用 dsh plugin 命令，或需要理解 ctx.tools、ctx.llm、ctx.agents、ctx.sessions 等服务与 tools/*、agent/*、session/event 等事件时，加载本技能。
 metadata:
-  version: 0.4.0
+  version: 0.5.0
   upstream: https://github.com/green-dalii/dsh-plugin-dev-skill
   sdk-baseline: 0.1.5-rc.2
 ---
@@ -36,7 +36,8 @@ metadata:
 **本技能会随官方 DSH 演进而更新。每次载入本技能后，先确认自己用的是最新版；若不是最新版，先更新、再开始用它干活。**
 理由很实际：上游有过破坏性改名（`Code Mode` → PTC mode、`CallId` → `ToolCallId`），用过期版本会写出**编译不过**的插件。
 
-1. **读本地版本**：`VERSION` 文件与本 `SKILL.md` 同目录，内容形如 `0.4.0`（frontmatter 的 `metadata.version` 是同值副本）。
+1. **读本地版本**：`VERSION` 文件与本 `SKILL.md` 同目录，内容形如 `0.5.0`（frontmatter 的 `metadata.version` 是同值副本）。
+   - 若**没有** `VERSION` 文件（例如只拷贝了 `SKILL.md` 的残缺安装），视为**旧版本，直接执行第 4 步更新**。
 2. **取远端版本**（一次约 5 字节的 GET，用短超时，不要拖慢主任务）：
    ```sh
    curl -fsSL --max-time 8 https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/VERSION | tr -d '[:space:]'

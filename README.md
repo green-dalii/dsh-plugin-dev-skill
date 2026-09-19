@@ -1,4 +1,4 @@
-# Deepseek Harness Plugin Dev Skill
+# DeepSeek Harness (DSH) Plugin Development Skill
 
 **English** | [简体中文](README.zh-CN.md)
 
@@ -9,20 +9,41 @@
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-A skill pack that enables **any agent** to develop **[DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness)** plugins correctly, efficiently, and in accordance with the official conventions.
+**An agent skill that teaches any AI coding agent how to develop [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) plugins** — correctly, efficiently, and in line with the official conventions.
 
-**Core deliverable**: [`SKILL.md`](SKILL.md) — an operating manual an agent can load directly, covering the mental model, copy-pasteable code templates, a step-by-step development workflow, and a verification checklist. Deeper background lives in the condensed reference docs under [`References/`](References/00-INDEX.md).
+Load [`SKILL.md`](SKILL.md) and the agent gets the mental model, copy-pasteable code templates, a step-by-step development workflow, and a verification checklist. Deeper background lives in 11 condensed reference docs under [`References/`](References/00-INDEX.md).
 
-> Note: the skill itself (`SKILL.md`) and the reference docs are currently authored in Chinese (matching the official DSH documentation). Code templates and API names are language-neutral.
->
-> **SDK baseline**: API statements are verified against the real `@deepseek-ai/*` **0.1.5-rc.2** type definitions (cordis 4.0.2). Where upstream docs run ahead of the published SDK (e.g. the `ctx.codeRuntime` → `ctx.ptcRuntime` seam rename), the difference is flagged in the relevant reference doc.
+**Also known as**: DSH plugin skill, DeepSeek Harness plugin development skill, `dsh-plugin-dev-skill`.
+
+## Contents
+
+- [What this is (and is not)](#what-this-is-and-is-not)
+- [Highlights](#highlights)
+- [Structure](#structure)
+- [Usage](#usage)
+- [Install](#install)
+  - [As a DSH skill](#as-a-dsh-skill)
+  - [In other agent hosts (Claude Code, Codex)](#in-other-agent-hosts-claude-code-codex)
+- [FAQ](#faq)
+- [Sources](#sources)
+- [Related projects](#related-projects)
+- [Contributing](#contributing)
+- [License](#license)
+
+## What this is (and is not)
+
+- **It is** a documentation-only skill pack: `SKILL.md` is the operating manual, and `References/` holds high-signal digests distilled from the official docs plus the real SDK type definitions.
+- **It is not** a plugin, a library, or a fork of DeepSeek Harness — it adds no runtime dependency to your project, and you do not have to install it to write a plugin.
+- **It works with** DSH itself, Claude Code, Codex CLI, and any host implementing the open [Agent Skills](https://agentskills.io) standard (a folder containing `SKILL.md` with YAML frontmatter).
+- **It targets** `@deepseek-ai/*` **0.1.5-rc.2** (cordis 4.0.2) — the version every API statement was verified against.
 
 ## Highlights
 
 - 🧠 **First-principles based**: turns the "revertible effects + reactive coeffects" theory of Cordis (DSH's underlying framework) into actionable rules and templates
-- 🧩 **Covers every plugin type**: Tools (`defineTool`), LLM adapters, service providers/consumers, hooks, configuration, packaging & publishing
+- 🧩 **Covers every plugin type**: tools (`defineTool`), LLM adapters, service providers/consumers, hook plugins, configuration, packaging & publishing
 - ✅ **Templates verified against the real SDK**: all sample code passes `tsc --strict` type checking and runs end-to-end against the real Cordis loader
-- 🔗 **Traceable upstream updates**: every reference doc ends with the official-doc URLs, so content can be revised when upstream changes
+- 🔗 **Traceable upstream updates**: every reference doc ends with the official-doc URLs, so content can be re-verified when upstream changes
+- 🔄 **Self-updating**: the skill ships a [`VERSION`](VERSION) file and checks for a newer release as its first step on load (`SKILL.md` §0.1)
 
 ## Structure
 
@@ -30,6 +51,7 @@ A skill pack that enables **any agent** to develop **[DeepSeek Harness (DSH)](ht
 dsh-plugin-dev-skill/
 ├── SKILL.md                     # Main skill file: the operating manual (read this first)
 ├── VERSION                      # Skill version; SKILL.md §0.1 requires checking it on load
+├── llms.txt                     # Machine-readable index for LLM crawlers / answer engines
 ├── README.md                    # This file (English)
 ├── README.zh-CN.md              # 中文说明
 ├── CHANGELOG.md                 # Changelog
@@ -56,7 +78,11 @@ dsh-plugin-dev-skill/
 1. **For agents**: load `SKILL.md` and follow its development workflow (recon → implement → verify → deliver); consult the corresponding file under `References/` when deeper background is needed.
 2. **For humans**: read `SKILL.md` and `References/` to get a complete picture of DSH plugin development.
 
-## Install as a DSH skill (optional)
+> Note: the skill body (`SKILL.md`) and the reference docs are authored in Chinese, matching the official DSH documentation, which is Chinese-first. Code templates, API names and command lines are language-neutral.
+
+## Install
+
+### As a DSH skill
 
 The DSH skill system accepts both directory bundles (`<name>/SKILL.md`) and flat Markdown files (`<name>.md`). Discovery is **not** recursive (`**/SKILL.md` is deliberately unsupported). Local discovery roots, in priority order:
 
@@ -69,7 +95,7 @@ The DSH skill system accepts both directory bundles (`<name>/SKILL.md`) and flat
 | `$DSH_HOME/../agents/skills` (i.e. `~/.agents/skills`) | User agents home (rank 500) |
 | bundled skill directory | Shipped with DSH (rank 600) |
 
-Example — install as a user-level skill (the folder name must match the `name` in the SKILL.md frontmatter, `dsh-plugin-dev-skill`):
+Example — install as a user-level skill. The folder name must match the `name` in the SKILL.md frontmatter (`dsh-plugin-dev-skill`), which must be kebab-case (`^[a-z0-9]+(?:-[a-z0-9]+)*$`):
 
 ```sh
 # Recommended: symlink to a git checkout, so `git pull` keeps it current
@@ -82,23 +108,13 @@ cp SKILL.md VERSION ~/.dsh/skills/dsh-plugin-dev-skill/
 cp -r References ~/.dsh/skills/dsh-plugin-dev-skill/References
 ```
 
-The skill name must be kebab-case (`^[a-z0-9]+(?:-[a-z0-9]+)*$`).
+**Keeping it up to date.** The skill ships a [`VERSION`](VERSION) file and instructs the agent to **check for a newer version as the first step after loading it** (`SKILL.md` §0.1): fetch the remote `VERSION`, compare semantically, and if the remote is newer, update (via `git pull` on a symlinked/checkout install, or re-clone + `rsync` for a plain copy) **before** using the skill. Symlinking is the recommended install shape, because then a single `git pull` updates the loaded skill in place — DSH follows symlinked skill directories (`watchFollowSymlinks` defaults to true), and so do Claude Code and Codex. If the check is impossible (offline, no network, no write access), the agent should say so and continue with the local version rather than silently pretending it checked.
 
-### Keeping it up to date
-
-The skill ships a [`VERSION`](VERSION) file and instructs the agent to **check for a newer version as the first step after loading it** (`SKILL.md` §0.1): fetch the remote `VERSION`, compare semantically, and if the remote is newer, update (via `git pull` on a symlinked/checkout install, or re-clone + `rsync` for a plain copy) **before** using the skill.
-
-Symlinking (above) is the recommended install shape, because then a single `git pull` updates the loaded skill in place. [DSH follows symlinked skill directories](https://github.com/deepseek-ai/deepseek-harness) (`watchFollowSymlinks` defaults to true), and so do Claude Code and Codex.
-
-If the version check is impossible (offline, no network, no write access), the agent should say so and continue with the local version rather than silently pretending it checked.
-
-## Use with other agents (Claude Code, Codex, etc.)
+### In other agent hosts (Claude Code, Codex)
 
 This skill follows the open [Agent Skills](https://agentskills.io) standard: a folder with `SKILL.md` plus YAML frontmatter (`name`, `description`, `whenToUse`) and a supporting `References/` folder — the same shape used by Claude Code, Codex, and many other agent hosts. Install it anywhere you install agent skills.
 
-### Option A — let your agent install it (recommended)
-
-The simplest way: **just tell your agent the repo address** and let it clone and install the skill itself. For example, paste this into a Claude Code session:
+**Option A — let your agent install it (recommended).** Just tell your agent the repo address and let it clone and install the skill itself. For example, paste this into a Claude Code session:
 
 > Install the skill from https://github.com/green-dalii/dsh-plugin-dev-skill into `~/.claude/skills/dsh-plugin-dev-skill/` and load `SKILL.md` when I work on DeepSeek Harness plugin development.
 
@@ -110,7 +126,7 @@ A generic version that works with any agent:
 
 > Please install the skill from https://github.com/green-dalii/dsh-plugin-dev-skill into your skills directory (folder `dsh-plugin-dev-skill` containing `SKILL.md` and `References/`), then use it whenever the task involves developing DeepSeek Harness (DSH) plugins.
 
-### Option B — manual install
+**Option B — manual install:**
 
 | Agent / host | Location | Invocation |
 |---|---|---|
@@ -118,14 +134,12 @@ A generic version that works with any agent:
 | Claude Code (project) | `<repo>/.claude/skills/dsh-plugin-dev-skill/SKILL.md` | same |
 | Codex CLI (user) | `~/.agents/skills/dsh-plugin-dev-skill/SKILL.md` | browse `/skills`, mention `$dsh-plugin-dev-skill` |
 | Codex CLI (repo) | `<repo>/.agents/skills/dsh-plugin-dev-skill/SKILL.md` | same |
-| DSH | `~/.dsh/skills/dsh-plugin-dev-skill/SKILL.md` | see the DSH section above |
+| DSH | `~/.dsh/skills/dsh-plugin-dev-skill/SKILL.md` | see [As a DSH skill](#as-a-dsh-skill) |
 | Any Agent Skills host | `<skills-dir>/dsh-plugin-dev-skill/SKILL.md` | per host |
-
-Install with git clone (or symlink — both Claude Code and Codex follow symlinks, so `git pull` keeps the skill up to date):
 
 ```sh
 git clone https://github.com/green-dalii/dsh-plugin-dev-skill.git ~/.claude/skills/dsh-plugin-dev-skill
-# or:
+# or symlink it:
 ln -s /path/to/dsh-plugin-dev-skill ~/.claude/skills/dsh-plugin-dev-skill
 ```
 
@@ -133,8 +147,45 @@ Notes:
 
 - Keep the folder name `dsh-plugin-dev-skill` — it must match the frontmatter `name` (Claude Code uses it as the command name).
 - Extra frontmatter fields such as `whenToUse` are ignored by hosts that don't support them.
-- The skill body is currently authored in Chinese (matching the official DSH docs); code templates are language-neutral.
 - Bonus: DSH reads `.agents/skills` for project-level skills too, so one copy in `<repo>/.agents/skills/dsh-plugin-dev-skill/` serves both Codex and DSH.
+
+## FAQ
+
+### What is DeepSeek Harness (DSH)?
+
+DeepSeek Harness is an agent harness SDK in which every capability — tools, LLM adapters, filesystem access, sandboxing, persistence, and even the agent loop itself — is a plugin attached to a shared context. There is no privileged kernel to patch: you extend it by mounting plugins. Upstream repository: [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness); documentation: [deepseek-harness.github.io](https://deepseek-harness.github.io/deepseek-harness/develop/basic/).
+
+### Do I need this skill to write a DSH plugin?
+
+No. A minimal plugin is just a module exporting an `apply(ctx)` function, and the official docs cover that. The skill pays off when the plugin has to be *right*: canonical `defineTool` output contracts, revertible-effect cleanup instead of manual teardown, `inject` dependency semantics, Standard-Schema configuration, correct event dispatch modes, and packaging that actually installs.
+
+### What can I build with it?
+
+Tools registered through `defineTool`, LLM adapters (`LlmAdapter.stream()`), service definitions / providers / consumers, hook plugins on `tools/*` and `agent/*` events, UI plugins, protocol bridges (ACP, SDK), background jobs, and publishable bundles or profiles.
+
+### Which agents can load it?
+
+Any host implementing the Agent Skills standard. That includes DSH (project and user skill directories), Claude Code (`~/.claude/skills/`), and Codex CLI (`~/.agents/skills/`) — see [Install](#install).
+
+### Is the skill content in English?
+
+The skill body and reference docs are written in Chinese, matching the official DSH documentation. Code templates, API names, and commands are language-neutral, and both an English and a Chinese README are provided.
+
+### Which DeepSeek Harness version does it target?
+
+`@deepseek-ai/*` **0.1.5-rc.2** together with cordis 4.0.2 — the versions every API statement was verified against, including a `tsc --strict` pass over the templates. Where the official docs run ahead of the published SDK (for example the `ctx.codeRuntime` → `ctx.ptcRuntime` seam rename), the difference is flagged in the relevant reference doc.
+
+### How do I keep the skill up to date?
+
+Install it as a symlink to a git checkout so `git pull` updates it in place. In addition, the skill checks its own version on load: it compares the local `VERSION` against the published one and, if a newer release exists, updates before using itself (`SKILL.md` §0.1). The remote check is a single tiny file fetch and degrades gracefully offline.
+
+### Can an agent install the skill by itself?
+
+Yes. Tell your agent the repository URL and ask it to install the skill into its skills directory — see [Option A](#in-other-agent-hosts-claude-code-codex) above for copy-pasteable prompts.
+
+### How do I report a wrong API or a broken link?
+
+Open an issue or a pull request — see [CONTRIBUTING.md](CONTRIBUTING.md). Every reference doc ends with the official documentation URLs, which makes upstream drift easy to verify and fix.
 
 ## Sources
 

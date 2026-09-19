@@ -70,6 +70,12 @@ grep -rhoE "https://(deepseek-harness\.github\.io|github\.com/deepseek-ai)[^ )>\
 
 # 3. 作为技能加载：用真实 DSH skill 注册表挂载本目录，确认 list() / get() 正常
 #    （@deepseek-ai/dsh-skill + @deepseek-ai/dsh-skill-filesystem，customSkillDirs 指向本目录父级）
+
+# 4. 版本号三处一致性（不一致会让载入时的更新检查失效）
+V=$(tr -d '[:space:]' < VERSION)
+M=$(grep -m1 '^  version:' SKILL.md | sed 's/.*version: *//')
+C=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '#[] ')
+[ "$V" = "$M" ] && [ "$V" = "$C" ] && echo "✓ version $V consistent" || echo "✗ mismatch: $V / $M / $C"
 ```
 
 注意：官方文档站只发布 `develop/**`、`reference/**` 与 `guide/quickstart`；`architecture`、`glossary`、`event-producer-consumer`、`defensive-patterns` 等**仅存在于仓库**，引用时应给出 GitHub 源码链接。

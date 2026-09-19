@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-09-19
+
+### 新增
+
+- **`llms.txt`**：面向 LLM 爬虫与答案引擎（GEO）的机器可读索引，用绝对 raw URL 指向 `SKILL.md`、`VERSION`、11 篇 `References/`、CHANGELOG 与上游资料，便于生成式引擎直接抓取与引用。
+- **README 增加 FAQ（中英双语，9 问 9 答）**：DSH 是什么、不装技能能否写插件、能做出什么、哪些 Agent 能加载、内容是英文吗、适配哪个 DSH 版本、如何保持最新、能否让 Agent 自己安装、如何反馈错误。问题式小标题与具体答案（含版本号、目录名、命令）是 GEO 提取与引用的高价值结构。
+- **README 增加「这是什么（以及不是什么）」**：明确实体边界（纯文档技能包、不是插件/库/分支、不增加运行时依赖），并声明适用的宿主与 SDK 基线——利于答案引擎准确归类。
+- **README 增加目录（TOC）与「别称/检索关键词」**：补齐检索同义词（DSH 插件开发技能、DeepSeek Harness 插件开发、`dsh-plugin-dev-skill`）与站内锚点导航。
+
+### 变更
+
+- **README 标题与开篇重写（中英同步）**：H1 由 `Deepseek Harness Plugin Dev Skill` 改为 `DeepSeek Harness (DSH) Plugin Development Skill`（修正大小写、补齐「插件开发」关键词）；开篇首句改为「一个让任何 AI 编码 Agent 都能正确开发 DeepSeek Harness（DSH）插件的 Agent Skill」这一定义式陈述；「其他 Agent」章节更名为「在其他 Agent 宿主中使用（Claude Code、Codex）」并加锚点。
+- **仓库元数据（GitHub）**：补充 description 与 topics，覆盖 `cordis`、`claude-code`、`codex`、`agent-skills-standard` 等检索词。
+
+### 修复
+
+- **`SKILL.md` §0.1 补健壮性**：本地缺少 `VERSION` 文件时（例如只拷贝了 `SKILL.md` 的残缺安装），不再无从判断——明确按「旧版本」处理并直接执行更新。
+
 ## [0.4.0] - 2026-09-19
 
 ### 新增
