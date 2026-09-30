@@ -3,8 +3,8 @@
 [English](README.md) | **简体中文**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Updated](https://img.shields.io/badge/updated-2026--09--19-informational)](CHANGELOG.md)
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.1.5--rc.2-blue)](https://github.com/deepseek-ai/deepseek-harness)
+[![Updated](https://img.shields.io/badge/updated-2026--09--30-informational)](CHANGELOG.md)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.0--rc.2-blue)](https://github.com/deepseek-ai/deepseek-harness)
 [![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -35,7 +35,7 @@
 - **它是**一份纯文档的技能包：`SKILL.md` 是操作手册，`References/` 是从官方文档与真实 SDK 类型定义中提炼出的高信号资料。
 - **它不是**插件、不是库、也不是 DeepSeek Harness 的分支——它不给你的项目增加任何运行时依赖；你**不装它也能写插件**。
 - **它适用于** DSH 本身、Claude Code、Codex CLI，以及任何实现了开放 [Agent Skills 标准](https://agentskills.io) 的宿主（一个含 `SKILL.md` 与 YAML frontmatter 的目录）。
-- **它对齐** `@deepseek-ai/*` **0.1.5-rc.2**（cordis 4.0.2）——所有 API 陈述都是对该版本实测验证过的。
+- **它对齐** `@deepseek-ai/*` **0.2.0-rc.2**（cordis **4.0.4**）——所有 API 陈述都是对该版本实测验证过的。
 
 ## 特点
 
@@ -173,7 +173,7 @@ DeepSeek Harness 是一个 Agent Harness SDK：其中每一项能力——工具
 
 ### 它适配哪个 DeepSeek Harness 版本？
 
-`@deepseek-ai/*` **0.1.5-rc.2** 与 cordis 4.0.2——所有 API 陈述都是对该版本实测验证的，模板还通过了 `tsc --strict` 类型检查。若官方文档领先于已发布 SDK（例如 seam 改名 `ctx.codeRuntime` → `ctx.ptcRuntime`），差异会在对应参考文档中标注。
+`@deepseek-ai/*` **0.2.0-rc.2** 与 cordis **4.0.4**——所有 API 陈述都是对该版本实测验证的，模板还通过了 `tsc --strict` 类型检查。0.2.0 把官方文档此前只是「预告」的几项正式落地了（seam 改名 `ctx.codeRuntime` → `ctx.ptcRuntime`、Plugin Manager 随发行版交付、移除 E2B 提供方改由 SSH 家族接管远程能力），完整差异记录在各参考文档与 [`CHANGELOG.md`](CHANGELOG.md) 中。
 
 ### 如何保持最新？
 
@@ -191,7 +191,7 @@ DeepSeek Harness 是一个 Agent Harness SDK：其中每一项能力——工具
 
 - 官方文档站（中文/英文）：https://deepseek-harness.github.io/deepseek-harness/develop/basic/
 - 源码仓库：https://github.com/deepseek-ai/deepseek-harness
-- 论文：《A Programming Paradigm for Spatiotemporal Composability》（Cordis 框架的学术基础）：https://github.com/cordiverse/paper/blob/main/paper.pdf
+- 论文：《A Programming Paradigm for Spatiotemporal Composability》（Cordis 框架的学术基础，arXiv:2608.25512）：https://arxiv.org/abs/2608.25512
 
 所有参考文档均为**精简提炼**（不是官方文档照搬），以「开发出正确、高效、符合规范的插件」为目标组织。
 

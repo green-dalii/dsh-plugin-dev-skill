@@ -1,6 +1,8 @@
 # 09 · Cordis 入门与 ctx API 速查
 
-> 精简提炼自 reference/cordis-primer、reference/cordis-api/*（context/events/fiber/registry/service/inherited）。ctx API 与分发模式已逐条对照本地 `@deepseek-ai/cordis` 4.0.2 类型定义核实。
+> 精简提炼自 reference/cordis-primer、reference/cordis-api/*（context/events/fiber/registry/service/inherited）。ctx API 与分发模式已逐条对照本地 `@deepseek-ai/cordis` 4.0.4 类型定义核实。
+>
+> **4.0.4 相对 4.0.2 的公开 API 差异很小**：新增类型导出 `Volatile` / `VolatileSnapshot`；`Fiber.update()` 改为返回 `void`（见 §7）；`'internal/update'` 监听器签名收窄为 `next: () => void`（同步）。`context.ts` / `registry.ts` / `service.ts` / `reflect.ts` / `utils.ts` 逐字节未变。
 
 ## 1. 五个核心概念
 
@@ -64,13 +66,13 @@ bail 值 = 非 `null`、非 `false`、非 `undefined` 的返回值（`isBailed()
 - `ctx.root`（根上下文）、`ctx.fiber`（当前 fiber）、`ctx.registry`、`ctx.reflect`、`ctx.events`、`ctx.logger`、`ctx.baseUrl?`
 - `ctx.logger(name)` — 具名 logger
 - `ctx.timer` + `interval/timeout/throttle/debounce` — 可清理定时器助手（timer 插件提供；`setTimeout`/`setInterval` 已废弃）
-- `ctx.loader` / `ctx.hmr` — loader 与 HMR watcher（存在时）
+- `ctx.loader` / `ctx.hmr` — loader 与 HMR watcher（存在时）。HMR 插件包名已由 `@deepseek-ai/cordis-plugin-hmr` 变为 **`@deepseek-ai/dsh-hmr`**（`ctx.hmr` 运行时仍可用，但已从 inherited 目录移除）
 
 > 作用域（agent-scope）不是 ctx 的属性：它由 `@deepseek-ai/dsh-scope` 提供的 `createScope(ctx, key)` / `scopeOf(ctx)` / `scopeTarget(base, key)` 承担，`agent.ctx` 是 agent 的带作用域上下文。
 
 **框架继承事件**（低频，知道即可；标注的是分发模式）：
 - 通知型：`internal/plugin`、`internal/status`、`internal/service`、`internal/dispatch`
-- waterfall 拦截：`internal/config`（解析插件配置）、`internal/update`（配置更新，跳过 `next()` 即否决）、`internal/get` / `internal/set`（经 ctx 代理读写服务）、`loader/patch-context`
+- waterfall 拦截：`internal/config`（解析插件配置）、`internal/update`（签名 `(this: Fiber, config: any, noSave: boolean, next: () => void): void`；跳过 `next()` 即否决，且 `next` **只能同步调用**——上游 loader 的迁移就是把 `await next()` 改成 `next()`）、`internal/get` / `internal/set`（经 ctx 代理读写服务）、`loader/patch-context`（同样只同步调用）
 - bail：`internal/listener`（注册监听器前，非 null 结果替换注册）
 - 其它：`exit(signal)`、`loader/config-update`、`loader/entry-init`、`loader/partial-dispose`、`hmr/change`、`hmr/reload`、`hmr/config-update-failed`（parallel）
 
@@ -105,12 +107,13 @@ interface Plugin.Base<T> {
 - 每个已加载插件实例一个 fiber：`PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED`（`LOADING`/`ACTIVE` 抛错则进入 `FAILED`）。
 - `fiber.dispose()` — 等待所有清理（含异步 disposer）完成，递归卸载子插件。
 - `fiber.restart()` / `fiber.await()` — 按当前配置重载 / 等到稳定态并抛出启动错误。
-- `fiber.update(config, noSave?)` — 更新配置（先跑 `internal/update` waterfall，可能被否决或替换）。
+- `fiber.update(config, noSave?)` — 更新配置并重启（先跑 `internal/update` waterfall，可能被否决或替换）。**返回 `void`**，不再返回/等待重启结果；要等重启完成用 `await fiber.await()`，且只有 `ValidationError` 会传播。
 - 处置器按注册逆序**开始**调用，但多个异步处置器并发执行；有顺序依赖的清理必须放进同一个 effect 的处置器里串行等待。
 
 ## 8. Loader 配置细节
 
 - `@deepseek-ai/cordis-plugin-include` 将 `!!js` 解析为表达式节点。
+- **volatile config**：`Schema.<field>().volatile()` 得到稳定引用，用 `.get()` 读取；此类字段提交时**不重挂载**插件、不经过 `internal/update`，只发出 `loader/volatile-update`（变更路径数组）。典型用途是运行中可调、但不应触发重启的参数。
 - Loader 在声明的注入激活后，基于插件上下文插值条目的 `config`；在每次挂载决策时基于 loader 上下文插值 `disabled`。其余条目元数据保持字面值。
 - 环境选择插件请用 overlay，不要塞 `!!js` 进 `name`。
 

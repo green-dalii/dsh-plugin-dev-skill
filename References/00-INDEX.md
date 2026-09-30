@@ -6,7 +6,7 @@
 
 使用方式：先读项目根目录的 `SKILL.md`（操作手册），需要深度背景时按需查阅本目录对应文件。
 
-**SDK 基线**：所有 API 陈述以 `@deepseek-ai/*` **0.1.5-rc.2**（cordis 4.0.2）的类型定义实测为准。官方文档站只发布 `develop/**`、`reference/**`、`guide/quickstart`；`docs/architecture`、`docs/glossary`、`docs/event-producer-consumer`、`docs/defensive-patterns` 等**仅存在于仓库**，相关链接指向 GitHub blob。上游文档有时领先于已发布 SDK，差异已在各文件中标注。
+**SDK 基线**：所有 API 陈述以 `@deepseek-ai/*` **0.2.0-rc.2**（cordis **4.0.4**）的类型定义实测为准。官方文档站发布 `develop/**`、`guide/**`、`reference/**`；而 `docs/glossary`、`docs/event-producer-consumer`、`docs/defensive-patterns` 与 0.2.0 新增的多数 `docs/subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`boot`、`office-to-pdf` 等；`ptc-runtime` 已发布）**仅存在于仓库**，相关链接指向 GitHub blob。
 
 | 文件 | 主题 | 官方对应章节 |
 |---|---|---|
@@ -19,15 +19,15 @@
 | `07-publish.md` | 打包、安装、profile、配置层顺序、运行时依赖归属 | develop/basic/publish + CLI 参考 |
 | `08-capability-layering.md` | 三种角色能力设计 + 能力 seam 目录 | develop/practice/、reference/capability-seams |
 | `09-cordis-primer.md` | Cordis 入门：核心概念、分发模式、ctx API 速查 | reference/cordis-primer、cordis-api/* |
-| `10-spatiotemporal.md` | 论文《A Programming Paradigm for Spatiotemporal Composability》解读 | [论文原文](https://github.com/cordiverse/paper/blob/main/paper.pdf) |
+| `10-spatiotemporal.md` | 论文《A Programming Paradigm for Spatiotemporal Composability》解读 | [arXiv:2608.25512](https://arxiv.org/abs/2608.25512) |
 | `11-cookbook.md` | 扩展模式：权限门禁、UI 插件、协议桥、功能→机制映射 | reference/cookbook/extension-cookbook、subsystems/conversation |
 
 原始材料：
 
 - 官方文档站（中文/英文双语）：`develop/basic/`、`develop/framework/`、`develop/practice/`、`develop/cordis-tutorial/`、`reference/`
 - 仓库：https://github.com/deepseek-ai/deepseek-harness
-- 论文：《A Programming Paradigm for Spatiotemporal Composability》（DeepSeek-AI / 北京大学，Cordis 框架的学术基础）：
-  https://github.com/cordiverse/paper/blob/main/paper.pdf
+- 论文：《A Programming Paradigm for Spatiotemporal Composability》（DeepSeek-AI / 北京大学，Cordis 框架的学术基础，Shi / Zhang / Cui, 2026）：
+  https://arxiv.org/abs/2608.25512
 
 ## 术语对照（上游重命名备忘）
 
@@ -35,4 +35,9 @@
 |---|---|---|
 | Code Mode / `code-mode` | **PTC mode** / `ptc` | `dsh-tools` 呈现模式 `native` / `ptc` / `both` |
 | `CallId` | **`ToolCallId`** | `@deepseek-ai/dsh-llm` 已不再导出旧名 |
-| `ctx.codeRuntime` | `ctx.ptcRuntime` | 本地 0.1.5-rc.2 仍是 `codeRuntime`（包名 `dsh-code-runtime`）；上游已改名 |
+| `ctx.codeRuntime` | **`ctx.ptcRuntime`** | **0.2.0 已落地**：包 `dsh-code-runtime`→`dsh-ptc-runtime`，提供方 `dsh-code-runtime-worker-thread`→`dsh-ptc-runtime-node` |
+| `agent/session-start` | **`agent/created`** | 0.2.0 合并进 `agent/created`，且分发模式由 `emit` 改为 **`serial`** |
+| profile `patchReload` | **（字段已删除）** | HMR 改由 YAML 组合里 `dsh-hmr` 行的 `disabled` / `root` 决定 |
+| `e2b` / `fs-e2b` / `subprocess-e2b` / `ctx.e2b` | **SSH 家族** | 0.2.0 移除 E2B，远程能力改由 `ssh` / `fs-ssh` / `subprocess-ssh` / `sandbox-ssh` 承担 |
+| `cordis-plugin-hmr` | **`dsh-hmr`** | 插件包改名；`ctx.hmr` 仍可用 |
+| `preset/agent-presets` | **`preset/agent-preset` + `preset/agent-preset-registry`** | 0.2.0 拆包 |

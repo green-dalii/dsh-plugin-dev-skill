@@ -2,11 +2,13 @@
 
 > 精简提炼自 develop/practice/llm-adapter、reference/cookbook/adding-an-llm-adapter、reference/subsystems/llm-streaming。
 > 参考实现：`packages/llm/llm-deepseek`（直接 HTTP + SSE，`eventsource-parser` 分帧）、`packages/llm/llm-pi-ai`（封装 LLM 库）。
-> 术语以 `@deepseek-ai/dsh-llm`（0.1.5-rc.2）的类型为准：工具调用 id 是 `ToolCallId`，旧名 `CallId` 已删除、SDK 不再导出。
+> 术语以 `@deepseek-ai/dsh-llm`（0.2.0-rc.2）的类型为准：工具调用 id 是 `ToolCallId`，旧名 `CallId` 已删除、SDK 不再导出。
 
 ## 1. 概述
 
 LLM 适配器 = 继承 `LlmAdapter` 并实现 `stream()` 的类：把 Harness 的提供方无关请求（`GenerateOptions`）转成具体提供方 API 调用，把响应转回 Harness 分片（`StreamChunk`）。`stream()` 是唯一必须实现的方法，其余方法都有基类默认实现。
+
+若「能力解析」与「实际派发」之间配置可能变化（用户在设置里改端点、凭据轮换、目录刷新），覆写 `prepareCall(provider, model, signal?)` 把连接事实绑定到**本次生成**，而不是在 `stream()` 里现拼——否则两次生成可能混用不同代的配置。两个官方适配器都这么做。
 
 ## 2. 最小实现
 
@@ -81,14 +83,16 @@ async function* exampleChunks(): AsyncIterable<StreamChunk> {
 - 每个 `block-start` 必有对应 `block-end`；块重组由 assembler 负责，适配器只需发出格式正确的分片。
 - `index` 按块首次出现的流顺序从 0 递增；同一块的每次 delta 复用该 index。
 - `tool-call` 的 `arguments` 全程是**原始 JSON 字符串**（流式片段用 `argumentsDelta`）；提供方返回已解析对象时，`block-end` 要重新 stringify。
+- `block-start` / `block-end` 的 `blockType` 取 `ContentBlockType`，适配器只产出模型输出角色（`text`、`reasoning`、`tool-call` 等）。注意 `tool-result` **已不再是内容块**（工具结果现在是一等消息），`tool-addition` / `tool-removal` 只用于 developer 消息，都不是适配器的输出角色。
+- 品牌类型（branded）字段必须用导出的构造器，不能直接传普通字符串：`ToolCallId('...')`、`ReasoningEffortId(...)` 或 `brandString<T>()`。
 - `usage` 必须在 `finish` 前；`finish` 后不再发出任何内容。稳健做法：缓冲 finish/usage 直到提供方流结束标记再统一 flush（应对结尾仅含 usage 的分片）。
 - `usage` 各计数互不重叠：`inputTokens` 只含未缓存输入，缓存命中单列 `cacheReadTokens`/`cacheWriteTokens`（计费输入为三者之和）；`reasoningTokens` 已含在 `outputTokens` 内，汇总时不得重复相加。提供方把缓存折进 `prompt_tokens`（DeepSeek）时要自行扣除。
 
 ## 4. GenerateOptions 与模型元数据
 
-- `stream()` 接收仓库导出的 `GenerateOptions`：`provider`/`model`、适配器拥有的 `reasoningEffort`、对话历史、系统提示词、工具 schema、生成参数、停止序列、`signal`、`sessionId`、`purpose`。完整字段以 `@deepseek-ai/dsh-llm` 的类型为准。
+- `stream()` 接收仓库导出的 `GenerateOptions`：`provider`/`model`、适配器拥有的 `reasoningEffort`、对话历史（`messages: RequestMessage[]`，即 `Message | RequestUserInput`，后者用于无身份的临时输入）、系统提示词、工具 schema、生成参数、停止序列、`signal`、`sessionId`、`purpose`；另新增可选 `toolHistory`（把工具历史交回拥有该 provider 路由的适配器）。完整字段以 `@deepseek-ai/dsh-llm` 的类型为准。
 - 不支持的字段：`throw new LlmError(..., 'UNSUPPORTED_OPTION')`，绝不静默丢弃。
-- 覆写 `resolveModel(provider, model, signal?)`：一次查询返回确切的提供方/模型身份 + 可选 `context`（`contextWindow`）、适配器配置的 `defaultMaxTokens`、`reasoning` 元数据（有序不透明 ID、展示名、可选 `defaultEffort`）与 `systemPromptUpdate`。推理元数据保留适配器给出的权威可选列表（含能力 API 返回的 `off`），不提升为核心枚举、不自动改写不支持的值。异步查询必须响应可选 signal。
+- 覆写 `resolveModel(provider, model, signal?)`：一次查询返回确切的提供方/模型身份 + 可选 `context`（`contextWindow`）、适配器配置的 `defaultMaxTokens`、`reasoning` 元数据（有序不透明 ID、展示名、可选 `defaultEffort`）、`systemPromptUpdate`（`'in-history'`，中途系统提示词的读法）、`toolUpdate`（`'in-history' | 'addition-only'`，中途工具声明增删的读法）与 `inputModalities`（该路由接受的输入模态；未声明图片能力时，运行时会把图片从消息里投影掉——这正是适配器需要如实声明的理由）。推理元数据保留适配器给出的权威可选列表（含能力 API 返回的 `off`），不提升为核心枚举、不自动改写不支持的值。异步查询必须响应可选 signal。
 - 覆写 `providerInfo(provider)`（返回 `{ id, name }`，`id` 必须等于该路由）与 `listModels(provider)`，向选择器公布展示元数据；目录仅供参考、不是请求白名单，适配器仍可接受未列出的模型 id。
 - 仅当提供方对请求图片计视觉 token 时才覆写 `imageRequestPricing(provider, model)`：必须同步、无 I/O 地返回 `priceImages(...)`。
 
@@ -124,7 +128,8 @@ cordis.yml 中使用：
 
 ## 6. 错误处理
 
-- 传输与协议故障：`throw new LlmError(msg, 'STABLE_CODE', { status?, providerRetryAfterMs?, requestId? })`；`LlmError.failure` 携带可序列化的 `LlmFailure`（`message`/`code`/`status`/`providerRetryAfterMs`/`requestId`）。**不要依赖普通 `Error` 自动转换**。
+- 传输与协议故障：`throw new LlmError(msg, '<CODE>', { status?, providerRetryAfterMs?, requestId?, offloadImages? })`；`LlmError.failure` 携带可序列化的 `LlmFailure`（`message`/`code`/`status`/`providerRetryAfterMs`/`requestId`/`offloadImages`）。**不要依赖普通 `Error` 自动转换**。
+- `code` 是**自由字符串**，SDK 不提供错误码联合类型；核心导出的规范常量是 `CONTEXT_WINDOW_EXCEEDED`、`QUOTA`、`ACCOUNT_QUOTA`、`EMPTY_RESPONSE`、`INVALID_CREDENTIAL`、`IMAGE_OFFLOAD_REQUIRED`。其中 `IMAGE_OFFLOAD_REQUIRED` 配合 `offloadImages`（应卸载几处最旧的已保留图片）告诉调用方如何自愈；`UNSUPPORTED_OPTION` 是**适配器自有**约定（核心不导出），照惯例使用即可。
 - 错误只有两条合法路径：从 `stream()` **抛出**（传输/协议故障，用带稳定 code 的 `LlmError`），或以 `finish { kind: 'error' | 'aborted', failure }` 结束流（提供方带内故障）。两条路径共用同一 `LlmFailure` 类型，消费方两者都处理。
 - 适配器必须禁用底层 SDK 的自动重试：**一次适配器调用 = 一次提供方尝试**。重试由挂载的 `@deepseek-ai/dsh-llm-retry` 在持久 agent 步骤边界执行，策略由适配器按路由提供：覆写 `providerRetryPolicy(provider)` 返回已解析策略，或返回 `undefined` 使用 normal 默认（`EMPTY_RESPONSE`、`RATE_LIMIT`、`SERVER`、`TIMEOUT`、`TRANSPORT` 最多重试 5 次，退避 500ms→10s、10% 抖动）；`always` 模式无上限。
 - 上下文溢出只有一个规范 code `CONTEXT_WINDOW_EXCEEDED`（用 `isContextWindowExceededError()` 分类，抛错或带内 finish 都一样）；`QUOTA` 表示配额/余额耗尽；正常结束但零内容块的 completion 是 `EMPTY_RESPONSE` 错误而非静默成功，默认会被重试。按 code 路由，绝不解析提供方文本。

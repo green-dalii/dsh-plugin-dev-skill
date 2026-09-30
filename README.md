@@ -3,8 +3,8 @@
 **English** | [简体中文](README.zh-CN.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Updated](https://img.shields.io/badge/updated-2026--09--19-informational)](CHANGELOG.md)
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.1.5--rc.2-blue)](https://github.com/deepseek-ai/deepseek-harness)
+[![Updated](https://img.shields.io/badge/updated-2026--09--30-informational)](CHANGELOG.md)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.0--rc.2-blue)](https://github.com/deepseek-ai/deepseek-harness)
 [![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -35,7 +35,7 @@ Load [`SKILL.md`](SKILL.md) and the agent gets the mental model, copy-pasteable 
 - **It is** a documentation-only skill pack: `SKILL.md` is the operating manual, and `References/` holds high-signal digests distilled from the official docs plus the real SDK type definitions.
 - **It is not** a plugin, a library, or a fork of DeepSeek Harness — it adds no runtime dependency to your project, and you do not have to install it to write a plugin.
 - **It works with** DSH itself, Claude Code, Codex CLI, and any host implementing the open [Agent Skills](https://agentskills.io) standard (a folder containing `SKILL.md` with YAML frontmatter).
-- **It targets** `@deepseek-ai/*` **0.1.5-rc.2** (cordis 4.0.2) — the version every API statement was verified against.
+- **It targets** `@deepseek-ai/*` **0.2.0-rc.2** (cordis **4.0.4**) — the version every API statement was verified against.
 
 ## Highlights
 
@@ -173,7 +173,7 @@ The skill body and reference docs are written in Chinese, matching the official 
 
 ### Which DeepSeek Harness version does it target?
 
-`@deepseek-ai/*` **0.1.5-rc.2** together with cordis 4.0.2 — the versions every API statement was verified against, including a `tsc --strict` pass over the templates. Where the official docs run ahead of the published SDK (for example the `ctx.codeRuntime` → `ctx.ptcRuntime` seam rename), the difference is flagged in the relevant reference doc.
+`@deepseek-ai/*` **0.2.0-rc.2** together with cordis **4.0.4** — the versions every API statement was verified against, including a `tsc --strict` pass over the templates. Release 0.2.0 landed what the docs had previously only previewed (the `ctx.codeRuntime` → `ctx.ptcRuntime` seam rename, Plugin Manager, and the removal of the E2B providers in favour of the SSH family); the full delta is recorded in the reference docs and in [`CHANGELOG.md`](CHANGELOG.md).
 
 ### How do I keep the skill up to date?
 
@@ -191,7 +191,7 @@ Open an issue or a pull request — see [CONTRIBUTING.md](CONTRIBUTING.md). Ever
 
 - Official docs (中文 / English): https://deepseek-harness.github.io/deepseek-harness/develop/basic/
 - Source repository: https://github.com/deepseek-ai/deepseek-harness
-- Paper: *A Programming Paradigm for Spatiotemporal Composability* (the academic foundation of Cordis): https://github.com/cordiverse/paper/blob/main/paper.pdf
+- Paper: *A Programming Paradigm for Spatiotemporal Composability* (the academic foundation of Cordis; arXiv:2608.25512): https://arxiv.org/abs/2608.25512
 
 All reference docs are **condensed digests** (not verbatim copies of the official docs), organized around the goal of "developing correct, efficient, convention-compliant plugins".
 

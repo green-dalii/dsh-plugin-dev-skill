@@ -139,17 +139,17 @@ harness 的核心服务（`ctx.<key>` → 角色 → 说明）：
 | `ctx.sandbox` / `ctx.sandboxPolicy` | seam/core | 沙箱执行后端 / 统一部署默认模式与工作区根；`sandbox-local`/`sandbox-ssh` 提供 |
 | `ctx.credentials` | seam | 凭据引用与解析；`credentials-local` 提供 |
 | `ctx.authorization` | seam | 取得某份凭据的 flow 注册；seam 拥有「每个键同时只跑一次尝试」的生命周期 |
-| `ctx.settings` | seam | 分层设置；`settings-file` 提供，适配器把入口配置注册为组合基础 |
+| `ctx.settings` | core | 分层设置；由活跃 profile 条目生成各插件的 Config 表单（插件以 `.volatile()` 声明字段），校验后的编辑交给 `boot/config-editor` 落成 profile patch 并对账 Loader 条目 |
 | `ctx.sessionPersistence` | seam | 会话持久化；`session-persistence-jsonl` 等 |
 | `ctx.sessionQuery` | seam | 会话查询；`session-query-sqlite` |
 | `ctx.sessionTelemetry` | seam | 捕获会话记录、脱敏后交给单一后端（`session-telemetry-otel`） |
 | `ctx.storage` / `ctx.storageDomain` | seam/core | KV 存储后端 / 领域化类型化持久状态；`storage-json`/`storage-sqlite` |
-| `ctx.skills` | seam | 分层（宿主 + scope）合并 provider 的 skill 目录；`skill-filesystem`/`skill-badge`/`skill-office` 提供，`tool-skill` 消费。发现根按 rank：`<project>/.dsh/skills`(100)、`<project>/.agents/skills`(200)、`customSkillDirs`(300)、`$DSH_HOME/skills`(400)、`$DSH_AGENTS_HOME/skills`(500)、bundled(600)；名称须为 kebab-case，接受 `<name>/SKILL.md` 或 `<name>.md`（不递归），frontmatter 必填 `name`/`description`，可选 `whenToUse`/`disable-model-invocation`/`user-invocable` |
+| `ctx.skills` | seam | 分层（宿主 + scope）合并 provider 的 skill 目录；`skill-filesystem`/`skill-badge`/`skill-office`/`sandbox-windows-acl` 提供，`tool-skill` 消费。发现根按 rank：`<project>/.dsh/skills`(100)、`<project>/.agents/skills`(200)、`customSkillDirs`(300)、`$DSH_HOME/skills`(400)、`$DSH_AGENTS_HOME/skills`(500)、bundled(600)；名称须为 kebab-case，接受 `<name>/SKILL.md` 或 `<name>.md`（不递归），frontmatter 必填 `name`/`description`，可选 `whenToUse`/`disable-model-invocation`/`user-invocable` |
 | `ctx.fileReferences` | seam | 返回 Agent cwd 内仅含路径的补全候选（不读内容）；`file-reference-local` 提供 |
 | `ctx.spillStore` | seam | 过大工具文本溢出存储；`spill-local` 提供，`spill-policy` 决定何时 spill |
 | `ctx.compaction` | seam | 上下文压缩；`compaction-basic` 提供 |
 | `ctx.tokenMeter` | core | token 计量 |
-| `ctx.ptcRuntime` | seam | **PTC mode** 程序运行（用宿主异步绑定运行模型写的程序）；`ptc-runtime-node` 等提供，`tools` 与 `workflow-ptc` 消费 |
+| `ctx.ptcRuntime` | seam | **PTC mode** 程序运行（用宿主异步绑定运行模型写的程序）；`@deepseek-ai/dsh-ptc-runtime-node`（由 `dsh-code-runtime-worker-thread` 改名并改在全新 Node 子进程 + `ctx.sandbox` 下执行）与实验性 `@deepseek-ai/dsh-experimental-ptc-runtime-python` 提供，`tools` 与 `workflow-ptc` 消费 |
 | `ctx.terminals` | seam | PTY 会话；`terminal-bash` 提供，`tool-terminal` 面向模型 |
 | `ctx.lsp` | seam | LSP 导航；`lsp-stdio` 提供，`tool-lsp` 消费（只有四种标准化查询，无协议逃生口） |
 | `ctx.browserUse` | seam | 浏览器操作提供方注册；提供方（playwright-mcp / chrome-devtools-mcp / stagehand-native）自持工具与浏览器资源 |
@@ -160,7 +160,7 @@ harness 的核心服务（`ctx.<key>` → 角色 → 说明）：
 | `ctx.directoryPicker` | seam | 带判别标记的目录选择：native（系统选择器）/ browse（应用内浏览器） |
 | `ctx.workflowEngine` | seam | 工作流引擎；每个上下文一个引擎，`workflow-ptc` 提供 |
 | `ctx.goals` | core | 目标状态折叠与延续 |
-| `ctx.agentPresets` | core | 在受信任根与用户创作根发现 preset 目录，并在创建期把 preset `cordis.yml` 挂到 agent 作用域下 |
+| `ctx.agentPresets` | core | 预挂载 YAML 声明的 preset 修订（owner 由 `preset/agent-presets` 拆为 `preset/agent-preset` + `preset/agent-preset-registry`），把 Agent 与冷读取方绑定到作用域贡献，已退役修订保留到最后一名使用者释放 |
 | `ctx.agentTeams` | core | 实验性协作 seam：持久 roster、peer mailbox、任务 DAG（需显式启用） |
 | `ctx.commands` | core | 面向人的命令注册 |
 | `ctx.planMode` | core | 计划模式 |
@@ -169,7 +169,15 @@ harness 的核心服务（`ctx.<key>` → 角色 → 说明）：
 | `ctx.webServer` | core | HTTP 载体 |
 | `ctx.clientModules` | core | 浏览器模块图 |
 
-> 表内混合本地 `0.1.5-rc.2` 与更新上游文档：`ctx.ptcRuntime`、`ctx.browserUse`、`ctx.computerUse`、`ctx.officeToPdf`、`ctx.ssh`、`ctx.agentTeams`、`skill-office` 在本地 SDK 中尚未出现（本地对应物是 `ctx.codeRuntime` / `dsh-code-runtime`）；以本地安装为准时请先用该服务的 TypeScript 接口核对 key。
+### `0.2.0-rc.2` 的服务结构变化（相对 `0.1.5-rc.2`）
+
+- **移除 E2B 线**：`e2b` / `fs-e2b` / `subprocess-e2b` 包已删除，`ctx.e2b` 随之消失；远程能力改由 SSH 家族承担——`ssh/fs-ssh`、`ssh/subprocess-ssh`、`ssh/sandbox-ssh`（依次对应原来的 `fs-e2b` / `subprocess-e2b` / `e2b`）。`ctx.codeRuntime` → `ctx.ptcRuntime` 同理。
+- **新增角色类别 `service`**（除已有的 core / seam / bundle 外）：尚未抽出扩展点的具体实现，当前有 `ctx.otel`（`telemetry/otel`）、`ctx.productAnalytics`（`client/product-analytics`）、`ctx.productTelemetry`（`host/product-telemetry-otel`）。
+- **插件作者相关的新服务**（括号内为 owner 包路径）：`ctx.hmr`（`boot/hmr`）、`ctx.configEditor`（`boot/config-editor`）、`ctx.pluginManager`（`boot/plugin-manager`）、`ctx.profileContext`（`boot/app-boot`）、`ctx.connection`（`client/connection`）、`ctx.mcpResources`（`mcp/mcp-resources`，seam）、`ctx.browserUse`（`browser-use/browser-use`，seam）、`ctx.computerUse`（`computer-use/computer-use`，seam）、`ctx.officeToPdf`（`document/office-to-pdf`）、`ctx.workspaceChanges`（`deliverables/workspace-changes`）、`ctx.schedule`（`schedule/schedule`）、`ctx.deepseekAccount`（`credentials/deepseek-account`，seam）、`ctx.speechToText`（`experimental/speech-to-text`，seam）、`ctx.speechController`（`experimental/api-speech-to-text`）。
+- **提供方变动**：`ctx.workflowEngine` 的实现由 `workflow-worker-thread` 改为 `workflow-ptc`；`ctx.settings` 的 `settings-file` 提供方已移除（`@deepseek-ai/dsh-settings-file` 不再存在）。
+- 上游 `capability-seams` 表格的服务行数由 `0.1.5-rc.2` 的 72 行增至 `0.2.0-rc.2` 的 92 行。
+
+> 本表已按本地 `0.2.0-rc.2` SDK 重新核对：上游 `capability-seams` 页面是生成物且比本表长得多（该版 92 个 `ctx.*` 服务），本表只保留插件开发常用项；以本地安装为准时，请先用该服务的 TypeScript 接口核对 key。
 >
 > 完整列表（含每个 seam 的 Definition 包、全部 Provider 与直接消费方）以官方 capability-seams 页面为准；开发时以各服务 TypeScript 接口和子系统页面的 `cordis-surface` 区块为权威，不要维护静态清单。
 

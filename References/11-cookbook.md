@@ -93,7 +93,7 @@ export function apply(ctx: Context) {
 
 | 产品功能 | 插件机制 |
 |---|---|
-| 钩子系统（用户级+项目级） | `agent/session-start`、`agent/pre-step`、`agent/request`、`tools/pre-execute`、`tools/post-execute`、`agent/turn-stopping` 上的监听器 |
+| 钩子系统（用户级+项目级） | `agent/created`、`agent/pre-step`、`agent/request`、`tools/pre-execute`、`tools/post-execute`、`agent/turn-stopping` 上的监听器 |
 | /goal | `ctx.goals` 管理持久状态 + round driver 调度 + 命令/工具生产方 |
 | 动态工作流 | `ctx.workflowEngine` + worker-thread 引擎 + workflow 工具 |
 | 排队消息 + steering | `Agent.followup()` / `Agent.steer()` |

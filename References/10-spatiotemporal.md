@@ -79,6 +79,6 @@ Koishi 是构建在 Cordis 上的开源聊天机器人框架，4000+ 社区插�
 
 > 本文为精简提炼，官方文档更新时请从以下 URL 获取新内容并修订本文：
 
-- **论文 PDF（原文）**：https://github.com/cordiverse/paper/blob/main/paper.pdf
+- **论文原文（arXiv:2608.25512）**：https://arxiv.org/abs/2608.25512
 - **项目仓库**：https://github.com/deepseek-ai/deepseek-harness
 - **官方文档站**：https://deepseek-harness.github.io/deepseek-harness/

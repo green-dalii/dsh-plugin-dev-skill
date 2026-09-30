@@ -1,6 +1,6 @@
 # 06 · 服务与依赖、事件系统
 
-> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis 4.0.2 + dsh 0.1.5-rc.2）为准。
+> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis 4.0.4 + dsh 0.2.0-rc.2）为准。
 
 ## 1. 服务是什么
 
@@ -49,10 +49,11 @@ export default class MetricsService extends Service {
 
 ### 轻量替代：`ctx.provide`
 
-不需要类时可直接注册（第三个参数是可用性谓词，依赖方据此判断是否就绪）：
+不需要类时可直接注册（`ctx.provide` 的 public 重载只有 `(name, value?)`，第三个参数 `check` 只在运行时存在）：
 
 ```ts
-ctx.provide('metrics', { record: (e: string, v: number) => { /* ... */ } }, () => ready)
+// 可用性谓词是「已注册但暂时不可用」的中间态；它不在 ctx.provide 的类型重载里，走 ctx.reflect.provide
+ctx.reflect.provide('metrics', { record: (e: string, v: number) => { /* ... */ } }, () => ready)
 ```
 
 ### 类型声明（声明合并）
@@ -114,7 +115,7 @@ declare module '@deepseek-ai/cordis' {
 | parallel | `await ctx.parallel(name, ...args)` | 所有监听器并发运行并等待（返回 `Promise<void>`） |
 | serial | `await ctx.serial(name, ...args)` | 按注册顺序 await；首个非 null/false/undefined 返回值胜出并终止后续 |
 | bail | `ctx.bail(name, ...args)` | serial 的**同步**版，返回首个 bail 值（同步返回值，不是 promise） |
-| waterfall | `ctx.waterfall(name, ...args)` | 环绕中间件；**监听器**额外收到内置 `next`，返回最外层监听器的返回值 |
+| waterfall | `ctx.waterfall(name, ...args, next)` | 环绕中间件；**调用方**把「最内层默认行为」作为最后一个实参传入，分发器再为每个监听器换成链式 `next`；返回最外层监听器的返回值 |
 
 ### 监听与触发
 
@@ -135,9 +136,14 @@ ctx.on('my-plugin/transform', async (_input, next) => {
   const downstream = await next()      // 调用下游
   return downstream.trim()             // 包装返回值
 })
+
+// 调用方：把「最内层默认行为」作为最后一个实参传入（不传会被当成 next 而 TypeError）
+await ctx.waterfall('my-plugin/transform', input, async () => input)
 ```
 
 **纪律：只观察/标注的 waterfall 监听器必须调用 `next()`**；不调用直接返回 = 有意短路（否决）。忘记 `next()` 会静默吞掉下游默认行为。
+
+**调用方契约**：最后一个实参就是 continuation。分发器实现会 `args.pop()` 取出它，然后逐个监听器替换成链式 `next` —— 所以监听器**也**始终收到 `next`；两种说法的区别只在「调用方是否要自己传」。
 
 ### 作用域过滤分发（scoped dispatch）
 
@@ -172,7 +178,7 @@ declare module '@deepseek-ai/cordis' {
 ### 事件生产方契约（自己发事件时）
 
 - 新增事件用 `namespace/action` 命名，并在声明处标 `@mode`；只按声明的模式分发（类型系统强制方法名）。
-- **在分发器中隔离回调异常**：一个抛错的订阅者不得 reject 分发 promise，也不得饿死排在它后面的监听器——用 try/catch 包裹分发循环并记录日志。
+- **隔离监听器异常（Harness 约定，不是 Cordis 框架保证）**：Cordis 的 `emit` 同步传播（一个监听器抛错会中断分发、饿死后续监听器），`parallel` 会以 `AggregateError` reject。自己发事件时请照 Harness 的做法实现：用 try/catch 包裹分发循环并记录日志。
 - payload 视为只读：观察型事件不要把可变内部状态直接交出去；需要持久化/跨进程的 payload 必须可无损 JSON 序列化。`emit` / `bail` 是同步的，不要在其中做异步工作（返回的 promise 被忽略，异常也不会被合理捕获）。
 
 ## 7. Harness 常用事件速览
@@ -182,8 +188,8 @@ declare module '@deepseek-ai/cordis' {
 | `tools/pre-execute` / `tools/execute` / `tools/post-execute` | waterfall | 工具执行策略：前置决策 / 环绕分派（如超时） / 后置决策（见 `03-tools.md`） |
 | `tools/result` | emit | 观测不可变、可无损 JSON 表示的最终结果 |
 | `tools/ptc-dispatch-log` | waterfall | PTC mode 桥接子调用的持久化内容副本 |
-| `agent/created` / `agent/disposed` / `agent/status` | emit | agent 生命周期与状态观测 |
-| `agent/session-start` | emit | 会话启动钩子（通知，非否决） |
+| `agent/created` | serial | agent 创建：按序 await 后才 resolve，抛错则创建失败并跳过后续监听器；payload 含 `source` 与可选 `signal` |
+| `agent/disposed` / `agent/status` | emit | agent 生命周期与状态观测 |
 | `agent/pre-step` | waterfall | 每步前拦截或替换进入该步的消息 |
 | `agent/request` | waterfall | 替换冻结的模型调用配置 |
 | `agent/request-error` | waterfall | 单次请求失败的重试策略（返回 `{ kind: 'retry' }` 或委托 `next()`） |
@@ -197,6 +203,14 @@ declare module '@deepseek-ai/cordis' {
 | `session/flush` | parallel | 落盘与遥测的并发刷新 |
 
 > **区分与会查**：`turn/*`、`step/*`、`tool/call`、`tool/result`、`compaction/*` 是**持久化的会话事件类型**，不是同名 Cordis 事件——要观察它们时监听 `session/event` 并检查 `event.type`。谁派发、谁监听、用什么方法派发，查官方 `reference/event-producer-consumer` 矩阵（由 TS Program 生成）；完整签名与触发模式以子系统页面的 `cordis-surface` 区块为准。
+
+### 0.2.0 事件变动（对照官方矩阵）
+
+- **移除**：`agent/session-start`（payload 的 `source` 与语义并入 `agent/created`）、`settings/updated`。
+- **模式变更**：`agent/created` 由 `emit` 改为 **serial**，并新增可选 `signal`。
+- **新增**：`app-boot/config-reload`、`compaction/summary-error`、`connection/request`、`deepseek-account/*`、`permission-presets/catalog-changed`、`plugin-manager/*`、`schedule/changed`、`workspace/session-activity`、`workspace/session-stop`。
+- **改名**：分发方包 `agent-presets` → `agent-preset-registry`。
+- **仅新进入矩阵清单**（事件本身早已存在）：`hmr/change`、`hmr/reload`、`internal/config`、`internal/update`，以及模式列留空的 `loader/volatile-update`、`slots/changed`。
 
 ## 8. 实践规则
 

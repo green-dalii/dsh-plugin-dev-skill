@@ -2,7 +2,7 @@
 
 > An agent skill that teaches any AI coding agent how to develop DeepSeek Harness (DSH) plugins correctly, efficiently, and in line with the official conventions. Repository: https://github.com/green-dalii/dsh-plugin-dev-skill (skill id `dsh-plugin-dev-skill`, MIT).
 
-DeepSeek Harness is an agent harness SDK in which every capability — tools, LLM adapters, filesystem access, sandboxing, persistence, and the agent loop itself — is a plugin attached to a shared context, built on the Cordis framework. This repository is a documentation-only skill pack (no runtime dependency) that is verified against `@deepseek-ai/*` 0.1.5-rc.2 (cordis 4.0.2). The skill body and reference docs are written in Chinese, matching the official DSH documentation; code templates, API names and commands are language-neutral.
+DeepSeek Harness is an agent harness SDK in which every capability — tools, LLM adapters, filesystem access, sandboxing, persistence, and the agent loop itself — is a plugin attached to a shared context, built on the Cordis framework. This repository is a documentation-only skill pack (no runtime dependency) that is verified against `@deepseek-ai/*` 0.2.0-rc.2 (cordis 4.0.4). The skill body and reference docs are written in Chinese, matching the official DSH documentation; code templates, API names and commands are language-neutral.
 
 Key entry points: `SKILL.md` is the operating manual an agent loads (mental model, `defineTool` contracts, code templates, workflow, verification checklist); `References/` holds condensed digests of the official docs plus the real SDK type definitions; `VERSION` is the skill version the agent compares against the published one on every load.
 
@@ -31,7 +31,7 @@ Key entry points: `SKILL.md` is the operating manual an agent loads (mental mode
 
 - [DeepSeek Harness repository](https://github.com/deepseek-ai/deepseek-harness): the SDK this skill targets.
 - [DeepSeek Harness documentation](https://deepseek-harness.github.io/deepseek-harness/develop/basic/): official developer documentation.
-- [A Programming Paradigm for Spatiotemporal Composability](https://github.com/cordiverse/paper/blob/main/paper.pdf): the paper behind Cordis, the framework DSH is built on.
+- [A Programming Paradigm for Spatiotemporal Composability](https://arxiv.org/abs/2608.25512): the paper behind Cordis, the framework DSH is built on (arXiv:2608.25512; the earlier `cordiverse/paper` PDF link is retired).
 
 ## Optional
 

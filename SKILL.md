@@ -3,9 +3,9 @@ name: dsh-plugin-dev-skill
 description: 指导任何 Agent 正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。涵盖 Tool（defineTool）、LLM 适配器、服务与依赖、事件系统、配置、打包发布，以及 Cordis 框架的心智模型、代码模板与验证清单。
 whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool、LLM adapter、服务提供方、钩子、UI、协议桥等），编写或修改 cordis.yml / cordis.patch.yml / dsh.profile / dsh.bundle 配置，使用 dsh plugin 命令，或需要理解 ctx.tools、ctx.llm、ctx.agents、ctx.sessions 等服务与 tools/*、agent/*、session/event 等事件时，加载本技能。
 metadata:
-  version: 0.5.0
+  version: 0.6.0
   upstream: https://github.com/green-dalii/dsh-plugin-dev-skill
-  sdk-baseline: 0.1.5-rc.2
+  sdk-baseline: 0.2.0-rc.2
 ---
 
 # DeepSeek Harness Plugin Dev Skill
@@ -15,7 +15,7 @@ metadata:
 >
 > ⚠️ **载入本技能后，先执行 §0.1「检查 skill 是否最新」**：不是最新版就先更新，再开始使用本技能。
 >
-> **SDK 基线**：本文 API 陈述以 `@deepseek-ai/*` **0.1.5-rc.2**（cordis 4.0.2）的类型定义实测为准。上游文档偶尔领先于已发布 SDK（例如 seam 改名 `ctx.codeRuntime` → `ctx.ptcRuntime`、`dsh-experimental-auto-review`、Plugin Manager 等），这类差异在各 `References/` 文件中均已标注；升级 SDK 后请按对应文件末尾的官方链接复查。
+> **SDK 基线**：本文 API 陈述以 `@deepseek-ai/*` **0.2.0-rc.2**（cordis **4.0.4**）的类型定义实测为准。0.2.0 把过去几处「文档领先于 SDK」的项正式落地了：PTC 运行时 seam 定名 **`ctx.ptcRuntime`**（原 `ctx.codeRuntime`，包 `dsh-ptc-runtime` / 提供方 `dsh-ptc-runtime-node`）、**Plugin Manager**（`plugin_manager`）随发行版交付、E2B 系提供方移除并由 SSH 家族接管远程能力。升级 SDK 后请按各 `References/` 文件末尾的官方链接复查。
 
 ---
 
@@ -34,9 +34,9 @@ metadata:
 ### 0.1 载入后第一件事：检查 skill 是否最新（强制流程）
 
 **本技能会随官方 DSH 演进而更新。每次载入本技能后，先确认自己用的是最新版；若不是最新版，先更新、再开始用它干活。**
-理由很实际：上游有过破坏性改名（`Code Mode` → PTC mode、`CallId` → `ToolCallId`），用过期版本会写出**编译不过**的插件。
+理由很实际：上游有过破坏性改名（`Code Mode` → PTC mode、`CallId` → `ToolCallId`、`ctx.codeRuntime` → `ctx.ptcRuntime`、profile manifest 删除 `patchReload`），用过期版本会写出**编译不过或行为不对**的插件。
 
-1. **读本地版本**：`VERSION` 文件与本 `SKILL.md` 同目录，内容形如 `0.5.0`（frontmatter 的 `metadata.version` 是同值副本）。
+1. **读本地版本**：`VERSION` 文件与本 `SKILL.md` 同目录，内容形如 `0.6.0`（frontmatter 的 `metadata.version` 是同值副本）。
    - 若**没有** `VERSION` 文件（例如只拷贝了 `SKILL.md` 的残缺安装），视为**旧版本，直接执行第 4 步更新**。
 2. **取远端版本**（一次约 5 字节的 GET，用短超时，不要拖慢主任务）：
    ```sh
@@ -150,7 +150,7 @@ export function apply(ctx: Context) {
 
 **加载失败语义**：`Config` 校验失败时插件以 `ValidationError` 停在 `FAILED`，`apply` 永不执行——所以「配置错误要响亮」是免费的，前提是你真的声明了 schema。
 
-**HMR 提醒**：默认只热重载**配置**；插件模块（代码）变更通常仍需重启进程（profile 层的 `patchReload` 可调整，见 `References/07-publish.md`）。
+**HMR 提醒**：默认只热重载**配置**；插件模块（代码）变更通常仍需重启进程（要开源码热替换，用 profile patch 改 `dsh-hmr` 行的 `root`，见 `References/07-publish.md`）。
 
 ---
 
@@ -197,10 +197,12 @@ export function apply(ctx: Context) {
   - 遵守 `exec.signal`：信号触发时取消进行中的工作。
   - 基础设施故障（抛异常/无效返回值）→ 结果标记为 `isError`。**成功但结果不理想**（如非零退出码）→ 仍返回规范值，在 render 里解释。
   - 组合工具可额外用 `exec.deferContext(msg)` 把上下文延迟到本工具 `tool/result` 之后再交给循环（按调用序），或用 `exec.concludeTurn()` 标记本成功结果为当前轮次终点。
+  - `exec.schema`（0.2.0 新增）是 PTC 内层调用在**绑定时刻**冻结的工具 schema，永不写入日志。
 - **`output.render(args, value)`**：纯函数，把规范值转成 `ContentBlock[]`（模型看到的文本）。绝不在此做 I/O、读会话状态。
 - **可选 `output.presentationMeta(args, value)`**：从规范值派生可回放的 UI 元数据（纯函数）。
 - **可选 `presentCall(args)` / `presentResult(args, result)`**：声明工具在 UI 中的卡片渲染意图。`presentCall` 可用 `'generic' | 'terminal' | 'diff'`；`presentResult` 额外支持 `'search' | 'web' | 'read'`。必须**纯函数**（会在实时流和会话回放中运行），不做 I/O。
-- **定义级运行时元数据**（都不进入模型请求，`schemas()` 只白名单 name/description/parameters）：`timeoutMs`（协作式超时预算，由 `@deepseek-ai/dsh-tool-call-timeout-policy` 强制）、`isConcurrencySafe(args)`（**只有精确返回 `true`** 才允许与兄弟调用并行，否则独占并构成排序屏障）、`finalizeContent(exec, result)`（对每个归一化结果恰好一次的最终内容变换，必须全函数、不抛错）。语义细节见 `References/03-tools.md` §2。
+- **定义级运行时元数据与内容变换**：`timeoutMs`（协作式超时预算，由 `@deepseek-ai/dsh-tool-call-timeout-policy` 强制）、`isConcurrencySafe(args)`（**只有精确返回 `true`** 才允许与兄弟调用并行，否则独占并构成排序屏障）、**`projectContent(exec, result)`**（0.2.0 新增：把执行期准备好的文本/图片在 `tools/post-execute` **之前**装进去，可被后续策略覆盖）、**`finalizeContent(exec, result)`**（`tools/post-execute` **之后**的最后一道内容变换，对每个归一化结果恰好一次——**包括**绕过 post-execute 的流水线失败——必须全函数、不抛错）。后两者返回 `ContentBlock[] | undefined`。
+- **模型可见字段**：`name` / `description` / `parameters`，以及 0.2.0 新增的 **`deferLoading?: true`**（该工具延迟加载，模型按需激活，而不是每次请求都下发完整声明列表）。上面这些运行时字段与回调**都不会进入模型请求**。语义细节见 `References/03-tools.md` §2。
 - 参数不可变：把 `args` 当只读；注册后不要改 schema 或替换回调。
 
 ### 长时间运行的任务（后台任务）
@@ -215,19 +217,23 @@ return {
   jobId: jobs.start({
     kind: 'my-work',
     label: args.command,
-    ...exec.agent ? { owner: exec.agent } : {},
-    run: () => { /* 返回 { cancel, done, readOutput? } */ },
+    ...exec.agent ? { owner: exec.agent.id } : {},   // ⚠️ 0.2.0：owner 是 SessionId，不再是 agent 对象
+    output: processSources,                          // 可选：注册表拉取式输出源
+    run: (job) => {                                  // ⚠️ 0.2.0：run 接收 JobHandle
+      job.append('progress line\n')                  // 也可用 job.updateProgress(line)
+      return { cancel: (reason) => { /* ... */ }, done }   // ⚠️ 0.2.0：JobHooks 已无 readOutput
+    },
   }),
 }
 ```
 
-要点：发布 jobId 之后用任务自己的取消信号（归 `job_kill` / owner dispose 管），不再用 `exec.signal`；成功输出 schema 要能承载 `{ kind: 'background', jobId }` 这种规范句柄。参考 `References/03-tools.md` 与 `@deepseek-ai/dsh-tool-bash` 实现。
+要点：发布 jobId 之后用任务自己的取消信号（归 `job_kill` / owner dispose 管），不再用 `exec.signal`；成功输出 schema 要能承载 `{ kind: 'background', jobId }` 这种规范句柄；任务结果用 `JobOutcome.result`（旧名 `output` 已改）。参考 `References/03-tools.md` 与 `@deepseek-ai/dsh-tool-bash` 实现。
 
 ### 工具的执行策略（扩展点，按需用）
 
 | 扩展点 | 模式 | 用途 |
 |---|---|---|
-| `tools/pre-execute` | waterfall | 允许/拒绝/询问策略（权限门禁）；返回 `{kind:'allow'}` / `{kind:'deny',reason}` / `{kind:'ask'}` |
+| `tools/pre-execute` | waterfall | 允许/拒绝/取消/询问策略（权限门禁）；返回 `{kind:'allow'}` / `{kind:'deny', reason, info?}` / `{kind:'cancel'}` / `{kind:'ask', reason?, displayReason?}` |
 | `ctx.tools.guard()` | 单调守卫 | 最终拒绝，后续监听器无法撤销（返回 reason 即拒绝） |
 | `tools/execute` | waterfall | 包裹分发：超时/重试/指标；可替换 `exec.signal` 但不可移除 |
 | `tools/post-execute` | waterfall | 替换内容/值、阻止结果、附加模型上下文 |
@@ -282,7 +288,7 @@ export function apply(ctx: Context, config: Config) {
 - 常用构造：`Schema.string().required()` / `.default(x)`、`Schema.number()`、`Schema.boolean()`、`Schema.array(String)`、`Schema.union(['a','b'])`、`Schema.object({...})` 嵌套。
 - 支持 `!!js` 表达式在加载时求值（如 `greeting: !!js process.env.GREETING ?? 'Hello'`），在 `config` 内**递归生效**；`!!js` 仅对 `config` 与 `disabled` 字段有效。注意 `--dump-config` 原样打印 `!!js` 而不求值。
 - 配置变更触发旧实例卸载（注册是 effect，自动清理）→ 新实例加载。**不要在插件外部缓存配置**。
-- HMR 有前提：配置热重载靠 profile 的 `patchReload: live`（自定义 profile 默认值，由 launcher 的只监视 patch 文件的回退承担）；**源码模块热替换是按 profile 显式开启的**（base 的 `hmr` 行默认 `disabled: true`）。
+- HMR 现在由 **YAML 组合**决定（0.2.0 起 profile manifest 的 `patchReload` 字段已删除，残留该键无任何效果）：`dsh-base` 默认挂 `@deepseek-ai/dsh-hmr` 且 `root: []`，故 base 系 profile（含 `web`）**配置热重载默认开、源码模块热替换仍需 opt-in**（用 profile patch 把 `root` 改成 `["."]`）；`headless`/`sdk`/`acp` 显式 `disabled: true`（仅启动时加载），`sdk-minimal` 没有 hmr 行。
 - 想让配置出现在 Web「插件配置」页：用 `ctx.settings.installSection(...)`，细节见 `References/04-config.md` §7。
 
 ---
@@ -349,9 +355,9 @@ export function apply(ctx: Context) {
 | `parallel` | `await ctx.parallel(name, ...args)` | 所有监听器并发运行并等待（返回 `Promise<void>`） |
 | `serial` | `await ctx.serial(name, ...args)` | 按序 await，首个非 null/false/undefined 返回值胜出并终止后续 |
 | `bail` | `ctx.bail(name, ...args)` | serial 的**同步**版，返回首个 bail 值（不是 Promise） |
-| `waterfall` | `await ctx.waterfall(name, ...args)` | 环绕中间件；**监听器**额外收到内置 `next`，包装下游返回值；返回最外层监听器的返回值 |
+| `waterfall` | `await ctx.waterfall(name, ...args, next)` | 环绕中间件；**调用方必须把「最内层延续（默认行为）」作为最后一个实参传入**，分发器取出后为每个**监听器**替换成链式 `next`；返回最外层监听器的返回值 |
 
-**waterfall 铁律：只观察/标注的监听器必须调用 `next()`；不调用 `next()` 直接返回 = 有意短路（否决/拦截）。** 忘记调用 `next()` 会静默吞掉下游默认行为。
+**waterfall 铁律：只观察/标注的监听器必须调用 `next()`；不调用 `next()` 直接返回 = 有意短路（否决/拦截）。** 忘记调用 `next()` 会静默吞掉下游默认行为；而**调用方漏传最后一个 `next` 实参**，则会让最后一个真实参数被当作默认行为而抛 `TypeError`（两侧都容易出错，务必区分）。
 
 ### 类型安全的事件
 
@@ -384,10 +390,11 @@ Harness 中「关于某个 agent 的活动」的事件（`agent/*`、`tools/*`�
 ### 常用 Harness 事件（开发时经常用到）
 
 - `tools/pre-execute` / `tools/execute` / `tools/post-execute` / `tools/ptc-dispatch-log` — waterfall；`tools/result` / `tools/change` — emit（工具流水线见上表）
-- `agent/request`（waterfall，替换冻结的模型调用配置）、`agent/request-error`（waterfall，单次请求失败的重试策略）、`agent/pre-step`（waterfall）、`agent/session-start`（emit）、`agent/assistant-stream`（emit，进程内实时流分片）、`agent/turn-stopping`（serial，轮次停止边界，异议者用 `agent.steer()` 继续跑）
+- `agent/request`（waterfall，替换冻结的模型调用配置）、`agent/request-error`（waterfall，单次请求失败的重试策略）、`agent/pre-step`（waterfall）、`agent/created`（**serial**；0.2.0 起 `agent/session-start` 已删除并合并进它，创建 resolve 前被 await，抛错会失败创建）、`agent/assistant-stream`（emit，进程内实时流分片）、`agent/turn-stopping`（serial，轮次停止边界，异议者用 `agent.steer()` 继续跑）
 - `session/event` — 持久化的会话事件流（`turn/*`、`step/*`、`tool/call`、`tool/result`、`assistant/chunk` 都是这里的 `event.type`，**不是**同名 Cordis 事件）；另有 `session/created` / `session/disposed`（emit）、`session/flush`（parallel）
 - `approval/request` — 审批 waterfall
 - `system-prompt/assemble` — 系统提示词整体装配（作用域过滤；权威返回，监听者有责任保留既有贡献）
+- **0.2.0 事件变动**：删除 `agent/session-start`（并入 `agent/created`）与 `settings/updated`；`agent/created` 由 emit 改 **serial**；新增 `app-boot/config-reload`、`hmr/change`、`hmr/reload`、`plugin-manager/*`、`workspace/session-activity`、`workspace/session-stop`、`deepseek-account/*`、`schedule/changed`、`permission-presets/catalog-changed`、`compaction/summary-error`、`connection/request`、`loader/volatile-update`
 
 完整签名与分发模式见各子系统页面生成的 `cordis-surface` 区块（`References/08-capability-layering.md` 有指引）；**谁派发、谁监听**查官方 `event-producer-consumer` 矩阵（该页未发布到文档站，链接见 `References/06-framework-services-events.md`）。
 
@@ -444,10 +451,11 @@ async function* chunks(): AsyncIterable<StreamChunk> {
 
 ### 错误与元数据
 
-- 传输/协议故障：`throw new LlmError(msg, 'STABLE_CODE')`（带稳定 code），不要依赖普通 `Error` 自动转换。
-- 提供方不支持 `GenerateOptions` 中的某个字段：`throw new LlmError(..., 'UNSUPPORTED_OPTION')`，绝不静默丢弃。
+- 传输/协议故障：`throw new LlmError(msg, '<CODE>', { status?, providerRetryAfterMs?, requestId?, offloadImages? })`，不要依赖普通 `Error` 自动转换。`code` 是**自由字符串**（SDK 不提供错误码联合类型），核心导出的规范常量有 `CONTEXT_WINDOW_EXCEEDED`、`QUOTA`、`ACCOUNT_QUOTA`、`EMPTY_RESPONSE`、`INVALID_CREDENTIAL`、`IMAGE_OFFLOAD_REQUIRED`。
+- 提供方不支持 `GenerateOptions` 中的某个字段：`throw new LlmError(..., 'UNSUPPORTED_OPTION')`（该 code 是**适配器自有**约定，核心不导出），绝不静默丢弃。
 - 每个 HTTP 请求合并 `attributionHeaders()`，并传递 `options.signal`。
-- 可选：覆写 `resolveModel()`（返回提供方/模型身份 + 可选 context/reasoning 元数据）与 `listModels()`（公布模型选项）。
+- 可选：覆写 `resolveModel()`（返回提供方/模型身份 + 可选 `context`、`reasoning`、`systemPromptUpdate`、`toolUpdate` 与 **`inputModalities`**——未声明图片能力时运行时会主动把图片投影掉）与 `listModels()`（公布模型选项）。
+- 可选：覆写 `prepareCall(provider, model, signal?)`，把连接事实绑定到**本次生成**，避免「能力解析」与「派发」之间配置变化导致混用两代配置（动态端点的适配器应覆写它）。
 
 完整教程见 `References/05-llm-adapter.md`；参考实现：`packages/llm/llm-deepseek`（OpenAI 兼容 SSE）与 `packages/llm/llm-pi-ai`。
 
@@ -477,7 +485,7 @@ async function* chunks(): AsyncIterable<StreamChunk> {
 ### 两个概念
 
 - **组合包（bundle）**：附带一个配置层的 npm 包，manifest 声明 `dsh.bundle`。是你编写并分发的东西。
-- **profile**：位于 `$DSH_HOME/profiles/<name>` 的可启动组合，manifest 声明 `dsh.profile`（含有序 `bundles` 列表，可选 `patchReload: 'live' | 'startup'`，默认 `live`）。是用户启动的东西。
+- **profile**：位于 `$DSH_HOME/profiles/<name>` 的可启动组合，manifest 声明 `dsh.profile`（只含有序 `bundles` 列表；**0.2.0 起 `patchReload` 字段已删除**，写了也不生效）。是用户启动的东西。
 
 **不要手写 profile manifest**：`web` / `headless` / `sdk` / `sdk-minimal` / `acp` 首次使用时自动从随附模板初始化。要派生自定义 profile：
 
@@ -504,7 +512,7 @@ hello-plugin/
   "type": "module",
   "main": "index.js",
   "files": ["index.js", "cordis.patch.yml"],
-  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }
+  "dsh": { "bundle": { "patch": "./cordis.patch.yml" } }   // patch 也可给数组：按序作为同一层应用
 }
 ```
 
@@ -522,11 +530,15 @@ dsh plugin --profile demo add ./hello-plugin        # 或 github:you/hello-plugi
 dsh plugin --profile demo add .                     # 相对 spec 按调用目录锚定 → 装当前 checkout
 dsh --profile demo --dump-config                    # 先验证完整配置层（含 --patch）
 dsh --profile demo --dump-default-config            # 只看组合包各层（不能与 --patch 同用）
+dsh --profile demo --dump-config-schema             # 新增：输出组合条目与 patch 层的 JSON Schema（2020-12）
+dsh demo                                            # 简写：等价于 dsh --profile demo
 dsh --profile demo                                  # 再启动
 dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 ```
 
-- `add` 后 `dsh.profile.bundles` 会按依赖顺序**重算**；组合包成员变化后**需要重启 profile**；profile / `$DSH_HOME` 的 `cordis.patch.yml` 编辑在 `patchReload: live` 时热重载。
+- `add` 后 `dsh.profile.bundles` 会按依赖顺序**重算**；组合包成员变化后**需要重启 profile**；profile / `$DSH_HOME` 的 `cordis.patch.yml` 编辑在 base 系 profile（含 `web`）下**默认热重载**。
+- **`dsh plugin` 有三个自管子命令**（不转发给 pnpm）：`version-exemptions`、`allow-version <pkg@version> --dsh-version <exact> --accept-risk`、`revoke-version …`，豁免记在 profile 的 `compatibility.json`。`add`/`install` 具名包会**先做兼容检查**，被拒时会打印确切的 `allow-version` 命令。`--profile` 必填；没有 `build`/`pack`/`publish` 子命令。
+- **加载失败不致命**：无法解析、不可读、没声明 `dsh.bundle`、或 DSH peer 不兼容且未豁免的 bundle 会被**跳过**，仍留在 `bundles` 列表里并进 `skippedBundles`，每次启动打印一次；其余 bundle 保持顺序。profile manifest 与用户 patch 的错误仍会让启动失败。
 - 包只有在声明了 `dsh.bundle` 时才会作为组合包生效；`update` 后才获得声明的包会被自动激活。
 
 ### 配置层顺序（理解覆盖语义）
@@ -540,11 +552,19 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 
 ⚠️ 副作用：如果你用 `!!js` 从运行时读值（如 `port: !!js ctx.webStartup.port ?? 8080`），用户用**字面量替换整个 `config`** 会把这次运行时读取一起抹掉。
 
+> 另有 launcher 自行追加的一层（用户不可编写，仅供解释）：当环境变量 `DSH_TELEMETRY_DISABLED` 为非空值且组合里存在该行时，追加 `{ id: 'session-telemetry-otel', disabled: true }`。
+
 ### 从 git 安装的两个坑
 
 - git 安装拉源码不跑 `build`，**作者必须提供自包含的 `prepare` 脚本**。
 - pnpm ≥10 默认拒绝 git 依赖的 `prepare`，**用户需在 profile 的 `pnpm-workspace.yaml` 加 `allowBuilds: <pkg>: true`** 并重新 `add`。要诚实告知用户：这等于允许该包在安装时执行代码。
 - 不想让用户授权构建 → 发布 npm，或交付**已构建的** tarball（`pnpm pack`）：tarball 与本地 checkout 安装都**不需要** `allowBuilds`。
+
+### 组合包作者要注意的三件事（0.2.0）
+
+1. **DSH peer 依赖契约**：导入前 DSH 会把 `peerDependencies` 中每个匹配 `@deepseek-ai/dsh` 或 `@deepseek-ai/dsh-*` 的条目，与**运行时那一个版本**比对；声明的每个范围都必须匹配，未声明 DSH peer 不构成约束，非法范围视为不兼容。不兼容的 bundle 会被拒绝或跳过，除非 profile 的 `compatibility.json` 里有精确 `name@version` 豁免。**`engines.dsh` 只是声明性的，不是被强制检查的字段**；linked checkout 场景建议把共享 dsh 包同时写进 `peerDependencies` 与 `devDependencies`。
+2. **可选展示元数据**：`locale/<lang>.json` 里的 `meta.title` / `meta.description`（配合 `exports` 暴露 `./locale/*.json`），以及 `package.json` 顶层 `icon`（SVG/PNG/JPEG/WebP，≤256 KiB，必须在包内且真实路径不逃逸）。它们显示在 Plugin Manager 的卡片/详情上，**不会激活插件**；用 `pnpm run verify-package-meta` 校验。
+3. **Plugin Manager 已随 0.2.0 交付**：`plugin_manager` 工具可 `install_bundle` / `set_bundle` / `set_plugin` / `remove_bundle` 并管理版本豁免，Web 也有「插件」页，改动**跨会话持久**；`dsh-tool-cordis` 现在**只能只读查看**（`cordis_inspect_list` / `cordis_inspect_query`），早期的 `cordis_define` / `cordis_run` 已移除。
 
 ---
 
@@ -567,7 +587,7 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 1. 类型检查与构建通过（如 `pnpm run typecheck && pnpm run build`，在 DSH 仓库内）。
 2. 用 `--patch` 或 `dsh plugin add` 加载，用 `--dump-config` 确认配置层。
 3. 启动运行，确认：插件日志出现、工具/服务/事件按预期工作。
-4. 测试卸载/重载：改**配置**确认注册被清理、无泄漏、无残留监听（`patchReload: live` 时热重载，自定义 profile 默认生效）；**源码模块热替换需按 profile 显式启用**，否则重启进程验证。
+4. 测试卸载/重载：改**配置**确认注册被清理、无泄漏、无残留监听（base 系 profile 默认热重载配置）；**源码模块热替换默认关闭**，要用 profile patch 打开 `hmr` 的 `root`，否则重启进程验证。
 5. 测试依赖缺失场景：去掉提供方 → 插件 PENDING 不崩溃；恢复 → 自动加载。
 6. 测试错误配置：传非法 config → 明确报错。
 
@@ -592,6 +612,10 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 | 服务名撞车（`ctx.tools`、`ctx.llm` 等） | 自有服务加辨识度前缀 |
 | patch 覆盖别层行只写改动的键 | 重述该行全部所需键（整 config 替换语义） |
 | 未声明 `inject` 却直接用 `ctx.xxx` | 补 `inject`（或改用 `ctx.get` 做可选探测） |
+| 仍在用 `ctx.codeRuntime` / `dsh-code-runtime` | 0.2.0 已改名：`ctx.ptcRuntime` / `dsh-ptc-runtime`（提供方 `dsh-ptc-runtime-node`） |
+| 在 profile manifest 里写 `patchReload` | 该字段已删除；HMR 由 YAML 组合里 `dsh-hmr` 行的 `disabled`/`root` 决定 |
+| 后台任务写 `owner: exec.agent` 或 `readOutput` | `owner` 要传 `exec.agent.id`；`readOutput` 已移除，改用 `spec.output` / `job.append()`，结果用 `JobOutcome.result` |
+| waterfall 调用方忘传最后一个 `next` 实参 | 调用方传最内层延续：`ctx.waterfall(name, ...args, next)`（与「监听器必须调 `next()`」是两件事） |
 
 ---
 
@@ -608,7 +632,7 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 | `References/07-publish.md` | 打包、安装、profile、配置层顺序 |
 | `References/08-capability-layering.md` | 三种角色能力设计与 seam 目录 |
 | `References/09-cordis-primer.md` | Cordis 入门：五个核心概念、分发模式、ctx API |
-| `References/10-spatiotemporal.md` | 论文《A Programming Paradigm for Spatiotemporal Composability》解读（[原文](https://github.com/cordiverse/paper/blob/main/paper.pdf)） |
+| `References/10-spatiotemporal.md` | 论文《A Programming Paradigm for Spatiotemporal Composability》解读（[arXiv:2608.25512](https://arxiv.org/abs/2608.25512)） |
 | `References/11-cookbook.md` | 扩展模式：权限门禁、UI 插件、协议桥、功能→机制映射表 |
 
 官方文档入口：https://deepseek-harness.github.io/deepseek-harness/develop/basic/ （中文）与 `/en/develop/basic/`（英文）
@@ -616,4 +640,4 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 
 本技能自身：仓库 https://github.com/green-dalii/dsh-plugin-dev-skill ，版本见同目录 `VERSION` 文件（更新检查流程见 §0.1）。
 
-> 索引与**术语对照表**（上游重命名备忘，如 Code Mode → PTC mode、`CallId` → `ToolCallId`）见 `References/00-INDEX.md`；注意文档站只发布 `develop/**`、`reference/**` 与 `guide/quickstart`，`architecture`、`glossary`、`event-producer-consumer` 等仅存在于仓库中（相关文件内已给出 GitHub 链接）。
+> 索引与**术语对照表**（上游重命名备忘，如 Code Mode → PTC mode、`CallId` → `ToolCallId`、`ctx.codeRuntime` → `ctx.ptcRuntime`）见 `References/00-INDEX.md`；注意文档站发布的是 `develop/**`、`guide/**` 与 `reference/**`，而 `glossary`、`event-producer-consumer`、`defensive-patterns` 以及 0.2.0 新增的多数 `subsystems/**` 页面（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 等，`ptc-runtime` 已发布）**仅存在于仓库**，相关文件内已给出 GitHub 链接。
