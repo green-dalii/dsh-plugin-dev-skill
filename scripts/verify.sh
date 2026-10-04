@@ -92,10 +92,14 @@ if [ "${SKIP_URLS:-0}" != "1" ]; then
   bad=0
   while IFS= read -r u; do
     [ -z "$u" ] && continue
-    # raw.githubusercontent.com 与 docs site 有时给 000（CDN 重连）；同一URL 重试一次
+    # raw.githubusercontent.com 与 docs site 有时给 000（CDN 重连）；同一URL 最多重试两次
     code=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 12 "$u" 2>/dev/null)
     if [ "$code" = "000" ]; then
-      sleep 2
+      sleep 3
+      code=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 18 "$u" 2>/dev/null)
+    fi
+    if [ "$code" = "000" ]; then
+      sleep 5
       code=$(curl -s -o /dev/null -w '%{http_code}' -L --max-time 18 "$u" 2>/dev/null)
     fi
     if [ "$code" != "200" ]; then
