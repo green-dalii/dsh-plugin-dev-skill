@@ -13,18 +13,19 @@
 
 set -u
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-cd "$ROOT"
+cd "$ROOT" || { printf '\033[31m%s\033[0m\n' "cannot cd to $ROOT" >&2; exit 2; }
 
 red()    { printf '\033[31m%s\033[0m\n' "$*"; }
 green()  { printf '\033[32m%s\033[0m\n' "$*"; }
-yellow() { printf '\033[33m%s\033[0m\n' "$*"; }
 
 fail=0
 
 # ---------- 1. SKILL.md frontmatter 合法 ----------
 if [ "${SKIP_FRONT:-0}" != "1" ]; then
   echo "==[1] SKILL.md YAML frontmatter =="
-  out=$(node -e '
+  # 把 node 校验脚本放进 if 位置——以退出码判断成败（避免 SC2181），失败时再跑一次
+  # 只收集错误信息到 out，避免 stdout/stderr 混杂。
+  front_check='
     const fs=require("fs");
     const head=fs.readFileSync("SKILL.md","utf8").split("\n").slice(0,40).join("\n");
     if(!head.startsWith("---\n")){console.error("missing opening ---");process.exit(2)}
@@ -50,10 +51,11 @@ if [ "${SKIP_FRONT:-0}" != "1" ]; then
       }
     }
     process.exit(ok?0:1);
-  ' 2>&1)
-  if [ $? -eq 0 ]; then
+  '
+  if node -e "$front_check" >/dev/null 2>&1; then
     green "✓ SKILL.md frontmatter legal"
   else
+    out=$(node -e "$front_check" 2>&1)
     red "✗ SKILL.md frontmatter: $out"; fail=1
   fi
 fi
