@@ -23,9 +23,7 @@ fail=0
 # ---------- 1. SKILL.md frontmatter 合法 ----------
 if [ "${SKIP_FRONT:-0}" != "1" ]; then
   echo "==[1] SKILL.md YAML frontmatter =="
-  # 把 node 校验脚本放进 if 位置——以退出码判断成败（避免 SC2181），失败时再跑一次
-  # 只收集错误信息到 out，避免 stdout/stderr 混杂。
-  front_check='
+  if node -e '
     const fs=require("fs");
     const head=fs.readFileSync("SKILL.md","utf8").split("\n").slice(0,40).join("\n");
     if(!head.startsWith("---\n")){console.error("missing opening ---");process.exit(2)}
@@ -51,12 +49,10 @@ if [ "${SKIP_FRONT:-0}" != "1" ]; then
       }
     }
     process.exit(ok?0:1);
-  '
-  if node -e "$front_check" >/dev/null 2>&1; then
+  ' 2>&1; then
     green "✓ SKILL.md frontmatter legal"
   else
-    out=$(node -e "$front_check" 2>&1)
-    red "✗ SKILL.md frontmatter: $out"; fail=1
+    red "✗ SKILL.md frontmatter check failed (see node output above)"; fail=1
   fi
 fi
 
