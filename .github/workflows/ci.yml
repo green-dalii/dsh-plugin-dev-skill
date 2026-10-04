@@ -36,9 +36,9 @@ jobs:
             | awk -F/ '/refs\/tags\/v/ {print $3; exit}'
 
   shellcheck:
-    # 仅 lint verify.sh；不强制通过，但失败时给出信号
+    # 硬门 lint verify.sh。任何 shellcheck 警告（含 info）都会让 CI 挂，
+    # 迫使后续修改保持 shellcheck 干净（避免「CI 长红」累积）。
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - name: Install shellcheck
