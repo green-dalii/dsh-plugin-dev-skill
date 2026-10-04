@@ -51,8 +51,9 @@
 徽章是 shields.io 静态徽章，改完可用下面的命令确认能正常渲染：
 
 ```sh
-curl -sL "https://img.shields.io/badge/updated-2026--09--19-informational" | grep -o "<title>[^<]*</title>"
-curl -sL "https://img.shields.io/badge/DeepSeek%20Harness-0.1.5--rc.2-blue" | grep -o "<title>[^<]*</title>"
+# 把日期与 DSH 版本改成当前版本后跑；输出应是徽章文本本身
+curl -sL "https://img.shields.io/badge/updated-2026--09--30-informational" | grep -o "<title>[^<]*</title>"
+curl -sL "https://img.shields.io/badge/DeepSeek%20Harness-0.2.0--rc.2-blue" | grep -o "<title>[^<]*</title>"
 ```
 
 ## 开发与验证
@@ -78,7 +79,7 @@ C=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '#[] ')
 [ "$V" = "$M" ] && [ "$V" = "$C" ] && echo "✓ version $V consistent" || echo "✗ mismatch: $V / $M / $C"
 ```
 
-注意：官方文档站只发布 `develop/**`、`reference/**` 与 `guide/quickstart`；`architecture`、`glossary`、`event-producer-consumer`、`defensive-patterns` 等**仅存在于仓库**，引用时应给出 GitHub 源码链接。
+注意：官方文档站发布 `develop/**`、`guide/**` 与 `reference/**`（`architecture` 已在 `/reference/` 发布、`lsp`/`slots`/`skills`/`scope`/`commands`/`ptc-runtime` 等子系统页也已发布）；仅 `glossary`、`event-producer-consumer`、`defensive-patterns` 与 0.2.0 新增的多数 `subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 等）**仅存在于仓库**，引用时应给出 GitHub 源码链接。
 
 验证通过后，在 PR 描述中说明验证结果。
 

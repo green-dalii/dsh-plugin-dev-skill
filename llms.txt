@@ -6,6 +6,8 @@ DeepSeek Harness is an agent harness SDK in which every capability — tools, LL
 
 Key entry points: `SKILL.md` is the operating manual an agent loads (mental model, `defineTool` contracts, code templates, workflow, verification checklist); `References/` holds condensed digests of the official docs plus the real SDK type definitions; `VERSION` is the skill version the agent compares against the published one on every load.
 
+> **Authoritative URLs for crawlers** (immune to raw.githubusercontent.com CDN cache lag on `main`): the tag-pinned form below points to the latest released tag and stays correct after every release. The latest released tag at the time of this file is **`v0.6.0`**; future releases will replace this line and the URLs in the section below.
+
 ## Skill
 
 - [SKILL.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/SKILL.md): the operating manual — mental model and hard rules, plugin shapes, `defineTool` contract, configuration (Schemastery), services and dependencies, event system and scoped dispatch, LLM adapters (`LlmAdapter.stream()` / `StreamChunk`), capability layering, packaging and install, development workflow, common mistakes, reference index.
@@ -37,3 +39,23 @@ Key entry points: `SKILL.md` is the operating manual an agent loads (mental mode
 
 - [README.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/README.md): install instructions for DSH, Claude Code, Codex CLI and other Agent Skills hosts, plus a FAQ.
 - [CONTRIBUTING.md](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/CONTRIBUTING.md): contribution guide, verification commands and the release/sync checklist.
+
+## Latest tag (pinned, CDN-safe)
+
+These are the **same** files as above, pinned to the latest released tag so crawlers and answer engines get the published version regardless of branch-level CDN caching:
+
+- [SKILL.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/SKILL.md)
+- [VERSION @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/VERSION)
+- [CHANGELOG.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/CHANGELOG.md)
+- [References/00-INDEX.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/00-INDEX.md)
+- [References/01-dsh-architecture.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/01-dsh-architecture.md)
+- [References/02-plugin-basics.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/02-plugin-basics.md)
+- [References/03-tools.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/03-tools.md)
+- [References/04-config.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/04-config.md)
+- [References/05-llm-adapter.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/05-llm-adapter.md)
+- [References/06-framework-services-events.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/06-framework-services-events.md)
+- [References/07-publish.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/07-publish.md)
+- [References/08-capability-layering.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/08-capability-layering.md)
+- [References/09-cordis-primer.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/09-cordis-primer.md)
+- [References/10-spatiotemporal.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/10-spatiotemporal.md)
+- [References/11-cookbook.md @ v0.6.0](https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/v0.6.0/References/11-cookbook.md)

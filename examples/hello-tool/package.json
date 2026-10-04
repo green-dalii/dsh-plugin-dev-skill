@@ -1,0 +1,20 @@
+{
+  "name": "dsh-hello-tool",
+  "version": "0.1.0",
+  "description": "Minimal end-to-end DSH tool — used to prove the tool pipeline (defineTool → execute → result) on your own machine.",
+  "type": "module",
+  "main": "./src/index.ts",
+  "files": ["src", "cordis.patch.yml", "locale"],
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/dsh-tools": "0.2.0-rc.2"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}

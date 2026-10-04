@@ -1,0 +1,47 @@
+name: CI
+
+# 触发：每次 push 与每个 PR。
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apt baseline check (SKILL frontmatter / version triple / URL 200)
+        run: bash scripts/verify.sh
+
+      - name: Spot-check the running DSH sources still match what we document
+        # 仅做信号性检查；不作为门控因为 SDK 是私有 npm 包，不能在公开 CI 上直接安装。
+        # 检查 git tag 是否存在、是否对应一个 release、是否引用某个 version。
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          echo "==> latest upstream DSH release"
+          gh release list --repo deepseek-ai/deepseek-harness --limit 3
+          echo
+          echo "==> upstream tags (most recent)"
+          git ls-remote --tags --sort=-v:refname https://github.com/deepseek-ai/deepseek-harness.git \
+            | awk -F/ '/refs\/tags\/dsh-v/ {print $3; exit}'
+          echo
+          echo "==> skill release tag"
+          git ls-remote --tags --sort=-v:refname https://github.com/green-dalii/dsh-plugin-dev-skill.git \
+            | awk -F/ '/refs\/tags\/v/ {print $3; exit}'
+
+  shellcheck:
+    # 仅 lint verify.sh；不强制通过，但失败时给出信号
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y shellcheck
+      - name: Lint scripts/verify.sh
+        run: shellcheck scripts/verify.sh

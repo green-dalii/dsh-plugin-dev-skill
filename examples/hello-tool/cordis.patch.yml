@@ -1,0 +1,5 @@
+- insert:
+    - id: hello-tool
+      name: '@deepseek-ai/dsh-hello-tool'
+      config:
+        greeting: 'Hello'

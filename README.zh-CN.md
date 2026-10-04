@@ -71,6 +71,11 @@ dsh-plugin-dev-skill/
     ├── 09-cordis-primer.md      # Cordis 入门与 ctx API 速查
     ├── 10-spatiotemporal.md     # 论文解读（时空可组合性）
     └── 11-cookbook.md           # 扩展模式（钩子/UI/协议桥/功能→机制）
+├── examples/
+│   └── hello-tool/               # 最小可抄的 DSH tool 模板（端到端可跑）
+├── scripts/
+│   └── verify.sh                 # 基线复核（版本/frontmatter/链接），每次发版前必跑
+└── .github/workflows/ci.yml      # CI 在每次 push/PR 上跑 verify.sh
 ```
 
 ## 使用方法

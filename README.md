@@ -71,6 +71,11 @@ dsh-plugin-dev-skill/
     ├── 09-cordis-primer.md      # Cordis primer & ctx API cheat sheet
     ├── 10-spatiotemporal.md     # Paper summary (spatiotemporal composability)
     └── 11-cookbook.md           # Extension patterns (hooks/UI/protocol bridges/feature→mechanism)
+├── examples/
+│   └── hello-tool/               # Minimal end-to-end DSH tool template
+├── scripts/
+│   └── verify.sh                 # Baseline check (version/frontmatter/URLs); run before every release
+└── .github/workflows/ci.yml      # CI runs verify.sh on every push/PR
 ```
 
 ## Usage

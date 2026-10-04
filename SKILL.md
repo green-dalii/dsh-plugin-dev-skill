@@ -3,7 +3,7 @@ name: dsh-plugin-dev-skill
 description: 指导任何 Agent 正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。涵盖 Tool（defineTool）、LLM 适配器、服务与依赖、事件系统、配置、打包发布，以及 Cordis 框架的心智模型、代码模板与验证清单。
 whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool、LLM adapter、服务提供方、钩子、UI、协议桥等），编写或修改 cordis.yml / cordis.patch.yml / dsh.profile / dsh.bundle 配置，使用 dsh plugin 命令，或需要理解 ctx.tools、ctx.llm、ctx.agents、ctx.sessions 等服务与 tools/*、agent/*、session/event 等事件时，加载本技能。
 metadata:
-  version: 0.6.0
+  version: 0.6.1
   upstream: https://github.com/green-dalii/dsh-plugin-dev-skill
   sdk-baseline: 0.2.0-rc.2
 ---
@@ -38,11 +38,17 @@ metadata:
 
 1. **读本地版本**：`VERSION` 文件与本 `SKILL.md` 同目录，内容形如 `0.6.0`（frontmatter 的 `metadata.version` 是同值副本）。
    - 若**没有** `VERSION` 文件（例如只拷贝了 `SKILL.md` 的残缺安装），视为**旧版本，直接执行第 4 步更新**。
-2. **取远端版本**（一次约 5 字节的 GET，用短超时，不要拖慢主任务）：
+2. **取远端版本**（一次约 5 字节的 GET，用短超时，不要拖慢主任务）—— 为了抗 `raw.githubusercontent.com` 的 CDN 缓存延迟（曾观测到刚 `git push` 后 5+ 分钟内 `main` 分支 raw URL 仍返回旧文件），**优先读 tag-pinned URL**（tag 不会被新提交覆盖，永远指向同一个发布）：
+   ```sh
+   # 1) 先问最新 tag（成本几乎为零）
+   TAG=$(git ls-remote --tags --sort=-v:refname https://github.com/green-dalii/dsh-plugin-dev-skill.git | awk -F/ '/refs\/tags\/v/ {print $3; exit}')
+   # 2) 用 tag 钉住的 raw URL 读 VERSION —— 这一份保证是「最新发布」而非「main 分支的 CDN 缓存」
+   curl -fsSL --max-time 8 "https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/${TAG}/VERSION" | tr -d '[:space:]'
+   ```
+   把拿到的远端版本记为 `REMOTE`。再读 `main` 分支 raw URL 拿到的版本记为 `MAIN`：如果两者**不一致**（CDN 延迟，main 落后于 tag），**以 tag-pinned 的 `REMOTE` 为准**—— `MAIN` 是「远端最终会稳定到的值」。若 `git ls-remote` 也失败，退而求其次：
    ```sh
    curl -fsSL --max-time 8 https://raw.githubusercontent.com/green-dalii/dsh-plugin-dev-skill/main/VERSION | tr -d '[:space:]'
    ```
-   若上一步失败，退而求其次可用 `git ls-remote --tags https://github.com/green-dalii/dsh-plugin-dev-skill | tail -1`。
 3. **比较（语义化版本）**：
    - 远端 **高于** 本地 → 执行第 4 步，更新完再继续。
    - 两端**相同** → 直接用。
@@ -61,6 +67,7 @@ metadata:
    更新后**重新读取 `SKILL.md` 与本次要用到的 `References/`**——内容可能已变（尤其是 API、术语与包名）。
 5. **无法联网 / 检查失败时**：不要卡住，也不要假装检查过。明确说一句「未能检查 skill 更新（原因）」，然后基于当前本地版本继续工作，并在需要新 API 时提示用户可能存在版本差异。
 6. **同一会话内**：已成功比较过且远端版本未变时，可以跳过重复检查（不必每次工具调用都发请求）；但**每次载入技能都要检查**。
+7. **怀疑基线漂移时**：跑 `bash scripts/verify.sh`（在仓库根目录）做一次完整复核——版本三处一致、SKILL.md frontmatter 合法、官方链接全部 200。CI 也会跑它。
 
 > 检查成本是一个几字节的 GET，而用过期技能写出编译不过或不符合规范的插件，代价要高得多。
 
@@ -82,7 +89,7 @@ metadata:
 |---|---|---|
 | **可逆效应（revertible effect）** | 组件对共享环境的每次修改都携带一个逆操作，运行时跟踪并在组件卸载时按 LIFO 顺序恢复 | `ctx.effect(() => () => cleanup)`；`ctx.on()`、`ctx.tools.register()` 等都是 effect，卸载自动撤销 |
 | **反应式余效应（reactive coeffect）** | 组件声明它依赖哪些服务；服务出现/消失/换实现时，组件自动激活/停用/重载 | `export const inject = ['tools']`；依赖消失时插件自动 dispose，恢复时自动重载 |
-| **Fiber（组件实例）** | 每个已加载的插件实例是一个 fiber，有生命周期状态机 | `PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED`（`apply` 抛错则 `FAILED`） |
+| **Fiber（组件实例）** | 每个已加载的插件实例是一个 fiber，有生命周期状态机（cordis 4.0.4 起：`PENDING` → `LOADING` → `ACTIVE` → `UNLOADING` → `DISPOSED`，`apply` 抛错则进入 **`FAILED`**） | `await fiber.dispose()` 卸载；`fiber.update(config, noSave?)` 重启（**返回 `void`，要等完成调 `await fiber.await()`**） |
 
 由此得到的**铁律**：
 
@@ -616,6 +623,7 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 | 在 profile manifest 里写 `patchReload` | 该字段已删除；HMR 由 YAML 组合里 `dsh-hmr` 行的 `disabled`/`root` 决定 |
 | 后台任务写 `owner: exec.agent` 或 `readOutput` | `owner` 要传 `exec.agent.id`；`readOutput` 已移除，改用 `spec.output` / `job.append()`，结果用 `JobOutcome.result` |
 | waterfall 调用方忘传最后一个 `next` 实参 | 调用方传最内层延续：`ctx.waterfall(name, ...args, next)`（与「监听器必须调 `next()`」是两件事） |
+| 怀疑 SKILL.md 与官方 DSH 不一致 | 跑 `bash scripts/verify.sh`：版本三处一致 + frontmatter 合法 + 官方链接 200（CI 也会跑） |
 
 ---
 
@@ -635,7 +643,9 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 | `References/10-spatiotemporal.md` | 论文《A Programming Paradigm for Spatiotemporal Composability》解读（[arXiv:2608.25512](https://arxiv.org/abs/2608.25512)） |
 | `References/11-cookbook.md` | 扩展模式：权限门禁、UI 插件、协议桥、功能→机制映射表 |
 
-官方文档入口：https://deepseek-harness.github.io/deepseek-harness/develop/basic/ （中文）与 `/en/develop/basic/`（英文）
+官方文档入口：
+- 开发者第一步：https://deepseek-harness.github.io/deepseek-harness/develop/basic/ （中文）/ `/en/develop/basic/`（英文）
+- 服务与 seam 全局视图：https://deepseek-harness.github.io/deepseek-harness/reference/capability-seams
 源码仓库：https://github.com/deepseek-ai/deepseek-harness
 
 本技能自身：仓库 https://github.com/green-dalii/dsh-plugin-dev-skill ，版本见同目录 `VERSION` 文件（更新检查流程见 §0.1）。

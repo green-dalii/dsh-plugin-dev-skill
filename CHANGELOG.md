@@ -4,6 +4,29 @@
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-10-04
+
+不发版基线变更；只是把项目自身从「我能跟上的 AI Agent 技能」变成「**任何 Agent 都能自行复核**的技能」。
+
+### 新增
+
+- **`scripts/verify.sh`** —— 一行命令跑完基线复核：版本三处一致、SKILL.md frontmatter 合法、官方/上游/仓库 raw URL 全部 200。macOS bash 3 兼容；CDN 临时 000 自动重试。
+- **`.github/workflows/ci.yml`** —— 在 PR + 每次 push 上跑 `verify.sh` + 上游 `dsh-v*` release 信号（不上失败，作为信号源）。可选 `shellcheck`。
+- **`examples/hello-tool/`** —— 最小可抄的 DSH tool 模板（`package.json` + `cordis.patch.yml` + `src/index.ts` + `README.md`）。让 Agent 在「读完 SKILL.md 后能立刻有一份能跑的样本照着改」。
+- **SKILL.md §0.1 升级为 `tag-pinned` 兜底**：`git ls-remote --tags` 取最新 tag → 用 `${TAG}/VERSION`（tag 不会被新提交覆盖），并与 `main` 分支 raw URL 比对，若不一致以 tag 为准。修复了 raw.githubusercontent.com 在发版后 5+ 分钟内仍返回旧版本的 CDN 缓存窗口。
+- **`llms.txt` 加 `## Latest tag (pinned, CDN-safe)` 段**：把全套文件按最新 tag 钉出 raw URL 副本，给爬虫/答案引擎用；HEAD 段说明当前 tag 是 `v0.6.0`，每次发版替换一次。
+
+### 修复
+
+- **`SKILL.md` §1 核心概念表**：Fiber 状态机显式列出 `FAILED`，并标 4.0.4 的 `Fiber.update()` 返回 `void`（不是简单注释）。
+- **`CONTRIBUTING.md`**：徽章字面值示例从 `2026--09--19` / `0.1.5--rc.2` 更新到 `2026--09--30` / `0.2.0--rc.2`；文档站发布范围描述更正（`architecture` 实为已发布页）。
+- **`SKILL.md` §12 常见错误表**：新增一行「怀疑基线漂移 → 跑 `bash scripts/verify.sh`」；§0.1 末尾加一条指向 `verify.sh` 的提示。
+
+### 元数据
+
+- 仓库结构中英 README 同步新增 `scripts/`、`examples/`、`.github/workflows/`。
+- SKILL.md 末尾的「官方文档入口」改为双行（开发者第一步 + 服务全局视图）。
+
 ## [0.6.0] - 2026-09-30
 
 对齐上游 **DSH 0.2.0-rc.2**（`@deepseek-ai/*` 0.2.0-rc.2 + cordis **4.0.4**）。相对 0.5.0 的 0.1.5-rc.2 基线，中间跨过 9 个 release（0.1.5-rc.3 → 0.2.0-rc.2）。
