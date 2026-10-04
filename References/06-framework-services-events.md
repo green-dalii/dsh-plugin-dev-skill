@@ -1,6 +1,6 @@
 # 06 · 服务与依赖、事件系统
 
-> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis 4.0.4 + dsh 0.2.0-rc.2）为准。
+> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis 4.0.5-alpha.1 + dsh 0.2.1-alpha.1）为准。
 
 ## 1. 服务是什么
 

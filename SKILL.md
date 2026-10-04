@@ -3,9 +3,9 @@ name: dsh-plugin-dev-skill
 description: 指导任何 Agent 正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。涵盖 Tool（defineTool）、LLM 适配器、服务与依赖、事件系统、配置、打包发布，以及 Cordis 框架的心智模型、代码模板与验证清单。
 whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool、LLM adapter、服务提供方、钩子、UI、协议桥等），编写或修改 cordis.yml / cordis.patch.yml / dsh.profile / dsh.bundle 配置，使用 dsh plugin 命令，或需要理解 ctx.tools、ctx.llm、ctx.agents、ctx.sessions 等服务与 tools/*、agent/*、session/event 等事件时，加载本技能。
 metadata:
-  version: 0.6.1
+  version: 0.6.2
   upstream: https://github.com/green-dalii/dsh-plugin-dev-skill
-  sdk-baseline: 0.2.0-rc.2
+  sdk-baseline: 0.2.1-alpha.1
 ---
 
 # DeepSeek Harness Plugin Dev Skill
@@ -15,7 +15,7 @@ metadata:
 >
 > ⚠️ **载入本技能后，先执行 §0.1「检查 skill 是否最新」**：不是最新版就先更新，再开始使用本技能。
 >
-> **SDK 基线**：本文 API 陈述以 `@deepseek-ai/*` **0.2.0-rc.2**（cordis **4.0.4**）的类型定义实测为准。0.2.0 把过去几处「文档领先于 SDK」的项正式落地了：PTC 运行时 seam 定名 **`ctx.ptcRuntime`**（原 `ctx.codeRuntime`，包 `dsh-ptc-runtime` / 提供方 `dsh-ptc-runtime-node`）、**Plugin Manager**（`plugin_manager`）随发行版交付、E2B 系提供方移除并由 SSH 家族接管远程能力。升级 SDK 后请按各 `References/` 文件末尾的官方链接复查。
+> **SDK 基线**：本文 API 陈述以 `@deepseek-ai/*` **0.2.1-alpha.1**（cordis **4.0.5-alpha.1**）的类型定义实测为准。0.2.0 把过去几处「文档领先于 SDK」的项正式落地了：PTC 运行时 seam 定名 **`ctx.ptcRuntime`**（原 `ctx.codeRuntime`，包 `dsh-ptc-runtime` / 提供方 `dsh-ptc-runtime-node`）、**Plugin Manager**（`plugin_manager`）随发行版交付、E2B 系提供方移除并由 SSH 家族接管远程能力。0.2.1-alpha.1 主要是 Web 体验与若干 bug 修复（**对 tool / LLM / service 插件的公共 API 0 破坏**），并继续清理了上游诊断路径：`@deepseek-ai/dsh-invariants` 与 `<pkg>/invariant` 子路径发布已删除（详见 §12）。升级 SDK 后请按各 `References/` 文件末尾的官方链接复查。
 
 ---
 
@@ -295,7 +295,7 @@ export function apply(ctx: Context, config: Config) {
 - 常用构造：`Schema.string().required()` / `.default(x)`、`Schema.number()`、`Schema.boolean()`、`Schema.array(String)`、`Schema.union(['a','b'])`、`Schema.object({...})` 嵌套。
 - 支持 `!!js` 表达式在加载时求值（如 `greeting: !!js process.env.GREETING ?? 'Hello'`），在 `config` 内**递归生效**；`!!js` 仅对 `config` 与 `disabled` 字段有效。注意 `--dump-config` 原样打印 `!!js` 而不求值。
 - 配置变更触发旧实例卸载（注册是 effect，自动清理）→ 新实例加载。**不要在插件外部缓存配置**。
-- HMR 现在由 **YAML 组合**决定（0.2.0 起 profile manifest 的 `patchReload` 字段已删除，残留该键无任何效果）：`dsh-base` 默认挂 `@deepseek-ai/dsh-hmr` 且 `root: []`，故 base 系 profile（含 `web`）**配置热重载默认开、源码模块热替换仍需 opt-in**（用 profile patch 把 `root` 改成 `["."]`）；`headless`/`sdk`/`acp` 显式 `disabled: true`（仅启动时加载），`sdk-minimal` 没有 hmr 行。
+- HMR 现在由 **YAML 组合**决定（0.2.0 起 profile manifest 的 `patchReload` 字段已删除，残留该键无任何效果）：`dsh-base` 默认挂 `@deepseek-ai/dsh-hmr` 且 `root: []`，故 base 系 profile（含 `web`）**配置热重载默认开、源码模块热替换仍需 opt-in**（用 profile patch 把 `root` 改成 `["."]`）；`headless`/`sdk`/`acp` 显式 `disabled: true`（仅启动时加载），`sdk-minimal` 没有 hmr 行。**0.2.1 起**：开启 dev directory 监听后，HMR 还能在源码变更时刷新**包入口与依赖映射**，并正确重载仍在运行的原入口——配置层以外的二次重启通常不再需要。
 - 想让配置出现在 Web「插件配置」页：用 `ctx.settings.installSection(...)`，细节见 `References/04-config.md` §7。
 
 ---
@@ -570,7 +570,7 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 ### 组合包作者要注意的三件事（0.2.0）
 
 1. **DSH peer 依赖契约**：导入前 DSH 会把 `peerDependencies` 中每个匹配 `@deepseek-ai/dsh` 或 `@deepseek-ai/dsh-*` 的条目，与**运行时那一个版本**比对；声明的每个范围都必须匹配，未声明 DSH peer 不构成约束，非法范围视为不兼容。不兼容的 bundle 会被拒绝或跳过，除非 profile 的 `compatibility.json` 里有精确 `name@version` 豁免。**`engines.dsh` 只是声明性的，不是被强制检查的字段**；linked checkout 场景建议把共享 dsh 包同时写进 `peerDependencies` 与 `devDependencies`。
-2. **可选展示元数据**：`locale/<lang>.json` 里的 `meta.title` / `meta.description`（配合 `exports` 暴露 `./locale/*.json`），以及 `package.json` 顶层 `icon`（SVG/PNG/JPEG/WebP，≤256 KiB，必须在包内且真实路径不逃逸）。它们显示在 Plugin Manager 的卡片/详情上，**不会激活插件**；用 `pnpm run verify-package-meta` 校验。
+2. **可选展示元数据**：`locale/<lang>.json` 里的 `meta.title` / `meta.description`（配合 `exports` 暴露 `./locale/*.json`），以及 `package.json` 顶层 `icon`（SVG/PNG/JPEG/WebP，≤256 KiB，必须在包内且真实路径不逃逸）。它们显示在 Plugin Manager 的卡片/详情上，**不会激活插件**；用 `pnpm run verify-package-meta` 校验。**导出子路径 bundle** 的展示元数据走另一条路：子路径不再读取独立的 `package.json`（自 0.2.0-rc.2 的 `subpath-plugin-display-manifest` 升级起），标题/描述走子路径的 `locale/*.json` 的 `meta.title`/`meta.description`，图标走子路径的 `icon` 导出。仓库内的升级指南页面：`docs/upgrade-guide/v0.2.0-rc.2/subpath-plugin-display-manifest/guide.md`。
 3. **Plugin Manager 已随 0.2.0 交付**：`plugin_manager` 工具可 `install_bundle` / `set_bundle` / `set_plugin` / `remove_bundle` 并管理版本豁免，Web 也有「插件」页，改动**跨会话持久**；`dsh-tool-cordis` 现在**只能只读查看**（`cordis_inspect_list` / `cordis_inspect_query`），早期的 `cordis_define` / `cordis_run` 已移除。
 
 ---
@@ -603,6 +603,17 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 2. 写包 README：服务 API / 配置 / 事件 / 扩展点 / 设计说明。
 3. 遵循仓库测试策略补测试与组装覆盖。
 
+### 覆盖范围边界
+
+本技能**专注于**：plugin 模型心智模型、`tool` / `llm` / `service`（含 provider + consumer）/ `event` / `bundle`（含 profile + manifest + Plugin Manager）——这五类能力足以覆盖绝大多数 Agent 插件需求。
+
+本技能**不覆盖**（需要直接查官方仓库的子系统页面）：
+
+- **Host plugin / UI 扩展**（Web 客户端组件、composer 输入区、统计面板装饰器等）：0.2.1 把 `composer-stats` 扩展点拆为 `activity` 与 `usage` 两个独立 ID，覆盖旧 `stats` 整行的插件要更新注册 ID。详见 `docs/subsystems/` 下对应文档（仅仓库内，未发布到文档站）。
+- **Schedule / 自动化任务扩展**：0.2.1 起自动化任务改为 Web 内置能力，`schedule_*` 工具按模式提供（标准、创造、PTC 模式可用；极简模式与子代理不可用），并新增 `subagent_session` 错误码。子系统页面：https://deepseek-harness.github.io/deepseek-harness/reference/subsystems/schedule 。
+- **MCP / SSH / browser-use / computer-use / otel / product-telemetry / boot / voice-input / office-to-pdf** 等 0.2.0 新增的子系统，文档均只存在于上游仓库 `docs/subsystems/`，相关文件内已给链接。
+- **Claude Code Mods 兼容层**（0.2.1-alpha.1 引入的实验性 bridge）：仅仓库 `docs/subsystems/claude-code-mods.md`，文档站尚未发布。
+
 ---
 
 ## 12. 常见错误与修正（对照自查）
@@ -622,6 +633,7 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 | 仍在用 `ctx.codeRuntime` / `dsh-code-runtime` | 0.2.0 已改名：`ctx.ptcRuntime` / `dsh-ptc-runtime`（提供方 `dsh-ptc-runtime-node`） |
 | 在 profile manifest 里写 `patchReload` | 该字段已删除；HMR 由 YAML 组合里 `dsh-hmr` 行的 `disabled`/`root` 决定 |
 | 后台任务写 `owner: exec.agent` 或 `readOutput` | `owner` 要传 `exec.agent.id`；`readOutput` 已移除，改用 `spec.output` / `job.append()`，结果用 `JobOutcome.result` |
+| 导入 `@deepseek-ai/dsh-invariants` 或 `<pkg>/invariant` | 0.2.1-alpha.1 已删除：`InvariantRegistry`、`InvariantInstaller`、`InvariantFailure`、`InvariantError` 不再导出；`sdk-minimal` 中的五个 `*-invariant` id 已清理。诊断失败改用自己的通道上报 |
 | waterfall 调用方忘传最后一个 `next` 实参 | 调用方传最内层延续：`ctx.waterfall(name, ...args, next)`（与「监听器必须调 `next()`」是两件事） |
 | 怀疑 SKILL.md 与官方 DSH 不一致 | 跑 `bash scripts/verify.sh`：版本三处一致 + frontmatter 合法 + 官方链接 200（CI 也会跑） |
 
@@ -646,8 +658,11 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 官方文档入口：
 - 开发者第一步：https://deepseek-harness.github.io/deepseek-harness/develop/basic/ （中文）/ `/en/develop/basic/`（英文）
 - 服务与 seam 全局视图：https://deepseek-harness.github.io/deepseek-harness/reference/capability-seams
+- 0.2.0-rc.2 升级指南（含 `remove-runtime-invariants`、`subpath-plugin-display-manifest`、`schedule-bundle-retired`、`account-sign-in-errors`）：仓库内 `docs/upgrade-guide/v0.2.0-rc.2/`（文档站尚未发布索引页）。
+- PTC 运行时子系统页面（自 0.2.1-alpha.1 起从 `code-runtime` 改名）：https://deepseek-harness.github.io/deepseek-harness/reference/subsystems/ptc-runtime
+- Claude Code Mods 兼容层（0.2.1-alpha.1 新增的实验性 bridge）：仓库内 `docs/subsystems/claude-code-mods.md`（文档站尚未发布）。
 源码仓库：https://github.com/deepseek-ai/deepseek-harness
 
 本技能自身：仓库 https://github.com/green-dalii/dsh-plugin-dev-skill ，版本见同目录 `VERSION` 文件（更新检查流程见 §0.1）。
 
-> 索引与**术语对照表**（上游重命名备忘，如 Code Mode → PTC mode、`CallId` → `ToolCallId`、`ctx.codeRuntime` → `ctx.ptcRuntime`）见 `References/00-INDEX.md`；注意文档站发布的是 `develop/**`、`guide/**` 与 `reference/**`，而 `glossary`、`event-producer-consumer`、`defensive-patterns` 以及 0.2.0 新增的多数 `subsystems/**` 页面（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 等，`ptc-runtime` 已发布）**仅存在于仓库**，相关文件内已给出 GitHub 链接。
+> 索引与**术语对照表**（上游重命名备忘，如 Code Mode → PTC mode、`CallId` → `ToolCallId`、`ctx.codeRuntime` → `ctx.ptcRuntime`）见 `References/00-INDEX.md`；注意文档站发布的是 `develop/**`、`guide/**`、`reference/**` 与已发布的部分 `reference/subsystems/*`（已确认的有 `ptc-runtime`、`schedule`、`approval` 等），而 `glossary`、`event-producer-consumer`、`defensive-patterns` 以及多数 `subsystems/**` 页面（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 以及 0.2.1 新增的 `claude-code-mods` 等）**仅存在于仓库**，相关文件内已给出 GitHub 链接。

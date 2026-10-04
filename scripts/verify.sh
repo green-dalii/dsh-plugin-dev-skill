@@ -83,7 +83,7 @@ if [ "${SKIP_URLS:-0}" != "1" ]; then
   echo "==[3] URL 200 sweep (official docs + repo) =="
   # 用临时文件代替 mapfile（兼容 bash 3）
   tmp_urls=$(mktemp)
-  grep -rhoE 'https?://[^ )>`,}{]+' . --include='*.md' --include='*.txt' \
+  grep -rhoE 'https?://[^ )>`,}{）]+' . --include='*.md' --include='*.txt' \
     | sed 's/[.,)）]*$//' \
     | grep -v '\$' \
     | grep -E '^(https://deepseek-harness\.github\.io|https://github\.com/deepseek-ai|https://github\.com/cordiverse|https://arxiv\.org|https://registry\.npmjs\.org|https://raw\.githubusercontent\.com/green-dalii)' \

@@ -3,8 +3,9 @@
 **English** | [简体中文](README.zh-CN.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Updated](https://img.shields.io/badge/updated-2026--09--30-informational)](CHANGELOG.md)
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.0--rc.2-blue)](https://github.com/deepseek-ai/deepseek-harness)
+[![Updated](https://img.shields.io/badge/updated-2026--10--04-informational)](CHANGELOG.md)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1--alpha.1-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.1)
+[![Skill version](https://img.shields.io/badge/skill-0.6.2-brightgreen)](VERSION)
 [![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -17,10 +18,12 @@ Load [`SKILL.md`](SKILL.md) and the agent gets the mental model, copy-pasteable 
 
 ## Contents
 
-- [What this is (and is not)](#what-this-is-and-is-not)
-- [Highlights](#highlights)
+- [Why this skill](#why-this-skill)
+- [What you get](#what-you-get)
+- [Quick Start](#quick-start)
 - [Structure](#structure)
-- [Usage](#usage)
+- [Self-Verification](#self-verification)
+- [Examples](#examples)
 - [Install](#install)
   - [As a DSH skill](#as-a-dsh-skill)
   - [In other agent hosts (Claude Code, Codex)](#in-other-agent-hosts-claude-code-codex)
@@ -30,20 +33,28 @@ Load [`SKILL.md`](SKILL.md) and the agent gets the mental model, copy-pasteable 
 - [Contributing](#contributing)
 - [License](#license)
 
-## What this is (and is not)
+## Why this skill
 
-- **It is** a documentation-only skill pack: `SKILL.md` is the operating manual, and `References/` holds high-signal digests distilled from the official docs plus the real SDK type definitions.
-- **It is not** a plugin, a library, or a fork of DeepSeek Harness — it adds no runtime dependency to your project, and you do not have to install it to write a plugin.
-- **It works with** DSH itself, Claude Code, Codex CLI, and any host implementing the open [Agent Skills](https://agentskills.io) standard (a folder containing `SKILL.md` with YAML frontmatter).
-- **It targets** `@deepseek-ai/*` **0.2.0-rc.2** (cordis **4.0.4**) — the version every API statement was verified against.
+Writing a "Hello World" DSH plugin is one line. Writing a plugin that **is right** — `defineTool` output contract honored, revertible-effect cleanup instead of manual teardown, `inject` dependency semantics, Standard-Schema configuration, correct event dispatch modes, packaging that actually installs — is what this skill encodes.
 
-## Highlights
+The skill is **first-principles based**: it grounds every rule in the academic foundation of the underlying framework (Cordis, [arXiv:2608.25512](https://arxiv.org/abs/2608.25512)) and then turns those rules into copy-pasteable code templates. Every API statement in the skill is verified against the real SDK types at the documented baseline (`@deepseek-ai/*` 0.2.1-alpha.1, cordis 4.0.5-alpha.1), and the templates pass `tsc --strict`.
 
-- 🧠 **First-principles based**: turns the "revertible effects + reactive coeffects" theory of Cordis (DSH's underlying framework) into actionable rules and templates
-- 🧩 **Covers every plugin type**: tools (`defineTool`), LLM adapters, service providers/consumers, hook plugins, configuration, packaging & publishing
-- ✅ **Templates verified against the real SDK**: all sample code passes `tsc --strict` type checking and runs end-to-end against the real Cordis loader
-- 🔗 **Traceable upstream updates**: every reference doc ends with the official-doc URLs, so content can be re-verified when upstream changes
-- 🔄 **Self-updating**: the skill ships a [`VERSION`](VERSION) file and checks for a newer release as its first step on load (`SKILL.md` §0.1)
+## What you get
+
+- 🧠 **Mental model first**: the "revertible effects + reactive coeffects" theory of Cordis, condensed into 6 rules any plugin author must follow.
+- 🧩 **Five plugin surfaces covered**: `tool` (`defineTool`), `llm` (adapter), `service` (definition + provider + consumer), `event` (dispatch modes), and `bundle` (profile + manifest + Plugin Manager). These five are enough for the vast majority of agent-plugin work.
+- ✅ **Templates verified against the real SDK**: code samples pass `tsc --strict` and run end-to-end against the real Cordis loader.
+- 🔁 **Self-verifying**: ships [`scripts/verify.sh`](scripts/verify.sh) — a one-line baseline check (version consistency + SKILL.md frontmatter legality + upstream URL liveness) that the project's own CI runs on every push.
+- 🚦 **Tag-pinned update check**: the skill compares its local `VERSION` to the latest published tag using `${TAG}/VERSION` raw URLs (immune to `raw.githubusercontent.com` CDN lag on `main`), then re-reads `SKILL.md` after update — agents never write plugins against an outdated API.
+- 🔗 **Traceable upstream**: every reference doc ends with the official-doc URLs, so any future drift can be re-verified and fixed.
+
+## Quick Start
+
+1. **Install** the skill (symlink preferred — see [Install](#install)).
+2. **Open** `SKILL.md`; the agent will perform §0.1's update check automatically and warn you if a newer version exists.
+3. **Follow** the four-phase workflow in `SKILL.md` §11: recon → implement → verify → deliver.
+4. **When the agent writes a tool**: copy [`examples/hello-tool/`](examples/hello-tool/) and edit four fields (`name`, `description`, `parameters`, `output.schema`).
+5. **Before publishing or sending a PR**: run `bash scripts/verify.sh` — green means version, frontmatter, and all upstream links are consistent.
 
 ## Structure
 
@@ -58,32 +69,53 @@ dsh-plugin-dev-skill/
 ├── CONTRIBUTING.md              # Contribution guide
 ├── SECURITY.md                  # Security policy
 ├── LICENSE                      # MIT
-└── References/                  # Condensed, human/agent-readable reference material
-    ├── 00-INDEX.md              # Index
-    ├── 01-dsh-architecture.md   # DSH architecture overview
-    ├── 02-plugin-basics.md      # Plugin basics: shapes/lifecycle/effect/HMR
-    ├── 03-tools.md              # Tool development reference (defineTool)
-    ├── 04-config.md             # Plugin configuration & Schemastery
-    ├── 05-llm-adapter.md        # LLM adapter guide
-    ├── 06-framework-services-events.md  # Services & dependencies, event system
-    ├── 07-publish.md            # Packaging/install/profile/config layers
-    ├── 08-capability-layering.md# Three-role capability design & seam catalog
-    ├── 09-cordis-primer.md      # Cordis primer & ctx API cheat sheet
-    ├── 10-spatiotemporal.md     # Paper summary (spatiotemporal composability)
-    └── 11-cookbook.md           # Extension patterns (hooks/UI/protocol bridges/feature→mechanism)
+├── References/                  # Condensed, human/agent-readable reference material
+│   ├── 00-INDEX.md              # Index
+│   ├── 01-dsh-architecture.md   # DSH architecture overview
+│   ├── 02-plugin-basics.md      # Plugin basics: shapes/lifecycle/effect/HMR
+│   ├── 03-tools.md              # Tool development reference (defineTool)
+│   ├── 04-config.md             # Plugin configuration & Schemastery
+│   ├── 05-llm-adapter.md        # LLM adapter guide
+│   ├── 06-framework-services-events.md  # Services & dependencies, event system
+│   ├── 07-publish.md            # Packaging/install/profile/config layers
+│   ├── 08-capability-layering.md# Three-role capability design & seam catalog
+│   ├── 09-cordis-primer.md      # Cordis primer & ctx API cheat sheet
+│   ├── 10-spatiotemporal.md     # Paper summary (spatiotemporal composability)
+│   └── 11-cookbook.md           # Extension patterns (hooks/UI/protocol bridges/feature→mechanism)
 ├── examples/
-│   └── hello-tool/               # Minimal end-to-end DSH tool template
+│   └── hello-tool/              # Minimal end-to-end DSH tool template
 ├── scripts/
-│   └── verify.sh                 # Baseline check (version/frontmatter/URLs); run before every release
-└── .github/workflows/ci.yml      # CI runs verify.sh on every push/PR
+│   └── verify.sh                # Baseline check (version/frontmatter/URLs); CI runs this on every push
+└── .github/workflows/ci.yml     # GitHub Actions: verify.sh + upstream release signal
 ```
 
-## Usage
+## Self-Verification
 
-1. **For agents**: load `SKILL.md` and follow its development workflow (recon → implement → verify → deliver); consult the corresponding file under `References/` when deeper background is needed.
-2. **For humans**: read `SKILL.md` and `References/` to get a complete picture of DSH plugin development.
+`scripts/verify.sh` is the project's own quality gate. It checks three things:
 
-> Note: the skill body (`SKILL.md`) and the reference docs are authored in Chinese, matching the official DSH documentation, which is Chinese-first. Code templates, API names and command lines are language-neutral.
+1. **Version consistency**: `VERSION`, `SKILL.md` frontmatter `metadata.version`, the latest `CHANGELOG.md` heading, and the README badge all read the same value.
+2. **SKILL.md frontmatter legality**: `name` is kebab-case (`^[a-z0-9]+(?:-[a-z0-9]+)*$`), `description` and `metadata.{version, upstream, sdk-baseline}` are present.
+3. **Upstream URL liveness**: every URL in `*.md` that points to `deepseek-harness.github.io`, `github.com/deepseek-ai/`, `cordis`, `arxiv.org`, the private `registry.npmmirror.com`, and `raw.githubusercontent.com` returns 2xx. CDN transient `000`s are retried; `npmjs.org` 403 on `@deepseek-ai/dsh-*` packages is tolerated (those packages are only on the private registry).
+
+macOS bash 3 compatible. Honors `SKIP_FRONT=1`, `SKIP_VERSION=1`, `SKIP_URLS=1` for partial runs.
+
+```sh
+bash scripts/verify.sh   # exits 0 on green, 1 on any drift
+```
+
+## Examples
+
+[`examples/hello-tool/`](examples/hello-tool/) is a copy-paste-and-edit starter:
+
+```
+examples/hello-tool/
+├── package.json       # dsh.bundle + peerDependencies on @deepseek-ai/dsh-tools 0.2.1-alpha.1
+├── cordis.patch.yml   # Insert one row (id hello-tool, name dsh-hello-tool)
+├── src/index.ts       # minimal defineTool for `hello_tool` returning a string
+└── README.md          # end-to-end steps + edit guide + "npm install may fail" honesty
+```
+
+To use it: copy the folder, change `name` / `description` / `parameters` / `output.schema`, then `dsh plugin --profile <your-profile> add ./hello-tool`.
 
 ## Install
 
@@ -100,7 +132,7 @@ The DSH skill system accepts both directory bundles (`<name>/SKILL.md`) and flat
 | `$DSH_HOME/../agents/skills` (i.e. `~/.agents/skills`) | User agents home (rank 500) |
 | bundled skill directory | Shipped with DSH (rank 600) |
 
-Example — install as a user-level skill. The folder name must match the `name` in the SKILL.md frontmatter (`dsh-plugin-dev-skill`), which must be kebab-case (`^[a-z0-9]+(?:-[a-z0-9]+)*$`):
+Example — install as a user-level skill. The folder name must match the `name` in the SKILL.md frontmatter (`dsh-plugin-dev-skill`), which must be kebab-case:
 
 ```sh
 # Recommended: symlink to a git checkout, so `git pull` keeps it current
@@ -113,7 +145,7 @@ cp SKILL.md VERSION ~/.dsh/skills/dsh-plugin-dev-skill/
 cp -r References ~/.dsh/skills/dsh-plugin-dev-skill/References
 ```
 
-**Keeping it up to date.** The skill ships a [`VERSION`](VERSION) file and instructs the agent to **check for a newer version as the first step after loading it** (`SKILL.md` §0.1): fetch the remote `VERSION`, compare semantically, and if the remote is newer, update (via `git pull` on a symlinked/checkout install, or re-clone + `rsync` for a plain copy) **before** using the skill. Symlinking is the recommended install shape, because then a single `git pull` updates the loaded skill in place — DSH follows symlinked skill directories (`watchFollowSymlinks` defaults to true), and so do Claude Code and Codex. If the check is impossible (offline, no network, no write access), the agent should say so and continue with the local version rather than silently pretending it checked.
+**Keeping it up to date.** The skill ships a [`VERSION`](VERSION) file and instructs the agent to **check for a newer version as the first step after loading it** (`SKILL.md` §0.1): fetch the latest published tag via `git ls-remote --tags`, then read `${TAG}/VERSION` (tag-pinned, immune to `main` branch CDN cache lag), compare semantically, and if the remote is newer, update (via `git pull` on a symlinked/checkout install, or re-clone + `rsync` for a plain copy) **before** using the skill. Symlinking is the recommended install shape, because then a single `git pull` updates the loaded skill in place — DSH follows symlinked skill directories (`watchFollowSymlinks` defaults to true), and so do Claude Code and Codex. If the check is impossible (offline, no network, no write access), the agent should say so and continue with the local version rather than silently pretending it checked.
 
 ### In other agent hosts (Claude Code, Codex)
 
@@ -174,15 +206,15 @@ Any host implementing the Agent Skills standard. That includes DSH (project and 
 
 ### Is the skill content in English?
 
-The skill body and reference docs are written in Chinese, matching the official DSH documentation. Code templates, API names, and commands are language-neutral, and both an English and a Chinese README are provided.
+The skill body (`SKILL.md`) and reference docs are written in Chinese, matching the official DSH documentation, which is Chinese-first. Code templates, API names, and commands are language-neutral. Both an English and a Chinese README are provided.
 
 ### Which DeepSeek Harness version does it target?
 
-`@deepseek-ai/*` **0.2.0-rc.2** together with cordis **4.0.4** — the versions every API statement was verified against, including a `tsc --strict` pass over the templates. Release 0.2.0 landed what the docs had previously only previewed (the `ctx.codeRuntime` → `ctx.ptcRuntime` seam rename, Plugin Manager, and the removal of the E2B providers in favour of the SSH family); the full delta is recorded in the reference docs and in [`CHANGELOG.md`](CHANGELOG.md).
+`@deepseek-ai/*` **0.2.1-alpha.1** together with cordis **4.0.5-alpha.1** — the versions every API statement was verified against. Release 0.2.0 landed the headline renames (`ctx.codeRuntime` → `ctx.ptcRuntime`, Plugin Manager, E2B → SSH family); release 0.2.1-alpha.1 is mainly Web UX + bug fixes, with **zero breaking changes to the tool/LLM/service plugin public API**. The full delta is recorded in [`CHANGELOG.md`](CHANGELOG.md) and the reference docs.
 
 ### How do I keep the skill up to date?
 
-Install it as a symlink to a git checkout so `git pull` updates it in place. In addition, the skill checks its own version on load: it compares the local `VERSION` against the published one and, if a newer release exists, updates before using itself (`SKILL.md` §0.1). The remote check is a single tiny file fetch and degrades gracefully offline.
+Install it as a symlink to a git checkout so `git pull` updates it in place. The skill also checks its own version on load: it compares the local `VERSION` against the latest published tag and, if a newer release exists, updates before using itself (`SKILL.md` §0.1). The remote check is a single tiny file fetch and degrades gracefully offline.
 
 ### Can an agent install the skill by itself?
 
@@ -196,6 +228,7 @@ Open an issue or a pull request — see [CONTRIBUTING.md](CONTRIBUTING.md). Ever
 
 - Official docs (中文 / English): https://deepseek-harness.github.io/deepseek-harness/develop/basic/
 - Source repository: https://github.com/deepseek-ai/deepseek-harness
+- Latest tagged release: https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.1
 - Paper: *A Programming Paradigm for Spatiotemporal Composability* (the academic foundation of Cordis; arXiv:2608.25512): https://arxiv.org/abs/2608.25512
 
 All reference docs are **condensed digests** (not verbatim copies of the official docs), organized around the goal of "developing correct, efficient, convention-compliant plugins".
@@ -213,7 +246,7 @@ Other projects by the same author:
 
 ## Contributing
 
-Issues and pull requests are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. For security-related matters, see [SECURITY.md](SECURITY.md).
+Issues and pull requests are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) first. For security-related matters, see [SECURITY.md](SECURITY.md). Before opening a PR, run `bash scripts/verify.sh` locally — CI does the same.
 
 ## License
 

@@ -1,7 +1,7 @@
 # 03 · 工具开发完整参考（defineTool）
 
 > 精简提炼自 develop/basic/tool、reference/cookbook/adding-a-tool、reference/subsystems/tools、reference/tool-execution-pipeline。
-> API 以本地 SDK 为准（`@deepseek-ai/dsh-tools` 0.2.0-rc.2）。
+> API 以本地 SDK 为准（`@deepseek-ai/dsh-tools` 0.2.1-alpha.1；与 0.2.0-rc.2 完全兼容）。
 > 生产级参考实现：`packages/shell/tool-bash`（前台 + 后台 + 沙箱）、`packages/fs/tool-fs`（diff 卡片）、`packages/web/tool-web`（web 卡片）。
 
 ## 1. 最小形态

@@ -1,6 +1,6 @@
 # 09 · Cordis 入门与 ctx API 速查
 
-> 精简提炼自 reference/cordis-primer、reference/cordis-api/*（context/events/fiber/registry/service/inherited）。ctx API 与分发模式已逐条对照本地 `@deepseek-ai/cordis` 4.0.4 类型定义核实。
+> 精简提炼自 reference/cordis-primer、reference/cordis-api/*（context/events/fiber/registry/service/inherited）。ctx API 与分发模式已逐条对照本地 `@deepseek-ai/cordis` 4.0.5-alpha.1 类型定义核实（4.0.5-alpha.1 仅版本号 bump，`src/*.ts` 相对 4.0.4 逐字节未变）。
 >
 > **4.0.4 相对 4.0.2 的公开 API 差异很小**：新增类型导出 `Volatile` / `VolatileSnapshot`；`Fiber.update()` 改为返回 `void`（见 §7）；`'internal/update'` 监听器签名收窄为 `next: () => void`（同步）。`context.ts` / `registry.ts` / `service.ts` / `reflect.ts` / `utils.ts` 逐字节未变。
 

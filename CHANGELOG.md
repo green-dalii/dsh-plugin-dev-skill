@@ -4,6 +4,30 @@
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-10-04
+
+DSH 上游发布 `dsh-v0.2.1-alpha.1`：主要是 Web 体验、bug 修复与若干破坏性清理。**对 tool / LLM / service 插件公共 API 0 破坏**——本版本让 SKILL.md 与上游对齐，README 按"全面修订"要求重写。
+
+### 同步（Sync with upstream dsh-v0.2.1-alpha.1）
+
+- **SDK 基线**：从 `@deepseek-ai/*` **0.2.0-rc.2**（cordis **4.0.4**）升到 **0.2.1-alpha.1**（cordis **4.0.5-alpha.1**）。cordis 4.0.5-alpha.1 仅版本号 bump，`src/*.ts` 与 4.0.4 逐字节相同；`dsh-tools` / `dsh-llm` / `dsh-session` / `dsh-agent` / `dsh-agent-loop` 公共导出未变（仅 `invariant.ts` 删除）。
+- **SKILL.md §0 基线声明**：反映 0.2.1-alpha.1。
+- **§5 HMR 段落**：补一句"开启 dev directory 监听后，0.2.1 起 HMR 还能在源码变更时刷新包入口与依赖映射"（对应 release note `HMR 可刷新包入口和依赖映射配置`）。
+- **§10 第 2 项 subpath 展示元数据**：明确写出 0.2.0-rc.2 起子路径不再读独立 `package.json`（标题/描述走子路径 `locale/*.json`，图标走子路径 `icon` 导出），并链接到上游 0.2.0-rc.2 升级指南 `subpath-plugin-display-manifest`。
+- **§12 错误表加一行**：0.2.1-alpha.1 起 `@deepseek-ai/dsh-invariants` 与 `<pkg>/invariant` 子路径已删除（`InvariantRegistry` / `InvariantInstaller` / `InvariantFailure` / `InvariantError` 不再导出；`sdk-minimal` 中五个 `*-invariant` id 已清理）。
+- **§13 文档入口**：补 `claude-code-mods` 链接（0.2.1 新增的实验性 bridge）；`ptc-runtime` 链接从 `code-runtime` 改名为 0.2.1-alpha.1 起对外的官方路径。
+- **`References/00-INDEX.md`、`02-plugin-basics.md`、`03-tools.md`、`05-llm-adapter.md`、`06-framework-services-events.md`、`09-cordis-primer.md`** 顶部基线行统一升到 0.2.1-alpha.1 / 4.0.5-alpha.1；8/08 仍保留对历史变更的叙述（`0.2.0-rc.2 的服务结构变化` 是历史回顾，不应被覆盖）。
+
+### 文档（README 全面修订）
+
+- **`README.md` / `README.zh-CN.md` 重写**：调整 Features 列表（突出"自检脚本 + CI + hello-tool 示例 + tag-pinned 更新"四项工程化能力）；Quick Start 给出三步上手；新增 Self-Verification 一节说明 `scripts/verify.sh`；Examples 一节指向 `examples/hello-tool/`；上游基线与 README 内的 SDK 版本号保持一致。
+- **README badge URL**：从 `dsh-v0.2.0-rc.2` 改为 `dsh-v0.2.1-alpha.1`；版本徽章从 `0.6.1` 改为 `0.6.2`；发布日期更新。
+
+### 元数据
+
+- **`VERSION` / SKILL.md frontmatter `metadata.version`**：0.6.1 → 0.6.2。
+- **`llms.txt`** `## Latest tag (pinned, CDN-safe)` 段：14 处 raw URL 全部从 `v0.6.1` 切到 `v0.6.2`。
+
 ## [0.6.1] - 2026-10-04
 
 不发版基线变更；只是把项目自身从「我能跟上的 AI Agent 技能」变成「**任何 Agent 都能自行复核**的技能」。
