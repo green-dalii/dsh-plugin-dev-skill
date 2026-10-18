@@ -4,6 +4,47 @@
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-10-18
+
+DSH 上游进入 `dsh-v0.2.1-alpha.2` ~ `alpha.4` 这一脉稳定小步：12 篇升级指南已在 master 合入（rc.1 / rc.2 暂未合并），其中**只有 5 篇对插件开发有实质影响**。本版本把 SDK 基线声明升到 `0.2.1-alpha.4`，把这些影响面落到 SKILL.md / References。同时把项目里两类对项目形态无益的产物（`llms.txt` 与上游升级指南本地镜像）清掉，补一份 CLI Agent 会实际读取的 `AGENTS.md`，并做了一次结构性精简。
+
+### 同步（Sync with upstream dsh-v0.2.1-alpha.2 ~ alpha.4）
+
+- **SDK 基线**：SKILL.md frontmatter `metadata.sdk-baseline` 与 `References/00-INDEX.md` 顶部基线行从 `@deepseek-ai/*` **0.2.1-alpha.1** 升到 **0.2.1-alpha.4**。cordis 仍是 **4.0.5-alpha.1**；这一脉对 tool / LLM / service 插件的公共 API **0 破坏**。
+- **SKILL.md §0 基线声明**：新增一句说明 alpha.2 ~ alpha.4 的稳定小步性质与三个关键变更点（`engines.dsh` 优先 / HMR 重装失败 / `plugin_market` 新工具）。
+- **SKILL.md §10 第 4 点（HMR profile 重装）**：把"组合包作者要注意的三件事"改为"0.2.0+，截至 0.2.1-alpha.4"，并新增一条 **`HMR profile 下重装已装包返回 already-installed`** 的行为说明（0.2.1-alpha.2 起，agent 端 `plugin_manager.install_bundle` 与 Host API 同受影响，升级/换路径须先 `remove`）。
+- **SKILL.md §10 第 1 点（版本契约）**：删除"`engines.dsh` 只是声明性的，不是被强制检查的字段"；改为"0.2.1-alpha.3 起 `engines.dsh` 优先于 DSH peerDependencies"，并说明 `workspace:` 不再被 `engines.dsh` 接受、`IncompatiblePlugin` / `PluginCompatibility` 字段从 `peers` 改名为 `requirements`。
+- **SKILL.md §10 第 3 点（Plugin Manager）**：扩充为 "Plugin Manager + Plugin Market" 段，新增 `plugin_market` 工具说明（`list_indexes` / `list_plugins` / `list_versions`，版本条目携带 `install_bundle` 所需的 `target` 与 `registry`）。
+- **SKILL.md §12 错误表**：新增 4 条 ——「`engines.dsh` 范围太窄想跟 peer 走」「`engines.dsh` 里写 `workspace:`」「读 `IncompatiblePlugin.peers`」「HMR 下想用 `add` 升级已装包」。
+- **SKILL.md §13 文档链接**：补 0.2.1-alpha.2 ~ alpha.4 升级指南入口（GitHub URL 指针），不再做本地镜像；与插件开发相关的 5 篇关键改动已直接落到 SKILL.md §10/§12 或子章节中。
+- **`References/02-plugin-basics.md` / `03-tools.md` / `05-llm-adapter.md` / `06-framework-services-events.md`** 顶部基线行升到 `0.2.1-alpha.4`；后又在 0.6.3 末尾精简一轮（详见下"精简"段）。
+- **`References/08-capability-layering.md`**：seam 目录表**删除 `ctx.invariants` 行**（0.2.1-alpha.1 已删除该包与子路径），并在表末新增 7 项 alpha.4 新增 seam（`pluginMarket` / `translator` / `remoteAccess` / `webApp` / `workingDirectory` / `worktrees` / `cotTranslation`），每项给出角色与 owner 包路径；0.2.0-rc.2 → 0.2.1-alpha.4 的变化段落补一句"alpha.4 又新增 7 项"；总服务行数由 92 改为 99+。
+
+### 精简（structural slim-down）
+
+- **删除 `References/_upstream-upgrade-notes/` 12 篇**（约 20 KB）：这些是上游 `docs/upgrade-guide/` 原文镜像，未被任何 `SKILL.md` / `References/` 文件按路径引用；保留它们违反"References 是精简提炼不是照搬"原则，且 12 篇原文的内容已并入 SKILL.md §10/§12 与 03/05 各对应位置——无信息丢失。
+- **删除 `llms.txt`**：见 `AGENTS.md` §Design decisions；本仓库不是被爬虫索引的公开文档站，14 处 tag-pinned raw URL 每次发版手工跳是无意义成本。
+- **新增 `AGENTS.md`**：CLI Agent 会真正读取的约定文件，与 `CONTRIBUTING.md`（人类向）形成两条独立通道。
+- **`References/{02,03,05,06}` 顶部重述段精简**：原本各自重复 "alpha.2~alpha.4 是稳定小步、改了什么" 等内容；改为只保留基线编号 + 指回 `References/00-INDEX.md` / SKILL.md §X。约 -2.4 KB。
+- **`AGENTS.md` 新增 "Design decisions" 小节**：把 CHANGELOG 中"为什么"的叙述迁到这里——CHANGELOG 只记"改了什么"。
+- **README 文件树里 `AGENTS.md` 的注释从列举改成"CLI Agent 约定文件"四字**（细节已在 AGENTS.md 顶部）。
+
+### 元数据
+
+- **`VERSION` / SKILL.md frontmatter `metadata.version`**：0.6.2 → 0.6.3。
+- **`README.md` / `README.zh-CN.md`**：badge `0.6.2` → `0.6.3`；DSH badge 与 FAQ 中的 `dsh-v0.2.1-alpha.1` 提到 `dsh-v0.2.1-alpha.4`（最新可引用的稳定 tag）；文件树把 `llms.txt` 改成 `AGENTS.md`。
+- **`examples/hello-tool/package.json`**：`peerDependencies` `@deepseek-ai/dsh-tools` 从 `0.2.0-rc.2` 升到 `^0.2.1-alpha.4`，与本轮 SDK 基线一致。
+
+### 质量优化（quality pass after sync）
+
+- **`SKILL.md §13`**：把 PTC 运行时 + Claude Code Mods 两条合并为一行（都是 0.2.1-alpha.1 起的事件命名变更背景），URL 不重复。
+- **`References/02/03/05/06` 顶部重述**第二轮精简：去掉 "alpha.2 ~ alpha.4 是稳定小步、改了什么、签名细节" 的重复叙述，统一指回 `References/00-INDEX.md` 与 SKILL.md §X。约 -2.4 KB。
+- **`References/10-spatiotemporal.md`**：顶部加 "扩展阅读，Agent 写 DSH 插件不需要读这篇" 的明示，避免 Agent 误把 84 行论文解读拉进上下文。
+- **`examples/hello-tool/README.md`**：顶部加 "本 example 不通过 `tsc --strict` 校验" 的明示；消除与 SKILL.md 中 "代码样例通过 tsc --strict" 表述的潜在冲突（README 中是「模板」，不是 example 本身）。
+- **`AGENTS.md` §What you modify**：`examples/` 行的描述从 "small self-contained runnable plugins. They must typecheck under the SDK baseline" 改为 "small illustrative skeletons"——准确反映 examples 在 CI 上不跑（DSH SDK 不是公开 npm 包）的现实。
+- **`README.md` / `README.zh-CN.md` "What you get" 段**：去掉 emoji 前缀（保留语义、减少视觉噪音），把 "Tag-pinned update check" 一行的长展开描述指回 `SKILL.md §0.1` + `AGENTS.md`；段末加一行"Agent 介入约定见 `AGENTS.md`"指针，避免 README 顶部重复 AGENTS.md "What this repository is"。
+- **删除 `examples/hello-tool/` 整个目录**：4 文件约 3.3 KB。"复制-改-跑"的最小骨架，对一个内容已对齐 SDK 基线、模型能力足够的 skill 而言是**冗余中间层**——`SKILL.md §4`（`defineTool` 模板）与 `§10`（组合包打包模板）已经给出文件树、`package.json` 字段、`cordis.patch.yml` 形态与 `src/index.ts` 全部信息，不需要再看第二遍。同时去掉：`README.md` / `README.zh-CN.md` TOC、文件树、Quick Start 第 4 步、Examples 段四处引用；`AGENTS.md` §What you may modify 表里的 examples 行改为 `examples/ (deleted in 0.6.3)`，并在 §Design decisions 加一条说明（包含未来如要再加 `examples/` 应先论证 "为什么 SKILL.md 装不下" 的护栏）。设计理由详见 `AGENTS.md` §Design decisions。
+
 ## [0.6.2] - 2026-10-04
 
 DSH 上游发布 `dsh-v0.2.1-alpha.1`：主要是 Web 体验、bug 修复与若干破坏性清理。**对 tool / LLM / service 插件公共 API 0 破坏**——本版本让 SKILL.md 与上游对齐，README 按"全面修订"要求重写。

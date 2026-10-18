@@ -2,7 +2,7 @@
 
 > 精简提炼自 develop/practice/llm-adapter、reference/cookbook/adding-an-llm-adapter、reference/subsystems/llm-streaming。
 > 参考实现：`packages/llm/llm-deepseek`（直接 HTTP + SSE，`eventsource-parser` 分帧）、`packages/llm/llm-pi-ai`（封装 LLM 库）。
-> 术语以 `@deepseek-ai/dsh-llm`（0.2.1-alpha.1；与 0.2.0-rc.2 完全兼容）的类型为准：工具调用 id 是 `ToolCallId`，旧名 `CallId` 已删除、SDK 不再导出。
+> 术语以 `@deepseek-ai/dsh-llm` **0.2.1-alpha.4** 的类型为准：工具调用 id 是 `ToolCallId`，旧名 `CallId` 已删除、SDK 不再导出。逐版本变化见 `References/00-INDEX.md`；`pi-ai` 模型无 key 不再列目录的行为详见 SKILL.md §10/§12。
 
 ## 1. 概述
 

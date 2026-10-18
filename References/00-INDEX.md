@@ -6,7 +6,7 @@
 
 使用方式：先读项目根目录的 `SKILL.md`（操作手册），需要深度背景时按需查阅本目录对应文件。
 
-**SDK 基线**：所有 API 陈述以 `@deepseek-ai/*` **0.2.1-alpha.1**（cordis **4.0.5-alpha.1**）的类型定义实测为准。0.2.1-alpha.1 对 tool / LLM / service 插件的公共 API 0 破坏；主要 web 体验改善、HMR 增强与 `invariant` 诊断路径清理。官方文档站发布 `develop/**`、`guide/**`、`reference/**` 与部分 `subsystems/{ptc-runtime, schedule, approval, claude-code-mods, …}`；而 `docs/glossary`、`docs/event-producer-consumer`、`docs/defensive-patterns` 与多数 `docs/subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 等）**仅存在于仓库**，相关链接指向 GitHub blob。
+**SDK 基线**：所有 API 陈述以 `@deepseek-ai/*` **0.2.1-alpha.4**（cordis **4.0.5-alpha.1**）的类型定义实测为准。0.2.1-alpha.1 ~ alpha.4 这一脉对 tool / LLM / service 插件公共 API **0 破坏**；主要 web 体验改善、HMR 增强、`invariant` 诊断路径清理、`engines.dsh` 优先于 DSH peerDependencies（HMR profile 下 `install_bundle` 重装已装包返回 `already-installed`）、新增 `plugin_market` agent 工具、seam 集新增 `pluginMarket` / `translator` / `remoteAccess` / `webApp` / `workingDirectory` / `worktrees` / `cotTranslation` 共 7 项。官方文档站发布 `develop/**`、`guide/**`、`reference/**` 与部分 `subsystems/{ptc-runtime, schedule, approval, claude-code-mods, …}`；而 `docs/glossary`、`docs/event-producer-consumer`、`docs/defensive-patterns` 与多数 `docs/subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 等）**仅存在于仓库**，相关链接指向 GitHub blob。0.2.1-alpha.2 ~ alpha.4 的 12 篇升级指南由 SKILL.md §13 给到 GitHub 原文链接。
 
 | 文件 | 主题 | 官方对应章节 |
 |---|---|---|

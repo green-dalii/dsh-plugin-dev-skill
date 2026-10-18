@@ -1,6 +1,6 @@
 # 02 · 插件基础：形态、生命周期、effect 与 HMR
 
-> 精简提炼自 develop/basic/（第一个插件）、develop/framework/（插件与生命周期）、cordis-tutorial 第 1、2 章。API 签名以本地 `@deepseek-ai/cordis` 4.0.5-alpha.1 为准。
+> 精简提炼自 develop/basic/（第一个插件）、develop/framework/（插件与生命周期）、cordis-tutorial 第 1、2 章。API 签名以本地 `@deepseek-ai/cordis` 4.0.5-alpha.1 + **`@deepseek-ai/*` 0.2.1-alpha.4** 为准。基线变更与逐版本差异见 `References/00-INDEX.md` 与 SKILL.md §0/§10/§12。
 
 ## 1. 插件是什么
 

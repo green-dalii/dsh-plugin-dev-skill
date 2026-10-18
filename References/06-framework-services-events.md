@@ -1,6 +1,6 @@
 # 06 · 服务与依赖、事件系统
 
-> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis 4.0.5-alpha.1 + dsh 0.2.1-alpha.1）为准。
+> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis 4.0.5-alpha.1 + `@deepseek-ai/*` **0.2.1-alpha.4**）为准。逐版本变化见 `References/00-INDEX.md`。
 
 ## 1. 服务是什么
 
@@ -230,6 +230,6 @@ declare module '@deepseek-ai/cordis' {
 - **事件生产方与消费方矩阵**（仓库文档，未发布到文档站）：https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/event-producer-consumer.zh.md
 - **Cordis API：Events**：https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/events
 - **Cordis API：Service**：https://deepseek-harness.github.io/deepseek-harness/reference/cordis-api/service
-- **防御性模式**（仓库文档，未发布到文档站）：https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/defensive-patterns.zh.md
+- **防御性模式**（仓库文档目录，未发布到文档站）：https://github.com/deepseek-ai/deepseek-harness/tree/master/docs/defensive-patterns
 - **Cordis 教程 3：服务**：https://deepseek-harness.github.io/deepseek-harness/develop/cordis-tutorial/03-services
 - **Cordis 教程 4：事件**：https://deepseek-harness.github.io/deepseek-harness/develop/cordis-tutorial/04-events

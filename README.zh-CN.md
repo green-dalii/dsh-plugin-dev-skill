@@ -3,9 +3,9 @@
 [English](README.md) | **简体中文**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Updated](https://img.shields.io/badge/updated-2026--10--04-informational)](CHANGELOG.md)
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1--alpha.1-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.1)
-[![Skill version](https://img.shields.io/badge/skill-0.6.2-brightgreen)](VERSION)
+[![Updated](https://img.shields.io/badge/updated-2026--10--18-informational)](CHANGELOG.md)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1--alpha.4-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.4)
+[![Skill version](https://img.shields.io/badge/skill-0.6.3-brightgreen)](VERSION)
 [![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -23,7 +23,6 @@
 - [三步上手](#三步上手)
 - [结构](#结构)
 - [自检能力](#自检能力)
-- [示例](#示例)
 - [安装](#安装)
   - [作为 DSH 技能](#作为-dsh-技能)
   - [在其他 Agent 宿主中使用（Claude Code、Codex）](#在其他-agent-宿主中使用claude-codecodex)
@@ -37,23 +36,25 @@
 
 写一个 DSH "Hello World" 插件只需一行。但要写出**正确的**插件——`defineTool` 输出契约遵守、可逆效应替代手工清理、`inject` 依赖语义、Standard Schema 配置校验、事件分发模式选型、真正能装上车的打包——才是本技能编码的内容。
 
-技能**基于第一性原理**：每条铁律都基于底层框架 Cordis 的学术基础（[arXiv:2608.25512](https://arxiv.org/abs/2608.25512)），并把这些原理落地成可直接照抄的代码模板。SKILL.md 里每条 API 陈述都对照真实 SDK 类型在声明基线（`@deepseek-ai/*` 0.2.1-alpha.1、cordis 4.0.5-alpha.1）实测过，模板通过 `tsc --strict`。
+技能**基于第一性原理**：每条铁律都基于底层框架 Cordis 的学术基础（[arXiv:2608.25512](https://arxiv.org/abs/2608.25512)），并把这些原理落地成可直接照抄的代码模板。SKILL.md 里每条 API 陈述都对照真实 SDK 类型在声明基线（`@deepseek-ai/*` 0.2.1-alpha.4、cordis 4.0.5-alpha.1）实测过，模板通过 `tsc --strict`。
 
 ## 你能得到什么
 
-- 🧠 **心智模型先行**：Cordis「可逆效应 + 反应式余效应」理论，凝练成 6 条任何插件作者都必须遵守的铁律。
-- 🧩 **覆盖五类插件面**：`tool`（`defineTool`）、`llm`（adapter）、`service`（definition + provider + consumer）、`event`（dispatch modes）、`bundle`（profile + manifest + Plugin Manager）。这五类足以覆盖绝大多数 Agent 插件工作。
-- ✅ **模板经过真实 SDK 验证**：代码样例通过 `tsc --strict`，并在真实 Cordis loader 下端到端跑通。
-- 🔁 **自带自检**：附带 [`scripts/verify.sh`](scripts/verify.sh)——一行基线复核（版本一致性 + SKILL.md frontmatter 合法性 + 上游 URL 存活），项目自身的 CI 在每次 push 上都会跑它。
-- 🚦 **Tag-pinned 更新检查**：技能把本机 `VERSION` 与最新发布 tag 比较，用 `${TAG}/VERSION` raw URL（避开 `raw.githubusercontent.com` 在 `main` 上的 CDN 延迟），更新后重读 `SKILL.md`——Agent 永远不会对着过期 API 写插件。
-- 🔗 **可追踪上游**：每篇参考文档末尾附官方文档 URL，任何未来漂移都可对照复核与修复。
+- **心智模型先行**：Cordis「可逆效应 + 反应式余效应」理论，凝练成 6 条任何插件作者都必须遵守的铁律。
+- **覆盖五类插件面**：`tool`（`defineTool`）、`llm`（adapter）、`service`（definition + provider + consumer）、`event`（dispatch modes）、`bundle`（profile + manifest + Plugin Manager）。
+- **模板经过真实 SDK 验证**：代码样例通过 `tsc --strict`，并在真实 Cordis loader 下端到端跑通。
+- **自带自检**：附带 [`scripts/verify.sh`](scripts/verify.sh)——一行基线复核（版本一致性 + SKILL.md frontmatter 合法性 + 上游 URL 存活），项目自身的 CI 在每次 push 上都会跑它。
+- **Tag-pinned 更新检查**：见 `SKILL.md §0.1` 与 [`AGENTS.md`](AGENTS.md) 「Mandatory flow on entry」。
+- **可追踪上游**：每篇参考文档末尾附官方文档 URL。
+
+Agent 介入仓库时的约定（加载、检查、不能动哪些文件）见 [`AGENTS.md`](AGENTS.md)。
 
 ## 三步上手
 
 1. **安装**本技能（推荐符号链接——见 [安装](#安装)）。
 2. **打开** `SKILL.md`；Agent 会自动跑 §0.1 的更新检查并提示是否有新版本。
 3. **照着** `SKILL.md` §11 的四阶段流程（侦察 → 实现 → 验证 → 交付）走。
-4. **Agent 写工具时**：复制 [`examples/hello-tool/`](examples/hello-tool/) 然后改四个字段（`name` / `description` / `parameters` / `output.schema`）。
+4. **Agent 写工具时**：用 `SKILL.md §4` 里的 `defineTool` 模板（整段照抄，只需改四个字段 `name` / `description` / `parameters` / `output.schema`）。
 5. **发版或提 PR 前**：跑 `bash scripts/verify.sh`——绿灯意味着版本、frontmatter 与所有上游链接都一致。
 
 ## 结构
@@ -62,7 +63,7 @@
 dsh-plugin-dev-skill/
 ├── SKILL.md                     # 主技能文件：操作手册（Agent 接入后先读这个）
 ├── VERSION                      # 技能版本号；SKILL.md §0.1 要求载入时检查它
-├── llms.txt                     # 面向 LLM 爬虫 / 答案引擎的机器可读索引
+├── AGENTS.md                    # CLI Agent 自动读取的约定文件
 ├── README.md                    # 英文说明（默认）
 ├── README.zh-CN.md              # 本文件（中文说明）
 ├── CHANGELOG.md                 # 变更日志
@@ -82,8 +83,6 @@ dsh-plugin-dev-skill/
 │   ├── 09-cordis-primer.md      # Cordis 入门与 ctx API 速查
 │   ├── 10-spatiotemporal.md     # 论文解读（时空可组合性）
 │   └── 11-cookbook.md           # 扩展模式（钩子/UI/协议桥/功能→机制）
-├── examples/
-│   └── hello-tool/              # 最小可抄的 DSH tool 模板（端到端可跑）
 ├── scripts/
 │   └── verify.sh                # 基线复核（版本/frontmatter/链接），CI 在每次 push 上跑
 └── .github/workflows/ci.yml     # GitHub Actions：verify.sh + 上游 release 信号
@@ -102,20 +101,6 @@ macOS bash 3 兼容；支持 `SKIP_FRONT=1` / `SKIP_VERSION=1` / `SKIP_URLS=1` �
 ```sh
 bash scripts/verify.sh   # 绿灯退出 0；任何漂移退出 1
 ```
-
-## 示例
-
-[`examples/hello-tool/`](examples/hello-tool/) 是一个「复制-改-跑」的起点：
-
-```
-examples/hello-tool/
-├── package.json       # dsh.bundle + peerDependencies @deepseek-ai/dsh-tools 0.2.1-alpha.1
-├── cordis.patch.yml   # insert 一行（id hello-tool, name dsh-hello-tool）
-├── src/index.ts       # 最小的 defineTool，返回字符串
-└── README.md          # 端到端步骤 + 改写指南 + 「npm install 可能装不上」的诚实说明
-```
-
-用法：复制整个目录、改 `name` / `description` / `parameters` / `output.schema`，然后 `dsh plugin --profile <your-profile> add ./hello-tool`。
 
 ## 安装
 
@@ -228,7 +213,7 @@ DeepSeek Harness 是一个 Agent Harness SDK：其中每一项能力——工具
 
 - 官方文档站（中文/英文）：https://deepseek-harness.github.io/deepseek-harness/develop/basic/
 - 源码仓库：https://github.com/deepseek-ai/deepseek-harness
-- 最新 tag 发布：https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.1
+- 最新 tag 发布：https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.4
 - 论文：《A Programming Paradigm for Spatiotemporal Composability》（Cordis 框架的学术基础，arXiv:2608.25512）：https://arxiv.org/abs/2608.25512
 
 所有参考文档均为**精简提炼**（不是官方文档照搬），以「开发出正确、高效、符合规范的插件」为目标组织。

@@ -1,7 +1,9 @@
 # 10 · 论文解读：《A Programming Paradigm for Spatiotemporal Composability》
 
-> 本文是对本目录 PDF 的精简解读。论文作者：Yifan Shi、Wei Zhang（北京大学）、Tianyi Cui（DeepSeek-AI）。
-> 它给出了 DSH 底层框架 **Cordis** 的形式化基础——理解 DSH 插件“为什么这样设计”的关键。
+> 扩展阅读。**Agent 写 DSH 插件不需要读这篇**——`SKILL.md §1` 的"心智模型"已经覆盖所需的全部直觉。本文件给对 Cordis 框架理论来源感兴趣的人类读者。
+
+本文是对论文 PDF 的精简解读。论文作者：Yifan Shi、Wei Zhang（北京大学）、Tianyi Cui（DeepSeek-AI）。
+它给出了 DSH 底层框架 **Cordis** 的形式化基础——理解 DSH 插件"为什么这样设计"的关键。
 
 ## 1. 问题：动态组合缺乏形式化基础
 

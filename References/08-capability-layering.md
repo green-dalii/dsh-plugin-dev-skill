@@ -164,10 +164,18 @@ harness 的核心服务（`ctx.<key>` → 角色 → 说明）：
 | `ctx.agentTeams` | core | 实验性协作 seam：持久 roster、peer mailbox、任务 DAG（需显式启用） |
 | `ctx.commands` | core | 面向人的命令注册 |
 | `ctx.planMode` | core | 计划模式 |
-| `ctx.invariants` | core | 运行时不变式检查注册表；各包以 `./invariant` 配套子路径按自身 npm 包名注册 |
 | `ctx.typert` | core | 插件注册实时 zod 贡献；API 网关消费调用描述符与提供方 |
 | `ctx.webServer` | core | HTTP 载体 |
 | `ctx.clientModules` | core | 浏览器模块图 |
+| `ctx.pluginMarket` | core | 0.2.1-alpha.2 起新增：plugin market 索引（官方或第三方目录）的只读查询；与 `plugin_manager` 配套使用（agent 端 `plugin_market` 工具即挂在此 seam 上；own 由 `boot/plugin-market` 提供） |
+| `ctx.translator` | core | 0.2.1-alpha.x 起新增：`internal/status` 消费者，把 session/agent 状态投影到外部可读形态 |
+| `ctx.remoteAccess` | core | 0.2.1-alpha.x 起新增：远程访问宿主能力；`webserver/index-inject` 在 webserver 注入时挂它 |
+| `ctx.webApp` | core | 0.2.1-alpha.x 起新增：与 `ctx.web`（搜索/抓取）并列的 Web 应用 seam |
+| `ctx.workingDirectory` | core | 0.2.1-alpha.x 起新增：会话级 cwd；`system-prompt/assemble` 监听者之一，`session/event` 持久化字段 |
+| `ctx.worktrees` | core | 0.2.1-alpha.x 起新增：git worktree 状态折叠（合并/分支/合并视图） |
+| `ctx.cotTranslation` | core | 0.2.1-alpha.x 起新增：链式思考翻译 seam（与其他 adapter seam 同级别） |
+
+> ⚠️ 0.2.1-alpha.1 起 **`ctx.invariants` 已删除**：包 `@deepseek-ai/dsh-invariants` 与各包 `<pkg>/invariant` 子路径都不再导出；`InvariantRegistry` / `InvariantInstaller` / `InvariantFailure` / `InvariantError` 不存在。`sdk-minimal` 中五个 `*-invariant` id 也已清理。诊断失败改用自有通道上报——见 SKILL.md §12 错误表。
 
 ### `0.2.0-rc.2` 的服务结构变化（相对 `0.1.5-rc.2`）
 
@@ -175,9 +183,9 @@ harness 的核心服务（`ctx.<key>` → 角色 → 说明）：
 - **新增角色类别 `service`**（除已有的 core / seam / bundle 外）：尚未抽出扩展点的具体实现，当前有 `ctx.otel`（`telemetry/otel`）、`ctx.productAnalytics`（`client/product-analytics`）、`ctx.productTelemetry`（`host/product-telemetry-otel`）。
 - **插件作者相关的新服务**（括号内为 owner 包路径）：`ctx.hmr`（`boot/hmr`）、`ctx.configEditor`（`boot/config-editor`）、`ctx.pluginManager`（`boot/plugin-manager`）、`ctx.profileContext`（`boot/app-boot`）、`ctx.connection`（`client/connection`）、`ctx.mcpResources`（`mcp/mcp-resources`，seam）、`ctx.browserUse`（`browser-use/browser-use`，seam）、`ctx.computerUse`（`computer-use/computer-use`，seam）、`ctx.officeToPdf`（`document/office-to-pdf`）、`ctx.workspaceChanges`（`deliverables/workspace-changes`）、`ctx.schedule`（`schedule/schedule`）、`ctx.deepseekAccount`（`credentials/deepseek-account`，seam）、`ctx.speechToText`（`experimental/speech-to-text`，seam）、`ctx.speechController`（`experimental/api-speech-to-text`）。
 - **提供方变动**：`ctx.workflowEngine` 的实现由 `workflow-worker-thread` 改为 `workflow-ptc`；`ctx.settings` 的 `settings-file` 提供方已移除（`@deepseek-ai/dsh-settings-file` 不再存在）。
-- 上游 `capability-seams` 表格的服务行数由 `0.1.5-rc.2` 的 72 行增至 `0.2.0-rc.2` 的 92 行。
+- 上游 `capability-seams` 表格的服务行数由 `0.1.5-rc.2` 的 72 行增至 `0.2.0-rc.2` 的 92 行；**0.2.1-alpha.4 又新增 7 项**：`pluginMarket` / `translator` / `remoteAccess` / `webApp` / `workingDirectory` / `worktrees` / `cotTranslation`。
 
-> 本表已按本地 `0.2.0-rc.2` SDK 重新核对：上游 `capability-seams` 页面是生成物且比本表长得多（该版 92 个 `ctx.*` 服务），本表只保留插件开发常用项；以本地安装为准时，请先用该服务的 TypeScript 接口核对 key。
+> 本表已按本地 `0.2.1-alpha.4` SDK 重新核对：上游 `capability-seams` 页面是生成物且比本表长得多（alpha.4 有 99+ 个 `ctx.*` 服务），本表只保留插件开发常用项；以本地安装为准时，请先用该服务的 TypeScript 接口核对 key。
 >
 > 完整列表（含每个 seam 的 Definition 包、全部 Provider 与直接消费方）以官方 capability-seams 页面为准；开发时以各服务 TypeScript 接口和子系统页面的 `cordis-surface` 区块为权威，不要维护静态清单。
 
@@ -189,5 +197,5 @@ harness 的核心服务（`ctx.<key>` → 角色 → 说明）：
 
 - **能力的三种角色设计**：https://deepseek-harness.github.io/deepseek-harness/develop/practice/
 - **能力 Seams 与核心服务**：https://deepseek-harness.github.io/deepseek-harness/reference/capability-seams
-- **子系统参考（skills / tools / lsp / typert / invariants 等）**：https://deepseek-harness.github.io/deepseek-harness/reference/subsystems/
+- **子系统参考（skills / tools / lsp / typert 等）**：https://deepseek-harness.github.io/deepseek-harness/reference/subsystems/
 - **术语表（capability-seam 的规范定义，源码）**：https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/glossary.zh.md
