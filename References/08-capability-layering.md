@@ -119,12 +119,12 @@ harness 的核心服务（`ctx.<key>` → 角色 → 说明）：
 |---|---|---|
 | `ctx.llm` | seam | LLM 流服务；适配器（`llm-deepseek`/`llm-pi-ai`，测试用 `llm-replay`）注册提供方实现 |
 | `ctx.deepseekLlmApiExtensions` | seam | 插件准备彼此独立的顶层请求字段，官方适配器合并后再提交交付状态 |
-| `ctx.tools` | core | 工具注册表 + 执行流水线；`dsh-tool-*` 系列消费。同时负责 **PTC mode** 传输（保留的 `run_code` + 生成 SDK；配置 `mode: native\|ptc\|both`） |
+| `ctx.tools` | core | 工具注册表 + 步骤准入 + 执行器选择；`dsh-tool-*` 系列消费。**0.2.1-rc.2 起**：只负责注册与选择执行器，执行由 `@deepseek-ai/dsh-tool-executor-native` / `-ptc` 承担（旧的 `mode` 配置与 `ctx.tools.presentAs()` 已删除 / 移除）；工具声明由注册项的 `when` 条件决定（`system-prompt/assemble` 不再携带工具数组） |
 | `ctx.agents` | core | 实时 Agent 注册表、创建/恢复工厂 seam、发起者传播 |
 | `ctx.sessions` | core | 仅追加 Session 实例，发出持久会话事件流 |
 | `ctx.systemPrompt` | core | 每步收集提示词段落与模型可见工具 schema |
 | `ctx.sessionTitle` | seam | 会话标题：确定性回退 + 唯一可选异步提供方（`session-title-*-llm`） |
-| `ctx.sessionProjections` | core | 各领域注册状态驱动的折叠单元；host 读取方经 `stateOf()`/`snapshot()` 取类型化状态 |
+| `ctx.sessionProjections` | core | 各领域注册状态驱动的折叠单元。**0.2.1-rc.2 起**：`register(def)` 返回 **`Promise<ProjectionHandle<S>>`**（thenable，`instanceof Promise` 为 `false`），必须 await 并持有 handle；状态读取用属主服务方法或 `handle.stateOf(session)`，旧的 `stateOf(session, key)` 已废弃、`SessionProjectionStateMap` 已移除 |
 | `ctx.shell` | seam | Bash 执行能力；`bash-local`/`bash-sandbox`/`pwsh-local` 提供 |
 | `ctx.shellEnv` | core | 插件声明 effect 作用域的 `DSH_*` 事实；每个 shell 工具执行时收集可信快照 |
 | `ctx.subprocess` | seam | 进程 spawn 坐标与生命周期；`subprocess-local`/`subprocess-ssh` 等 |
@@ -174,6 +174,14 @@ harness 的核心服务（`ctx.<key>` → 角色 → 说明）：
 | `ctx.workingDirectory` | core | 0.2.1-alpha.x 起新增：会话级 cwd；`system-prompt/assemble` 监听者之一，`session/event` 持久化字段 |
 | `ctx.worktrees` | core | 0.2.1-alpha.x 起新增：git worktree 状态折叠（合并/分支/合并视图） |
 | `ctx.cotTranslation` | core | 0.2.1-alpha.x 起新增：链式思考翻译 seam（与其他 adapter seam 同级别） |
+| `ctx.actionCards` | core | 0.2.1-rc.2 起新增：动作卡片注册（`propose_action` 工具的 kind 包在此 seam 上）；个性化推荐 bundle 提供随附 kind |
+| `ctx.cuaAccess` | core | 0.2.1-rc.2 起新增：computer-use 访问控制 |
+| `ctx.forge` | core | 0.2.1-rc.2 起新增：Forge 提供方注册（`forge/providers-changed` 事件） |
+| `ctx.forgePanel` | core | 0.2.1-rc.2 起新增：Forge 面板能力 |
+| `ctx.forgeSession` | core | 0.2.1-rc.2 起新增：Forge 会话能力 |
+| `ctx.headlessStartup` | core | 0.2.1-rc.2 起新增：headless 启动期能力 |
+| `ctx.liveshareShares` | core | 0.2.1-rc.2 起新增：LiveShare 共享项（对应新增的 `experimental/liveshare-protocol` 包） |
+| `ctx.pluginRecommendations` | core | 0.2.1-rc.2 起新增：插件推荐（个性化推荐 bundle 的来源） |
 
 > ⚠️ 0.2.1-alpha.1 起 **`ctx.invariants` 已删除**：包 `@deepseek-ai/dsh-invariants` 与各包 `<pkg>/invariant` 子路径都不再导出；`InvariantRegistry` / `InvariantInstaller` / `InvariantFailure` / `InvariantError` 不存在。`sdk-minimal` 中五个 `*-invariant` id 也已清理。诊断失败改用自有通道上报——见 SKILL.md §12 错误表。
 
@@ -183,9 +191,9 @@ harness 的核心服务（`ctx.<key>` → 角色 → 说明）：
 - **新增角色类别 `service`**（除已有的 core / seam / bundle 外）：尚未抽出扩展点的具体实现，当前有 `ctx.otel`（`telemetry/otel`）、`ctx.productAnalytics`（`client/product-analytics`）、`ctx.productTelemetry`（`host/product-telemetry-otel`）。
 - **插件作者相关的新服务**（括号内为 owner 包路径）：`ctx.hmr`（`boot/hmr`）、`ctx.configEditor`（`boot/config-editor`）、`ctx.pluginManager`（`boot/plugin-manager`）、`ctx.profileContext`（`boot/app-boot`）、`ctx.connection`（`client/connection`）、`ctx.mcpResources`（`mcp/mcp-resources`，seam）、`ctx.browserUse`（`browser-use/browser-use`，seam）、`ctx.computerUse`（`computer-use/computer-use`，seam）、`ctx.officeToPdf`（`document/office-to-pdf`）、`ctx.workspaceChanges`（`deliverables/workspace-changes`）、`ctx.schedule`（`schedule/schedule`）、`ctx.deepseekAccount`（`credentials/deepseek-account`，seam）、`ctx.speechToText`（`experimental/speech-to-text`，seam）、`ctx.speechController`（`experimental/api-speech-to-text`）。
 - **提供方变动**：`ctx.workflowEngine` 的实现由 `workflow-worker-thread` 改为 `workflow-ptc`；`ctx.settings` 的 `settings-file` 提供方已移除（`@deepseek-ai/dsh-settings-file` 不再存在）。
-- 上游 `capability-seams` 表格的服务行数由 `0.1.5-rc.2` 的 72 行增至 `0.2.0-rc.2` 的 92 行；**0.2.1-alpha.4 又新增 7 项**：`pluginMarket` / `translator` / `remoteAccess` / `webApp` / `workingDirectory` / `worktrees` / `cotTranslation`。
+- 上游 `capability-seams` 表格的服务行数由 `0.1.5-rc.2` 的 72 行增至 `0.2.0-rc.2` 的 92 行；**0.2.1-alpha.4 又新增 7 项**：`pluginMarket` / `translator` / `remoteAccess` / `webApp` / `workingDirectory` / `worktrees` / `cotTranslation`；**0.2.1-rc.2 起再新增 8 项**：`actionCards` / `cuaAccess` / `forge` / `forgePanel` / `forgeSession` / `headlessStartup` / `liveshareShares` / `pluginRecommendations`。
 
-> 本表已按本地 `0.2.1-alpha.4` SDK 重新核对：上游 `capability-seams` 页面是生成物且比本表长得多（alpha.4 有 99+ 个 `ctx.*` 服务），本表只保留插件开发常用项；以本地安装为准时，请先用该服务的 TypeScript 接口核对 key。
+> 本表已按本地 `0.2.2-alpha.2` SDK 重新核对：上游 `capability-seams` 页面是生成物且比本表长得多（该版有 107+ 个 `ctx.*` 服务），本表只保留插件开发常用项；以本地安装为准时，请先用该服务的 TypeScript 接口核对 key。
 >
 > 完整列表（含每个 seam 的 Definition 包、全部 Provider 与直接消费方）以官方 capability-seams 页面为准；开发时以各服务 TypeScript 接口和子系统页面的 `cordis-surface` 区块为权威，不要维护静态清单。
 

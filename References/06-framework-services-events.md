@@ -1,6 +1,6 @@
 # 06 · 服务与依赖、事件系统
 
-> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis 4.0.5-alpha.1 + `@deepseek-ai/*` **0.2.1-alpha.4**）为准。逐版本变化见 `References/00-INDEX.md`。
+> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis **4.0.6-alpha.1** + `@deepseek-ai/*` **0.2.2-alpha.2**）为准。逐版本变化见 `References/00-INDEX.md`。
 
 ## 1. 服务是什么
 
@@ -191,13 +191,17 @@ declare module '@deepseek-ai/cordis' {
 | `agent/created` | serial | agent 创建：按序 await 后才 resolve，抛错则创建失败并跳过后续监听器；payload 含 `source` 与可选 `signal` |
 | `agent/disposed` / `agent/status` | emit | agent 生命周期与状态观测 |
 | `agent/pre-step` | waterfall | 每步前拦截或替换进入该步的消息 |
-| `agent/request` | waterfall | 替换冻结的模型调用配置 |
 | `agent/request-error` | waterfall | 单次请求失败的重试策略（返回 `{ kind: 'retry' }` 或委托 `next()`） |
 | `agent/assistant-stream` | emit | 进程内 assistant 流分片 |
 | `agent/turn-stopping` | serial | 轮次停止边界；异议者用 `agent.steer()` 继续跑（数据决定结果，顺序无关） |
 | `approval/request` | waterfall | 审批决策（策略可代替用户作答） |
 | `llm/stream` | waterfall | 模型流分发 |
-| `system-prompt/assemble` | waterfall | 系统提示词整体装配（作用域过滤；返回值权威） |
+| `llm/models-updated` | emit | 0.2.1-rc.4 起：模型列表后台刷新完成 |
+| `system-prompt/assemble` | waterfall | 系统提示词整体装配（作用域过滤；返回值权威）。**0.2.1-rc.2 起不携带工具数组**——输入是 sections / contexts / variables，返回的 `tools` 被忽略 |
+| `plugin-manager/operation` | parallel | 0.2.1-rc.4 起：插件管理操作进行中 |
+| `plugin-manager/update-state` | emit | 0.2.1-rc.4 起：插件更新状态变化 |
+| `schedule/resolve-agent` | waterfall | 0.2.2-alpha.2 起：定时任务解析执行 Agent |
+| `forge/providers-changed` | parallel | 0.2.2-alpha.2 起：Forge 提供方集合变化 |
 | `session/created` / `session/disposed` | emit | 会话创建 / 销毁 |
 | `session/event` | emit | 持久化会话事件流：`turn/*`、`step/*`、`tool/call`、`tool/result`、`assistant/chunk` 都是这里的 `event.type` |
 | `session/flush` | parallel | 落盘与遥测的并发刷新 |
@@ -211,6 +215,13 @@ declare module '@deepseek-ai/cordis' {
 - **新增**：`app-boot/config-reload`、`compaction/summary-error`、`connection/request`、`deepseek-account/*`、`permission-presets/catalog-changed`、`plugin-manager/*`、`schedule/changed`、`workspace/session-activity`、`workspace/session-stop`。
 - **改名**：分发方包 `agent-presets` → `agent-preset-registry`。
 - **仅新进入矩阵清单**（事件本身早已存在）：`hmr/change`、`hmr/reload`、`internal/config`、`internal/update`，以及模式列留空的 `loader/volatile-update`、`slots/changed`。
+
+### 0.2.1-rc.1 ~ 0.2.2-alpha.2 事件变动（对照官方矩阵）
+
+- **`agent/request` 不再是公开事件**（rc.1 起）：它从「已声明事件」表移入「未声明事件字符串」表，只剩 `agent-loop` 派发、`compaction-basic` 监听。**依赖它替换冻结模型调用配置的插件必须改造**——改用 `agent/request-error`（重试策略）或 `llm/stream`（模型流分发）。
+- **新增**：`llm/models-updated`（emit）、`plugin-manager/operation`（parallel）、`plugin-manager/update-state`（emit）、`schedule/resolve-agent`（waterfall）、`forge/providers-changed`（parallel）。
+- **`session/attachment` 载荷变更**（rc.3）：由 `{ sessionId, attachmentId }` 改为 `{ sessionId, attachment }`，`attachment` 是含 `attachmentId` / `mediaType` / `bytes` / `width` / `height` 的完整引用。客户端 `session.readAttachment()` 同样改收完整引用。处理端只校验 ID、实际格式、字节长度与宽高；`name` / `originalDimensions` 视为调用方展示信息；**不再校验图片与 Session 的归属关系**。
+- **Session 写入时序收紧**（rc.2）：`Session.append()` / `appendPluginRecord()` 在实例进入 `SessionStore` 且 `session/created` 同步派发完成**之前**、以及离开之后**拒绝写入**。所有权自 `prepare()` / `enter()` 起算；`session/created` 派发期间 `ctx.agents.get(session.id)` 返回 `undefined`。**把写操作与 Agent 相关工作移出 `session/created` 监听器**，改到 setup 阶段或 `agent/created`。
 
 ## 8. 实践规则
 

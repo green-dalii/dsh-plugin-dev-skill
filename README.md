@@ -3,9 +3,9 @@
 **English** | [简体中文](README.zh-CN.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Updated](https://img.shields.io/badge/updated-2026--10--18-informational)](CHANGELOG.md)
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.1--alpha.4-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.4)
-[![Skill version](https://img.shields.io/badge/skill-0.6.3-brightgreen)](VERSION)
+[![Updated](https://img.shields.io/badge/updated-2026--11--01-informational)](CHANGELOG.md)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.2--alpha.2-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-alpha.2)
+[![Skill version](https://img.shields.io/badge/skill-0.7.0-brightgreen)](VERSION)
 [![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
@@ -36,7 +36,7 @@ Load [`SKILL.md`](SKILL.md) and the agent gets the mental model, copy-pasteable 
 
 Writing a "Hello World" DSH plugin is one line. Writing a plugin that **is right** — `defineTool` output contract honored, revertible-effect cleanup instead of manual teardown, `inject` dependency semantics, Standard-Schema configuration, correct event dispatch modes, packaging that actually installs — is what this skill encodes.
 
-The skill is **first-principles based**: it grounds every rule in the academic foundation of the underlying framework (Cordis, [arXiv:2608.25512](https://arxiv.org/abs/2608.25512)) and then turns those rules into copy-pasteable code templates. Every API statement in the skill is verified against the real SDK types at the documented baseline (`@deepseek-ai/*` 0.2.1-alpha.4, cordis 4.0.5-alpha.1), and the templates pass `tsc --strict`.
+The skill is **first-principles based**: it grounds every rule in the academic foundation of the underlying framework (Cordis, [arXiv:2608.25512](https://arxiv.org/abs/2608.25512)) and then turns those rules into copy-pasteable code templates. Every API statement in the skill is verified against the real SDK types at the documented baseline (`@deepseek-ai/*` 0.2.2-alpha.2, cordis 4.0.6-alpha.1), and the templates pass `tsc --strict`.
 
 ## What you get
 
@@ -213,7 +213,7 @@ Open an issue or a pull request — see [CONTRIBUTING.md](CONTRIBUTING.md). Ever
 
 - Official docs (中文 / English): https://deepseek-harness.github.io/deepseek-harness/develop/basic/
 - Source repository: https://github.com/deepseek-ai/deepseek-harness
-- Latest tagged release: https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.1-alpha.4
+- Latest tagged release: https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-alpha.2
 - Paper: *A Programming Paradigm for Spatiotemporal Composability* (the academic foundation of Cordis; arXiv:2608.25512): https://arxiv.org/abs/2608.25512
 
 All reference docs are **condensed digests** (not verbatim copies of the official docs), organized around the goal of "developing correct, efficient, convention-compliant plugins".

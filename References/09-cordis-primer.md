@@ -1,8 +1,13 @@
 # 09 · Cordis 入门与 ctx API 速查
 
-> 精简提炼自 reference/cordis-primer、reference/cordis-api/*（context/events/fiber/registry/service/inherited）。ctx API 与分发模式已逐条对照本地 `@deepseek-ai/cordis` 4.0.5-alpha.1 类型定义核实（4.0.5-alpha.1 仅版本号 bump，`src/*.ts` 相对 4.0.4 逐字节未变）。
+> 精简提炼自 reference/cordis-primer、reference/cordis-api/*（context/events/fiber/registry/service/inherited）。ctx API 与分发模式已逐条对照本地 `@deepseek-ai/cordis` **4.0.6-alpha.1** 类型定义核实。
 >
-> **4.0.4 相对 4.0.2 的公开 API 差异很小**：新增类型导出 `Volatile` / `VolatileSnapshot`；`Fiber.update()` 改为返回 `void`（见 §7）；`'internal/update'` 监听器签名收窄为 `next: () => void`（同步）。`context.ts` / `registry.ts` / `service.ts` / `reflect.ts` / `utils.ts` 逐字节未变。
+> **4.0.6 相对 4.0.5-alpha.1 的变化极小**：`src/*.ts` 中**只有 `fiber.ts` 变动**（`context.ts` / `registry.ts` / `service.ts` / `reflect.ts` / `utils.ts` / `events.ts` / `index.ts` 逐字节未变）。新增三处公开能力（**非破坏**）：
+> - `fiber.rawConfig`（getter/setter）—— 读取或保留**原始**配置输入，不做表达式求值也不做校验；取代直接读 `fiber._config`。
+> - `fiber.effectiveConfig`（getter）—— 读取现有激活 / update 生命周期**发布**的配置对象（不克隆、不重新解析）；取代直接读 `fiber.config`。
+> - `fiber.resolveConfig(config)` —— 公开的配置求值入口：按本 fiber 的 `internal/config` hooks 与运行时 schema 求值并校验候选配置，**但不发布结果、不替换原始输入、不提交易失引用**。原先的私有 `_resolveConfig` 已移除。
+>
+> **4.0.4 相对 4.0.2 的公开 API 差异也很小**：新增类型导出 `Volatile` / `VolatileSnapshot`；`Fiber.update()` 改为返回 `void`（见 §7）；`'internal/update'` 监听器签名收窄为 `next: () => void`（同步）。
 
 ## 1. 五个核心概念
 
@@ -108,6 +113,10 @@ interface Plugin.Base<T> {
 - `fiber.dispose()` — 等待所有清理（含异步 disposer）完成，递归卸载子插件。
 - `fiber.restart()` / `fiber.await()` — 按当前配置重载 / 等到稳定态并抛出启动错误。
 - `fiber.update(config, noSave?)` — 更新配置并重启（先跑 `internal/update` waterfall，可能被否决或替换）。**返回 `void`**，不再返回/等待重启结果；要等重启完成用 `await fiber.await()`，且只有 `ValidationError` 会传播。
+- **配置读写三入口**（4.0.6 起推荐）：
+  - `fiber.effectiveConfig` —— 已发布的、经校验的配置对象（不克隆、不重新解析）；激活前是 `undefined`，卸载后仍可读；要活实例就查 `state`。
+  - `fiber.rawConfig` —— 原始输入（未求值、未校验）；可读取也可写入（写入**不改变运行中配置、不触发 update**），用于「保留原始输入以便下次激活时重新解析」。
+  - `fiber.resolveConfig(candidate)` —— 用本 fiber 的 `internal/config` hooks 与运行时 schema 求值并校验候选；**不发布结果、不替换原始输入、不提交易失引用**；schema 拒绝时抛 `ValidationError`，hook 错误直接传播。用它做「先验证再提交」。
 - 处置器按注册逆序**开始**调用，但多个异步处置器并发执行；有顺序依赖的清理必须放进同一个 effect 的处置器里串行等待。
 
 ## 8. Loader 配置细节

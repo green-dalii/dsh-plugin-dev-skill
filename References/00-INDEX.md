@@ -6,7 +6,7 @@
 
 使用方式：先读项目根目录的 `SKILL.md`（操作手册），需要深度背景时按需查阅本目录对应文件。
 
-**SDK 基线**：所有 API 陈述以 `@deepseek-ai/*` **0.2.1-alpha.4**（cordis **4.0.5-alpha.1**）的类型定义实测为准。0.2.1-alpha.1 ~ alpha.4 这一脉对 tool / LLM / service 插件公共 API **0 破坏**；主要 web 体验改善、HMR 增强、`invariant` 诊断路径清理、`engines.dsh` 优先于 DSH peerDependencies（HMR profile 下 `install_bundle` 重装已装包返回 `already-installed`）、新增 `plugin_market` agent 工具、seam 集新增 `pluginMarket` / `translator` / `remoteAccess` / `webApp` / `workingDirectory` / `worktrees` / `cotTranslation` 共 7 项。官方文档站发布 `develop/**`、`guide/**`、`reference/**` 与部分 `subsystems/{ptc-runtime, schedule, approval, claude-code-mods, …}`；而 `docs/glossary`、`docs/event-producer-consumer`、`docs/defensive-patterns` 与多数 `docs/subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 等）**仅存在于仓库**，相关链接指向 GitHub blob。0.2.1-alpha.2 ~ alpha.4 的 12 篇升级指南由 SKILL.md §13 给到 GitHub 原文链接。
+**SDK 基线**：所有 API 陈述以 `@deepseek-ai/*` **0.2.2-alpha.2**（cordis **4.0.6-alpha.1**）的类型定义实测为准。**0.2.1-rc.1 ~ 0.2.2-alpha.2 是一次大重构**（跨越 43 篇上游升级指南，其中 25 篇对插件开发有实质影响），**对 tool / LLM / service 插件的公共 API 破坏**：① 工具执行模式拆成独立 executor 插件（`dsh-tools` 的 `mode` / `maxParallelSubCalls` 配置字段删除、`ctx.tools.presentAs()` 移除、`DSH_TOOLS_MODE` 失效）；② 工具声明改由「步骤准入」决定（`ctx.tools.register(def, { when })` 条件注册、`system-prompt/assemble` 不再携带工具数组）；③ `agent/request` 事件不再公开；④ session 投影注册改为异步返回 `ProjectionHandle`；⑤ `GenerateOptions.purpose` 改为声明式（`LlmRequestPurposeMap`）；⑥ PTC 新增 `script` 程序格式与 `retainsState`，调用方取消改用 `ABORTED`；⑦ 官方 bundle 清单迁到 `@deepseek-ai/dsh-official-bundles`。官方文档站发布 `develop/**`、`guide/**`、`reference/**` 与部分 `subsystems/{ptc-runtime, schedule, approval, claude-code-mods, …}`；而 `docs/glossary`、`docs/event-producer-consumer`、`docs/defensive-patterns` 与多数 `docs/subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 等）**仅存在于仓库**，相关链接指向 GitHub blob。各版本升级指南由 SKILL.md §13 给到 GitHub 原文链接。
 
 | 文件 | 主题 | 官方对应章节 |
 |---|---|---|
@@ -33,7 +33,7 @@
 
 | 旧 | 新 | 说明 |
 |---|---|---|
-| Code Mode / `code-mode` | **PTC mode** / `ptc` | `dsh-tools` 呈现模式 `native` / `ptc` / `both` |
+| Code Mode / `code-mode` | **PTC mode** / `ptc` | **0.2.1-rc.2 起**：呈现模式改由 `@deepseek-ai/dsh-tool-executor-native` / `-ptc` 两个 executor 插件承担（旧的 `dsh-tools` `mode` 配置与 `ctx.tools.presentAs()` 已删除 / 移除） |
 | `CallId` | **`ToolCallId`** | `@deepseek-ai/dsh-llm` 已不再导出旧名 |
 | `ctx.codeRuntime` | **`ctx.ptcRuntime`** | **0.2.0 已落地**：包 `dsh-code-runtime`→`dsh-ptc-runtime`，提供方 `dsh-code-runtime-worker-thread`→`dsh-ptc-runtime-node` |
 | `agent/session-start` | **`agent/created`** | 0.2.0 合并进 `agent/created`，且分发模式由 `emit` 改为 **`serial`** |
@@ -41,3 +41,8 @@
 | `e2b` / `fs-e2b` / `subprocess-e2b` / `ctx.e2b` | **SSH 家族** | 0.2.0 移除 E2B，远程能力改由 `ssh` / `fs-ssh` / `subprocess-ssh` / `sandbox-ssh` 承担 |
 | `cordis-plugin-hmr` | **`dsh-hmr`** | 插件包改名；`ctx.hmr` 仍可用 |
 | `preset/agent-presets` | **`preset/agent-preset` + `preset/agent-preset-registry`** | 0.2.0 拆包 |
+| `dsh-tools` 的 `mode` 配置 / `ctx.tools.presentAs()` | **executor 插件** | 0.2.1-rc.2 删除 / 移除；改挂 `@deepseek-ai/dsh-tool-executor-native` 或 `-ptc` |
+| `system-prompt/assemble` 里的工具数组 | **注册项的 `when` 条件** | 0.2.1-rc.2 起 assemble 不携带工具数组 |
+| `ctx.sessionProjections.register(def)` 返回 disposer | **`Promise<ProjectionHandle<S>>`** | 0.2.1-rc.2 起返回 thenable（`instanceof Promise` 为 `false`），须 await 并持有 handle |
+| `@deepseek-ai/dsh-app-boot` 的 bundle 清单导出 | **`@deepseek-ai/dsh-official-bundles`** | 0.2.1-rc.2 迁包（`initProfile` / `loadProfile` 仍在 `dsh-app-boot`） |
+| `dsh-tool-subagent` 的 `modelSelectionSettings` | **`modelSelection`** | 0.2.1-rc.1 改名；模型发现另需 `modelDiscovery: true` |

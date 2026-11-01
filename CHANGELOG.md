@@ -4,6 +4,44 @@
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-01
+
+DSH 上游发布 `dsh-v0.2.2-alpha.2`（中间经过 `0.2.1-alpha.5` 与 `0.2.1-rc.1` ~ `rc.5`）：**这是一次大重构**——跨越 43 篇上游升级指南，其中 **25 篇对插件开发有实质影响**，**对 tool / LLM / service 插件的公共 API 破坏**。本版本把 SDK 基线升到 `0.2.2-alpha.2`（cordis `4.0.6-alpha.1`），并按破坏性变更的实际影响面逐条修订 SKILL.md / References。
+
+### 三处最需要注意的破坏性变更
+
+1. **工具执行模式拆成独立 executor 插件**：`@deepseek-ai/dsh-tools` 只负责注册与 executor 选择；`mode` / `maxParallelSubCalls` 配置字段**已删除**，`ctx.tools.presentAs()` **已移除**，`DSH_TOOLS_MODE` **不再读取**。执行由 `@deepseek-ai/dsh-tool-executor-native` / `@deepseek-ai/dsh-tool-executor-ptc` 承担；**自定义组合漏挂 executor 会启动失败**。
+2. **工具声明改由「步骤准入」决定**：`ctx.tools.register(def, { when })` 新增条件注册；**`system-prompt/assemble` 不再携带工具数组**（返回的 `tools` 被忽略，读 `assembly.tools` 得到 `undefined`）；新增 `ctx.tools.resolve()` / `executable()` 与 `ResolvedToolSet`。
+3. **`agent/request` 事件不再公开**（降级为未声明事件）。
+
+### 同步（Sync with upstream 0.2.1-rc.1 ~ 0.2.2-alpha.2）
+
+- **SDK 基线**：`@deepseek-ai/*` **0.2.1-alpha.4 → 0.2.2-alpha.2**；cordis **4.0.5-alpha.1 → 4.0.6-alpha.1**（`src/*.ts` 中只有 `fiber.ts` 变动）。
+- **SKILL.md §0**：基线声明改写，说明本轮是大重构并点出三处关键变更。
+- **SKILL.md §4**：新增「条件注册与步骤准入」小节（`when` 契约、`ToolActivationContext`、`ResolvedToolSet` 的 `resolve`/`dispose` 流程、`exit_plan_mode` 的延迟声明）；新增「工具执行：executor 插件」小节（旧 `mode`/`presentAs`/`DSH_TOOLS_MODE` 对照表 + 新执行器契约 + 四个新导出入口）。
+- **SKILL.md §5**：新增两条**配置层顺序硬要求**（approval 必须排在 session-projection 之后；executor 行必须启用），并提示 `dsh-tools` 行的执行配置字段已删。
+- **SKILL.md §7**：事件表删除 `agent/request`；`system-prompt/assemble` 标注不再携带工具数组；新增「0.2.1-rc.1 ~ 0.2.2-alpha.2 事件变动」段（5 个新事件 + `session/attachment` 载荷变更）。
+- **SKILL.md §8**：`purpose` 改声明式（`LlmRequestPurposeMap`）+ pi-ai 升到 1.3.0（端点与模型 ID 变更）。
+- **SKILL.md §10**：组合包作者注意事项由三条扩到**五条**（新增 official-bundles 迁包、executor 必挂）。
+- **SKILL.md §11**：覆盖范围边界里汇总 UI 层批量改名（右键菜单 / Slot / fileDrag / 下载 / reasoning `rawText`）、schedule 工具与 API 重构、子代理控制工具改名。
+- **SKILL.md §12**：新增 **16 行**错误表条目（mode/maxParallelSubCalls、presentAs、assemble.tools、条件工具的 toolSet、`when` 抛错、`agent/request`、session 投影 handle、Session 写入时序、`purpose` 未声明、`programFormat` 手写联合类型、`retainsState`、PTC `ABORTED`、`HttpFetchProvider` 构造签名、`webServer.renderIndex` 少参、subagent `modelSelectionSettings`、official-bundles 导入源、executor 未挂、approval 排序）。
+- **SKILL.md §13**：补 0.2.1-rc.1 ~ 0.2.2-alpha.2 的 45 篇指南入口与 25 篇相关篇目清单。
+- **`References/00-INDEX.md`**：基线声明重写；术语对照表新增 4 行（`mode`/`presentAs` → executor 插件、assemble 工具数组 → `when`、投影 register 返回值、bundle 清单迁包、subagent 配置改名）。
+- **`References/01-dsh-architecture.md`**：`agent/request` 从 waterfall 事件清单移除并注明已不公开。
+- **`References/03-tools.md`**：§7 重写为「作用域与步骤准入」（新增 `executable` / `resolve` / `definitions` / `setExecutor` 与 `when` 契约）；§8 PTC 段补 `script` 格式 / `retainsState` / `ABORTED` 取消码；**新增 §9「工具执行器插件」**。
+- **`References/05-llm-adapter.md`**：§4 补 `purpose` 声明式契约（含 `declare module` 示例）。
+- **`References/06-framework-services-events.md`**：事件表删 `agent/request`、补 5 个新事件、标注 assemble 不带工具；新增「0.2.1-rc.1 ~ 0.2.2-alpha.2 事件变动」段（含 `session/attachment` 与 Session 写入时序）。
+- **`References/07-publish.md`**：修正「`engines.dsh` 只是声明性的」这一 0.6.3 遗留的过时表述（0.2.1-alpha.3 起它优先于 peer）；新增 official-bundles 迁包与 executor / approval 排序要求。
+- **`References/08-capability-layering.md`**：`ctx.tools` 与 `ctx.sessionProjections` 两行改写；seam 表新增 **8 项**（`actionCards` / `cuaAccess` / `forge` / `forgePanel` / `forgeSession` / `headlessStartup` / `liveshareShares` / `pluginRecommendations`）。
+- **`References/09-cordis-primer.md`**：cordis 版本升到 4.0.6-alpha.1；顶部说明改为「只有 `fiber.ts` 变动」；§7 新增配置读写三入口（`effectiveConfig` / `rawConfig` / `resolveConfig`）。
+- **`References/11-cookbook.md`**：功能映射表删 `agent/request`、新增「按上下文条件提供工具」行；§8 标注 assemble 不再携带工具数组。
+
+### 元数据
+
+- **`VERSION` / SKILL.md frontmatter `metadata.version`**：0.6.3 → 0.7.0（破坏性同步，minor bump）。
+- **`README.md` / `README.zh-CN.md`**：DSH badge 由 `0.2.1--alpha.4` 改为 `0.2.2--alpha.2`；skill 版本徽章 `0.6.3` → `0.7.0`。
+- **`AGENTS.md`**：§Design decisions 新增一条，记录「UI 层破坏性改名只进 SKILL.md §11 覆盖边界、不进主体」的取舍。
+
 ## [0.6.3] - 2026-10-18
 
 DSH 上游进入 `dsh-v0.2.1-alpha.2` ~ `alpha.4` 这一脉稳定小步：12 篇升级指南已在 master 合入（rc.1 / rc.2 暂未合并），其中**只有 5 篇对插件开发有实质影响**。本版本把 SDK 基线声明升到 `0.2.1-alpha.4`，把这些影响面落到 SKILL.md / References。同时把项目里两类对项目形态无益的产物（`llms.txt` 与上游升级指南本地镜像）清掉，补一份 CLI Agent 会实际读取的 `AGENTS.md`，并做了一次结构性精简。

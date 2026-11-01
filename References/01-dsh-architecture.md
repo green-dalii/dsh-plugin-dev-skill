@@ -103,7 +103,7 @@ profile 目录含：`package.json`（树外插件依赖 + `dsh.profile` manifest
 
 - **三类事件域**：**会话事件**（追加到日志并经 `session/event` 广播的持久事实——事实需要跨 reload 存活时用它）；**Agent 事件**（`agent/*`，携带活跃 `Agent`：inbox、步骤、状态、请求、验证、续跑）；**能力事件**（`fs/*`、`tools/*`、`telemetry/*` 等，向某个 seam 附加策略与适配器，无需导入循环）。
 - **步骤**是一次模型请求加上它调用的工具；**轮次**包含零个或多个步骤，在领取首条输入之前打开、在不再欠下任何工作时关闭。
-- `agent/pre-step`、`agent/request`、`llm/stream` 与三个 `tools/*` 事件是 **waterfall**（监听器必须调用 `next()` 才委托下去）；`agent/turn-stopping` 是 **serial**（无 `next()`，会停止轮次）。
+- `agent/pre-step`、`llm/stream` 与三个 `tools/*` 事件是 **waterfall**（监听器必须调用 `next()` 才委托下去）；`agent/turn-stopping` 是 **serial**（无 `next()`，会停止轮次）。**`agent/request` 自 0.2.1-rc.1 起不再公开**（降级为未声明事件）。
 - 模型可见即已记录：抵达模型请求的一切都必须能从会话日志重建。新增模型可见输入需要一个会话事件，或用 `agent.inject()` 落到下一次获准请求。
 - 新行为的归属位置以官方 architecture 的映射表为准；实验性 `ctx.agentTeams` 是显式启用的协作 seam。
 

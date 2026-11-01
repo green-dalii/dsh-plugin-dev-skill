@@ -93,13 +93,14 @@ export function apply(ctx: Context) {
 
 | 产品功能 | 插件机制 |
 |---|---|
-| 钩子系统（用户级+项目级） | `agent/created`、`agent/pre-step`、`agent/request`、`tools/pre-execute`、`tools/post-execute`、`agent/turn-stopping` 上的监听器 |
+| 钩子系统（用户级+项目级） | `agent/created`、`agent/pre-step`、`agent/request-error`、`tools/pre-execute`、`tools/post-execute`、`agent/turn-stopping` 上的监听器（**`agent/request` 自 0.2.1-rc.1 起不再公开**） |
 | /goal | `ctx.goals` 管理持久状态 + round driver 调度 + 命令/工具生产方 |
 | 动态工作流 | `ctx.workflowEngine` + worker-thread 引擎 + workflow 工具 |
 | 排队消息 + steering | `Agent.followup()` / `Agent.steer()` |
 | 上下文压缩 | `ctx.compaction` seam + `dsh-compaction-basic`（压力检查在 `agent/pre-step`，溢出恢复在 `agent/request-error`） |
 | 系统提示词可配置性 | `ctx.systemPrompt.section()`（排序 + 作用域局部覆盖） |
 | 内置工具 | `ctx.tools.register()`；schema 自动流入组装 |
+| 按上下文条件提供工具 | `ctx.tools.register(def, { when })`（**0.2.1-rc.2 起**）——这是工具声明的唯一入口 |
 | ToolSearch/渐进式披露 | 可见集变化时替换作用域化的 `ctx.tools.restrict()` 注册 |
 | 工具截止时间/重试/指标 | `tools/execute` 环绕分发 |
 | 最终工具结果指标/审计 | `tools/result` 观测不可变权威结果 |
@@ -118,6 +119,8 @@ export function apply(ctx: Context) {
 ## 8. `system-prompt/assemble` 的注意义务
 
 `system-prompt/assemble` 是专家协作式的整体装配变换：**返回的装配结果具有权威性**，监听器作者有责任保留活跃的 PTC mode 与结构化输出协议的贡献。需要展示/查找/执行对齐的工具过滤，优先用 `ctx.tools.restrict()`。
+
+> ⚠️ **0.2.1-rc.2 起该 waterfall 不再携带工具数组**：输入是 sections / contexts / variables（`PromptPresentation`），返回的 `tools` 字段被**忽略**；读 `assembly.tools` 得到 `undefined` 并在运行时失败。**想在装配时增删工具声明，改用注册项的 `when` 条件**（`ctx.tools.register(def, { when })`）；想在提示词里描述本步可用的工具，用 section 回调并把 `context.toolSet` 传给 `ctx.tools.get()` / `ctx.tools.schemas()`。
 
 ---
 

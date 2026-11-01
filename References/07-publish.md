@@ -1,6 +1,6 @@
 # 07 · 打包与安装插件
 
-> 精简提炼自 develop/basic/publish 与 `apps/cli/reference`（CLI 行为参考）。
+> 精简提炼自 develop/basic/publish 与 `apps/cli/reference`（CLI 行为参考）。SDK 基线 `@deepseek-ai/*` **0.2.2-alpha.2**；§2 的版本契约、bundle 清单迁包与 executor 挂载要求已按 0.2.1-rc.2 ~ 0.2.2-alpha.2 修订。
 
 ## 1. 两个概念：组合包（bundle）与 profile
 
@@ -43,7 +43,11 @@ hello-plugin/
 
 manifest 另有两个可选的新键：`dsh.manifestVersion: 1`（manifest 格式版本，与包版本、Session 格式版本无关）与顶层 `icon`（插件卡片图标；展示元数据见 §4）。
 
-**DSH peer 依赖是新的硬契约（0.2.0）**：导入前 DSH 把 `peerDependencies` 中每个匹配 `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` 的条目与**唯一的运行时版本**比对，每个声明范围都必须匹配（未声明该 peer 不构成约束，非法范围视为不兼容）；不兼容的行会被**拒绝**、bundle 会被**跳过**，除非 profile 的 `compatibility.json` 里有精确 `name@version` → 运行时版本的豁免。**`engines.dsh` 只是声明性的、不被强制检查**；共享 dsh 包建议同时写进 `peerDependencies` 与 `devDependencies`（后者供 linked checkout 与类型检查）。
+**DSH 版本契约（0.2.0 起，0.2.1-alpha.3 改规则）**：兼容检查**先看 `engines.dsh`**——一旦声明，它一个 range 就决定兼容性，DSH 的 `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` peer 规则**只在没有 `engines.dsh` 时**才生效（peer 范围不再会替 `engines.dsh` 补齐）。不兼容的行会被**拒绝**、bundle 会被**跳过**，除非 profile 的 `compatibility.json` 里有精确 `name@version` → 运行时版本的豁免。`workspace:` 协议**只在 peerDependencies 里合法**，`engines.dsh` 里写 `workspace:` 一律不兼容；`engines` 不是对象或 `engines.dsh` 不是字符串 → manifest 在兼容性检查阶段无法读取 → bundle 被拒。拒绝记录（`IncompatiblePlugin` / `PluginCompatibility`）的字段名是 **`requirements`**（不是 `peers`），键是 `engines.dsh` 或 peer 包名。linked checkout 场景建议把共享 dsh 包同时写进 `peerDependencies` 与 `devDependencies`（后者供 linked checkout 与类型检查），且**不**声明 `engines.dsh`（回到 peer 路径）。
+
+**官方 bundle 清单迁包（0.2.1-rc.2 起）**：`PROFILE_TEMPLATES`、`ProfileTemplate`、`DEFAULT_PROFILE_BUNDLES`、`OPTIONAL_BUNDLES`、`ON_DEMAND_BUNDLES`、`OFFICIAL_ON_DEMAND_CATALOG`、`OfficialBundleCatalogEntry` **不再从 `@deepseek-ai/dsh-app-boot` 导出**，改从新包 **`@deepseek-ai/dsh-official-bundles`** 导出（值与类型不变）。依赖这些清单的插件 / CLI 工具必须**加依赖并改 import 来源**；`initProfile`、`loadProfile` 等其它名字**仍从 `@deepseek-ai/dsh-app-boot` 导入**。
+
+**自定义组合必须挂工具 executor（0.2.1-rc.2 起）**：`dsh-tools` 的 `mode` / `maxParallelSubCalls` 配置字段**已删除**（加载时直接拒绝），Native / PTC 执行改由 `@deepseek-ai/dsh-tool-executor-native` / `@deepseek-ai/dsh-tool-executor-ptc` 承担。随附 profile 都挂了 executor；**自定义 `cordis.yml` / patch 漏挂会导致启动失败**（不是降级）。同理，`@deepseek-ai/dsh-user-approval` **必须排在 `@deepseek-ai/dsh-session-projection` 之后**（`ApprovalService` 依赖 `sessionProjections`，缺失时激活失败）。
 
 ## 3. profile 结构（自动维护）
 

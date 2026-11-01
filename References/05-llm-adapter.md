@@ -2,7 +2,7 @@
 
 > 精简提炼自 develop/practice/llm-adapter、reference/cookbook/adding-an-llm-adapter、reference/subsystems/llm-streaming。
 > 参考实现：`packages/llm/llm-deepseek`（直接 HTTP + SSE，`eventsource-parser` 分帧）、`packages/llm/llm-pi-ai`（封装 LLM 库）。
-> 术语以 `@deepseek-ai/dsh-llm` **0.2.1-alpha.4** 的类型为准：工具调用 id 是 `ToolCallId`，旧名 `CallId` 已删除、SDK 不再导出。逐版本变化见 `References/00-INDEX.md`；`pi-ai` 模型无 key 不再列目录的行为详见 SKILL.md §10/§12。
+> 术语以 `@deepseek-ai/dsh-llm` **0.2.2-alpha.2** 的类型为准：工具调用 id 是 `ToolCallId`，旧名 `CallId` 已删除、SDK 不再导出。**0.2.2-alpha.2 起 `GenerateOptions.purpose` 改为声明式**（`LlmRequestPurposeMap`），见 §4。逐版本变化见 `References/00-INDEX.md`。
 
 ## 1. 概述
 
@@ -91,6 +91,17 @@ async function* exampleChunks(): AsyncIterable<StreamChunk> {
 ## 4. GenerateOptions 与模型元数据
 
 - `stream()` 接收仓库导出的 `GenerateOptions`：`provider`/`model`、适配器拥有的 `reasoningEffort`、对话历史（`messages: RequestMessage[]`，即 `Message | RequestUserInput`，后者用于无身份的临时输入）、系统提示词、工具 schema、生成参数、停止序列、`signal`、`sessionId`、`purpose`；另新增可选 `toolHistory`（把工具历史交回拥有该 provider 路由的适配器）。完整字段以 `@deepseek-ai/dsh-llm` 的类型为准。
+- **`purpose` 是声明式的**（0.2.2-alpha.2 起）：它的取值类型从 `@deepseek-ai/dsh-llm/types` 导出的可声明合并接口 `LlmRequestPurposeMap` 派生——**共享包不再预先声明固定用途**（`compaction`、`session-title` 等由各自生产方包声明）。构造辅助请求（摘要、标题等）时：加载生产方声明（`@deepseek-ai/dsh-compaction-basic`、`@deepseek-ai/dsh-session-title-llm`），或在自己的类型入口扩充：
+
+```ts
+declare module '@deepseek-ai/dsh-llm/types' {
+  interface LlmRequestPurposeMap {
+    'my-purpose': true
+  }
+}
+```
+
+**未声明的 purpose 无法通过类型检查**——这是刻意的：让「这个辅助请求属于哪种用途」在类型层可见、可被检索。
 - 不支持的字段：`throw new LlmError(..., 'UNSUPPORTED_OPTION')`，绝不静默丢弃。
 - 覆写 `resolveModel(provider, model, signal?)`：一次查询返回确切的提供方/模型身份 + 可选 `context`（`contextWindow`）、适配器配置的 `defaultMaxTokens`、`reasoning` 元数据（有序不透明 ID、展示名、可选 `defaultEffort`）、`systemPromptUpdate`（`'in-history'`，中途系统提示词的读法）、`toolUpdate`（`'in-history' | 'addition-only'`，中途工具声明增删的读法）与 `inputModalities`（该路由接受的输入模态；未声明图片能力时，运行时会把图片从消息里投影掉——这正是适配器需要如实声明的理由）。推理元数据保留适配器给出的权威可选列表（含能力 API 返回的 `off`），不提升为核心枚举、不自动改写不支持的值。异步查询必须响应可选 signal。
 - 覆写 `providerInfo(provider)`（返回 `{ id, name }`，`id` 必须等于该路由）与 `listModels(provider)`，向选择器公布展示元数据；目录仅供参考、不是请求白名单，适配器仍可接受未列出的模型 id。

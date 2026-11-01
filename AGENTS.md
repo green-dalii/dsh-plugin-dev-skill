@@ -20,7 +20,7 @@ plus condensed reference docs in `References/`. Verify with `bash scripts/verify
    not the `main` branch URL, to avoid raw.githubusercontent.com CDN cache lag right after a release.
 2. **State the SDK baseline**: every API statement in `SKILL.md` and `References/` is verified
    against the version pair `metadata.sdk-baseline` (in `SKILL.md` frontmatter) and `cordis`
-   at the `4.0.5-alpha.1` floor. If you write a code template, target that pair.
+   at the `4.0.6-alpha.1` floor. If you write a code template, target that pair.
 3. **Run `bash scripts/verify.sh`** before claiming a change is complete. It checks:
    - `SKILL.md` YAML frontmatter is legal (kebab-case `name`, `description`, full `metadata`),
    - the version triple `VERSION` / `SKILL.md` `metadata.version` / `CHANGELOG.md` heading
@@ -107,6 +107,13 @@ Recorded here so they survive across releases; CHANGELOG.md only logs *what* cha
   maintenance work onto a file that adds no value once `SKILL.md` is solid. If a future
   contributor wants to add an `examples/`, they should first argue why `SKILL.md` couldn't
   carry that information.
+- **UI-layer breaking renames go to `SKILL.md §11` only, not into the body** (since 0.7.0):
+  the 0.2.1-rc.1 ~ 0.2.2-alpha.2 cycle renamed a lot of Client-UI surfaces (context menus,
+  Slot paths, `fileDrag` injection, web file download, reasoning `rawText`). `SKILL.md` has
+  always declared Host/UI plugin work out of scope, so these changes are **summarized in
+  §11 "覆盖范围边界"** with pointers to the upstream guides instead of getting their own
+  sections. Expanding the body's scope would trade a maintained, opinionated boundary for an
+  unbounded surface area; a reader who needs the exact rule follows the guide.
 
 ## Pointers
 
