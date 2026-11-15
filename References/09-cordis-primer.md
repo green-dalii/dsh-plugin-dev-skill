@@ -1,13 +1,20 @@
 # 09 · Cordis 入门与 ctx API 速查
 
-> 精简提炼自 reference/cordis-primer、reference/cordis-api/*（context/events/fiber/registry/service/inherited）。ctx API 与分发模式已逐条对照本地 `@deepseek-ai/cordis` **4.0.6-alpha.1** 类型定义核实。
+> 精简提炼自 reference/cordis-primer、reference/cordis-api/*（context/events/fiber/registry/service/inherited）。ctx API 与分发模式已逐条对照本地 `@deepseek-ai/cordis` **4.1.0** 类型定义核实。
+>
+> **4.1.0 相对 4.0.6-alpha.1 的变化（本次基线）**：`src/*.ts` 有 6 个文件变动（`context.ts` / `events.ts` / `fiber.ts` / `logger.ts` / `reflect.ts` / `utils.ts`），公开 API 层面要注意三点：
+> - **`Fiber.update()` 返回类型 `void` → `Awaitable<void>`**：loaded 路径会 `return fiber.restart()` / `task`，所以**可以直接 `await fiber.update(cfg)`**（见 §7）。
+> - **`LoggerLevel` 数值重排**：`ERROR=0` / **`WARN=1`** / **`INFO=2`** / `DEBUG=3`（4.0.x 是 `INFO=1` / `WARN=2`）。按数字下标比大小的 exporter 会静默错位——请用枚举名比较。
+> - **`internal/update` 监听器签名收窄**：`(config, noSave, next)` → **`(config, next)`**；`noSave` 仍是 `Fiber.update()` 的第二个实参，但不再传给监听器。
+>
+> 其余为内部重构（`symbols.caller` 新增；reflect 条目由 `fiber` 改为 `ctx` 并新增 `dependents` / `release` / `isolate`；hook 表改用无原型对象；`Context.baseUrl` 类型放宽为 `string | undefined`），普通插件无需改代码。
 >
 > **4.0.6 相对 4.0.5-alpha.1 的变化极小**：`src/*.ts` 中**只有 `fiber.ts` 变动**（`context.ts` / `registry.ts` / `service.ts` / `reflect.ts` / `utils.ts` / `events.ts` / `index.ts` 逐字节未变）。新增三处公开能力（**非破坏**）：
 > - `fiber.rawConfig`（getter/setter）—— 读取或保留**原始**配置输入，不做表达式求值也不做校验；取代直接读 `fiber._config`。
 > - `fiber.effectiveConfig`（getter）—— 读取现有激活 / update 生命周期**发布**的配置对象（不克隆、不重新解析）；取代直接读 `fiber.config`。
 > - `fiber.resolveConfig(config)` —— 公开的配置求值入口：按本 fiber 的 `internal/config` hooks 与运行时 schema 求值并校验候选配置，**但不发布结果、不替换原始输入、不提交易失引用**。原先的私有 `_resolveConfig` 已移除。
 >
-> **4.0.4 相对 4.0.2 的公开 API 差异也很小**：新增类型导出 `Volatile` / `VolatileSnapshot`；`Fiber.update()` 改为返回 `void`（见 §7）；`'internal/update'` 监听器签名收窄为 `next: () => void`（同步）。
+> **4.0.4 相对 4.0.2 的公开 API 差异也很小**：新增类型导出 `Volatile` / `VolatileSnapshot`；`Fiber.update()` 在该版改为返回 `void`（**4.1.0 又改回 `Awaitable<void>`**，见上）；`'internal/update'` 监听器签名在该版收窄为 `next: () => void`（同步）。
 
 ## 1. 五个核心概念
 
@@ -112,7 +119,7 @@ interface Plugin.Base<T> {
 - 每个已加载插件实例一个 fiber：`PENDING → LOADING → ACTIVE → UNLOADING → DISPOSED`（`LOADING`/`ACTIVE` 抛错则进入 `FAILED`）。
 - `fiber.dispose()` — 等待所有清理（含异步 disposer）完成，递归卸载子插件。
 - `fiber.restart()` / `fiber.await()` — 按当前配置重载 / 等到稳定态并抛出启动错误。
-- `fiber.update(config, noSave?)` — 更新配置并重启（先跑 `internal/update` waterfall，可能被否决或替换）。**返回 `void`**，不再返回/等待重启结果；要等重启完成用 `await fiber.await()`，且只有 `ValidationError` 会传播。
+- `fiber.update(config, noSave?)` — 更新配置并重启（先跑 `internal/update` waterfall，可能被否决或替换）。**4.1.0 起返回 `Awaitable<void>`**：loaded 路径会 `return fiber.restart()` / `task`，所以直接 `await fiber.update(cfg)` 即可等到重启完成（4.0.4~4.0.6 返回 `void`，那时才需要 `await fiber.await()`）；只有 `ValidationError` 会同步传播。
 - **配置读写三入口**（4.0.6 起推荐）：
   - `fiber.effectiveConfig` —— 已发布的、经校验的配置对象（不克隆、不重新解析）；激活前是 `undefined`，卸载后仍可读；要活实例就查 `state`。
   - `fiber.rawConfig` —— 原始输入（未求值、未校验）；可读取也可写入（写入**不改变运行中配置、不触发 update**），用于「保留原始输入以便下次激活时重新解析」。

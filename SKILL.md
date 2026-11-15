@@ -3,9 +3,9 @@ name: dsh-plugin-dev-skill
 description: 指导任何 Agent 正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。涵盖 Tool（defineTool）、LLM 适配器、服务与依赖、事件系统、配置、打包发布，以及 Cordis 框架的心智模型、代码模板与验证清单。
 whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool、LLM adapter、服务提供方、钩子、UI、协议桥等），编写或修改 cordis.yml / cordis.patch.yml / dsh.profile / dsh.bundle 配置，使用 dsh plugin 命令，或需要理解 ctx.tools、ctx.llm、ctx.agents、ctx.sessions 等服务与 tools/*、agent/*、session/event 等事件时，加载本技能。
 metadata:
-  version: 0.7.0
+  version: 0.8.0
   upstream: https://github.com/green-dalii/dsh-plugin-dev-skill
-  sdk-baseline: 0.2.2-alpha.2
+  sdk-baseline: 0.2.2-rc.3
 ---
 
 # DeepSeek Harness Plugin Dev Skill
@@ -15,9 +15,11 @@ metadata:
 >
 > ⚠️ **载入本技能后，先执行 §0.1「检查 skill 是否最新」**：不是最新版就先更新，再开始使用本技能。
 >
-> **SDK 基线**：本文 API 陈述以 `@deepseek-ai/*` **0.2.2-alpha.2**（cordis **4.0.6-alpha.1**）的类型定义实测为准。0.2.0 把过去几处「文档领先于 SDK」的项正式落地了：PTC 运行时 seam 定名 **`ctx.ptcRuntime`**（原 `ctx.codeRuntime`，包 `dsh-ptc-runtime` / 提供方 `dsh-ptc-runtime-node`）、**Plugin Manager**（`plugin_manager`）随发行版交付、E2B 系提供方移除并由 SSH 家族接管远程能力。0.2.1-alpha.1 主要是 Web 体验与若干 bug 修复（**对 tool / LLM / service 插件的公共 API 0 破坏**），并继续清理了上游诊断路径：`@deepseek-ai/dsh-invariants` 与 `<pkg>/invariant` 子路径发布已删除（详见 §12）。0.2.1-alpha.2 ~ alpha.4 是这一脉的稳定小步：**0.2.1-alpha.3 起 `engines.dsh` 优先于 DSH peerDependencies**（`IncompatiblePlugin` / `PluginCompatibility` 的字段由 `peers` 改名为 `requirements`）；**0.2.1-alpha.2 起在 HMR profile 下 `pluginManager.installBundle(spec)` 重装已安装包返回 `already-installed`**（须先 `removeBundle`）；同时新增与 `plugin_manager` 配套的 **`plugin_market`** agent 工具（列索引、按 bundle 名查版本）。
+> **SDK 基线**：本文 API 陈述以 `@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）的类型定义实测为准。0.2.0 把过去几处「文档领先于 SDK」的项正式落地了：PTC 运行时 seam 定名 **`ctx.ptcRuntime`**（原 `ctx.codeRuntime`，包 `dsh-ptc-runtime` / 提供方 `dsh-ptc-runtime-node`）、**Plugin Manager**（`plugin_manager`）随发行版交付、E2B 系提供方移除并由 SSH 家族接管远程能力。0.2.1-alpha.1 主要是 Web 体验与若干 bug 修复（**对 tool / LLM / service 插件的公共 API 0 破坏**），并继续清理了上游诊断路径：`@deepseek-ai/dsh-invariants` 与 `<pkg>/invariant` 子路径发布已删除（详见 §12）。0.2.1-alpha.2 ~ alpha.4 是这一脉的稳定小步：**0.2.1-alpha.3 起 `engines.dsh` 优先于 DSH peerDependencies**（`IncompatiblePlugin` / `PluginCompatibility` 的字段由 `peers` 改名为 `requirements`）；**0.2.1-alpha.2 起在 HMR profile 下 `pluginManager.installBundle(spec)` 重装已安装包返回 `already-installed`**（须先 `removeBundle`）；同时新增与 `plugin_manager` 配套的 **`plugin_market`** agent 工具（列索引、按 bundle 名查版本）。
 >
 > **0.2.1-rc.1 ~ 0.2.2-alpha.2 是一次大重构**（跨越 43 篇上游升级指南，其中 25 篇对插件开发有实质影响），**对 tool / LLM / service 插件的公共 API 破坏**。三处最需要注意的：① **工具执行模式拆成独立 executor 插件**——`dsh-tools` 的 `mode` / `maxParallelSubCalls` 配置字段已删除、`ctx.tools.presentAs()` 已移除，Native/PTC 执行改由 `@deepseek-ai/dsh-tool-executor-native` / `@deepseek-ai/dsh-tool-executor-ptc` 承担；② **工具声明改由「步骤准入」决定**——`ctx.tools.register(def, { when })` 新增条件注册，`system-prompt/assemble` 不再携带工具数组；③ **`agent/request` 事件不再公开**（降级为未声明事件）。其余（session 投影改异步 handle、`purpose` 改声明式、PTC 新增 `script` 格式与 `ABORTED` 取消码、bundle 清单迁包等）见 §12 错误表与 §10。升级 SDK 后请按各 `References/` 文件末尾的官方链接复查。
+>
+> **0.2.2-alpha.3 ~ 0.2.2-rc.3（本次基线）**：cordis 升到 **4.1.0**，`Fiber.update()` 现返回 **`Awaitable<void>`**（可直接 `await`）、`LoggerLevel` 数值重排（`WARN=1` / `INFO=2`）；**错误契约重构**——`HarnessError` 迁到新包 **`@deepseek-ai/dsh-error`**，`dsh-llm` 新增 `LLM_FAILURE_CODES`（50 码）/ `BuiltinLlmFailureCode` / `LlmError.fromFailure()`，`LlmError` 构造的 `code` 收紧为该联合类型；**工具守卫与审批可带结构化错误身份**（`ToolGuardDenial`、`{ name: 'ApprovalError', code: APPROVAL_* }`）；**Session 支持批量 append**；**子代理全面具名**（`send_message`/`interrupt_agent` 收 `agent`、`list_agents` 行改形、`parentAgent` 移除）；`ctx.officeToPdf` → **`ctx.officeKit`**。逐条见 §4/§7/§8/§10/§11/§12 与对应 `References/`。
 
 ---
 
@@ -91,7 +93,7 @@ metadata:
 |---|---|---|
 | **可逆效应（revertible effect）** | 组件对共享环境的每次修改都携带一个逆操作，运行时跟踪并在组件卸载时按 LIFO 顺序恢复 | `ctx.effect(() => () => cleanup)`；`ctx.on()`、`ctx.tools.register()` 等都是 effect，卸载自动撤销 |
 | **反应式余效应（reactive coeffect）** | 组件声明它依赖哪些服务；服务出现/消失/换实现时，组件自动激活/停用/重载 | `export const inject = ['tools']`；依赖消失时插件自动 dispose，恢复时自动重载 |
-| **Fiber（组件实例）** | 每个已加载的插件实例是一个 fiber，有生命周期状态机（cordis 4.0.4 起：`PENDING` → `LOADING` → `ACTIVE` → `UNLOADING` → `DISPOSED`，`apply` 抛错则进入 **`FAILED`**） | `await fiber.dispose()` 卸载；`fiber.update(config, noSave?)` 重启（**返回 `void`，要等完成调 `await fiber.await()`**） |
+| **Fiber（组件实例）** | 每个已加载的插件实例是一个 fiber，有生命周期状态机（cordis 4.0.4 起：`PENDING` → `LOADING` → `ACTIVE` → `UNLOADING` → `DISPOSED`，`apply` 抛错则进入 **`FAILED`**） | `await fiber.dispose()` 卸载；`await fiber.update(config, noSave?)` 重启（cordis 4.1.0 起**返回 `Awaitable<void>`，可直接 `await`**；早期版本返回 `void`，那时才需要 `await fiber.await()`） |
 
 由此得到的**铁律**：
 
@@ -270,13 +272,20 @@ return {
 
 | 扩展点 | 模式 | 用途 |
 |---|---|---|
-| `tools/pre-execute` | waterfall | 允许/拒绝/取消/询问策略（权限门禁）；返回 `{kind:'allow'}` / `{kind:'deny', reason, info?}` / `{kind:'cancel'}` / `{kind:'ask', reason?, displayReason?}` |
-| `ctx.tools.guard()` | 单调守卫 | 最终拒绝，后续监听器无法撤销（返回 reason 即拒绝） |
+| `tools/pre-execute` | waterfall | 允许/拒绝/取消/询问策略（权限门禁）；返回 `{kind:'allow'}` / `{kind:'deny', reason, info?}` / `{kind:'cancel'}` / `{kind:'ask', reason?, displayReason?}`。**`deny` 的 `info?: ToolErrorInfo` 会作为持久化的结构化错误身份**（0.2.2-rc.3 起） |
+| `ctx.tools.guard()` | 单调守卫 | 最终拒绝，后续监听器无法撤销。0.2.2-rc.3 起守卫**可返回 `string` 或 `ToolGuardDenial`**（`{ reason: string; info?: ToolErrorInfo }`），返回 `undefined` 放行 |
 | `tools/execute` | waterfall | 包裹分发：超时/重试/指标；可替换 `exec.signal` 但不可移除 |
 | `tools/post-execute` | waterfall | 替换内容/值、阻止结果、附加模型上下文 |
 | `tools/ptc-dispatch-log` | waterfall | 改写 `run_code` 子分派**持久日志副本**的内容（返回 `ContentBlock[]`；程序本身已收到完整值） |
 | `tools/result` | emit | 只读观测不可变最终结果（日志、审计） |
 | `tools/change` | emit | 工具集变化通知（不受作用域过滤；影响每个 agent 的下一次装配） |
+
+**错误身份契约（0.2.2-rc.3 起，写策略插件与读 `tool/result` 的代码都要记）**：
+
+- 抛出的错误若是 **`HarnessError` 子类**（基类现在来自新包 `@deepseek-ai/dsh-error`），结果会持久化它的 `error.name` 与 `error.code`；普通 `Error` 只留 message。
+- **审批拒绝一律带结构化身份**：`{ name: 'ApprovalError', code: 'APPROVAL_REJECTED' | 'APPROVAL_CANCELLED' | 'APPROVAL_UNAVAILABLE' }`。`APPROVAL_UNAVAILABLE` 表示当前没有审批服务/Agent/通道能应答。
+- **取消**：signal 已 abort 且抛出物不是 `HarnessError` 时，结果记 `{ name: 'AbortError', code: 'ABORTED' }`（不再只留 message）。
+- 工具体缺少必要上下文（无调用 Agent、缺注入服务、无开启的轮次）时抛 **`ToolContextUnavailableError`**（code `TOOL_CONTEXT_UNAVAILABLE`）——这是不可由模型纠正的失败，message 要说明缺什么。
 
 策略不要内建进工具；把部署策略放进钩子插件（普通 Cordis 插件监听这些事件即可，如权限门禁示例见 `References/11-cookbook.md`）。
 
@@ -313,6 +322,8 @@ dsh --profile headless --patch ./ptc.yml "task"
 ```
 
 自定义 executor 实现 `ToolExecutor` 接口的 `describe(tools)` 与 `execute(input)`（`input` 含原始 `calls`、`signal`、可选 `agent` 与 `log: { turn, step }`；从 `results` 读单次调用结果）。**程序化调用方传原始 `calls` 和 `signal`**，不要自己造结构。
+
+**`tool-executor-ptc` 的配置（0.2.2-rc.3 起）**：新增 `maxSubCallsPerMinute`（默认 `1024`）——**按解析后的 runtime 超时折算的每分钟子调用额度**（含失败的调用，用来兜住模型写出的死循环）。超限时抛 `ToolCallLimitExceededError` 并指出第几次调用未被派发。旧的 `maxParallelSubCalls` 语义由它与并行度设置共同承担。
 
 配套的新导出：
 
@@ -475,10 +486,12 @@ Harness 中「关于某个 agent 的活动」的事件（`agent/*`、`tools/*`�
 - `tools/pre-execute` / `tools/execute` / `tools/post-execute` / `tools/ptc-dispatch-log` — waterfall；`tools/result` / `tools/change` — emit（工具流水线见上表）
 - `agent/request-error`（waterfall，单次请求失败的重试策略）、`agent/pre-step`（waterfall）、`agent/created`（**serial**；0.2.0 起 `agent/session-start` 已删除并合并进它，创建 resolve 前被 await，抛错会失败创建）、`agent/assistant-stream`（emit，进程内实时流分片）、`agent/turn-stopping`（serial，轮次停止边界，异议者用 `agent.steer()` 继续跑）
 - `session/event` — 持久化的会话事件流（`turn/*`、`step/*`、`tool/call`、`tool/result`、`assistant/chunk` 都是这里的 `event.type`，**不是**同名 Cordis 事件）；另有 `session/created` / `session/disposed`（emit）、`session/flush`（parallel）
+- **Session 写入（0.2.2-rc.3 起支持批量）**：`Session.append()` 有两个重载——单事件 `append('turn/start', {...})` 与数组 `append([['turn/start', {...}], ...])`（新类型 `SessionEventInput`）。批量提交会**先提交整批再按序发布**，因此观察者看到的 `session.seq` / `session.surface` 已含完整批次，`session.currentBatchPublication` 标识当前正在投递的成员。**包装或替换 `Session.append`（含测试替身）时必须实现两个重载**。
 - `approval/request` — 审批 waterfall
 - `system-prompt/assemble` — 系统提示词整体装配（作用域过滤；权威返回，监听者有责任保留既有贡献）。**0.2.1-rc.2 起不再携带工具数组**（输入是 sections / contexts / variables；返回的 `tools` 被忽略，读 `assembly.tools` 得到 `undefined`）——工具的增删改用注册项的 `when` 条件，见 §4。
 - **0.2.0 事件变动**：删除 `agent/session-start`（并入 `agent/created`）与 `settings/updated`；`agent/created` 由 emit 改 **serial**；新增 `app-boot/config-reload`、`hmr/change`、`hmr/reload`、`plugin-manager/*`、`workspace/session-activity`、`workspace/session-stop`、`deepseek-account/*`、`schedule/changed`、`permission-presets/catalog-changed`、`compaction/summary-error`、`connection/request`、`loader/volatile-update`
 - **0.2.1-rc.1 ~ 0.2.2-alpha.2 事件变动**：**`agent/request` 不再是公开事件**（降级为未声明事件，监听它不再可靠）；新增 `llm/models-updated`（emit，模型列表刷新）、`plugin-manager/operation`（parallel）、`plugin-manager/update-state`（emit）、`schedule/resolve-agent`（waterfall）、`forge/providers-changed`（parallel）。`session/attachment` 的载荷由 `{ sessionId, attachmentId }` 改为 `{ sessionId, attachment }`，`attachment` 是含 `attachmentId` / `mediaType` / `bytes` / `width` / `height` 的完整引用。
+- **0.2.2-alpha.3 ~ rc.3 事件变动（小）**：`session/event` 新增事件类型 **`team/mode`**；`internal/update` 的监听器签名由 `(config, noSave, next)` 收窄为 **`(config, next)`**（`noSave` 仍可由调用方传给 `Fiber.update()`，但不再出现在监听器参数里）。
 
 完整签名与分发模式见各子系统页面生成的 `cordis-surface` 区块（`References/08-capability-layering.md` 有指引）；**谁派发、谁监听**查官方 `event-producer-consumer` 矩阵（该页未发布到文档站，链接见 `References/06-framework-services-events.md`）。
 
@@ -535,8 +548,12 @@ async function* chunks(): AsyncIterable<StreamChunk> {
 
 ### 错误与元数据
 
-- 传输/协议故障：`throw new LlmError(msg, '<CODE>', { status?, providerRetryAfterMs?, requestId?, offloadImages? })`，不要依赖普通 `Error` 自动转换。`code` 是**自由字符串**（SDK 不提供错误码联合类型），核心导出的规范常量有 `CONTEXT_WINDOW_EXCEEDED`、`QUOTA`、`ACCOUNT_QUOTA`、`EMPTY_RESPONSE`、`INVALID_CREDENTIAL`、`IMAGE_OFFLOAD_REQUIRED`。
-- 提供方不支持 `GenerateOptions` 中的某个字段：`throw new LlmError(..., 'UNSUPPORTED_OPTION')`（该 code 是**适配器自有**约定，核心不导出），绝不静默丢弃。
+- 传输/协议故障：`throw new LlmError(msg, '<CODE>', { status?, providerRetryAfterMs?, requestId?, offloadImages? })`，不要依赖普通 `Error` 自动转换。
+  - **0.2.2-rc.3 起 `code` 不再是自由字符串**：构造函数的 `code` 参数类型是 **`BuiltinLlmFailureCode`** = `keyof typeof LLM_FAILURE_CODES | \`HTTP_${number}\``。内置码共 **50 个**（`LLM_FAILURE_CODES`），常用的有 `CONTEXT_WINDOW_EXCEEDED`、`QUOTA`、`ACCOUNT_QUOTA`、`EMPTY_RESPONSE`、`INVALID_CREDENTIAL`、`IMAGE_OFFLOAD_REQUIRED`、`RATE_LIMIT`、`TIMEOUT`、`TRANSPORT`、`STREAM_CLOSED`、`MALFORMED_RESPONSE`、`SERVER`、`ABORTED`、`NO_ADAPTER`、`UNKNOWN_MODEL`、`UNSUPPORTED_OPTION`……
+  - 标了 `retryChoice: true` 的码（`EMPTY_RESPONSE` / `MALFORMED_RESPONSE` / `QUOTA` / `RATE_LIMIT` / `SERVER` / `STREAM_CLOSED` / `TIMEOUT` / `TRANSPORT`）会出现在 `RETRY_CODE_CHOICES`，供重试策略的 `retryableCodes` 选择（**只是候选项，默认不重试**）。
+  - 要用**提供方自有码**重发已观测到的失败，用静态方法 **`LlmError.fromFailure(failure, options?)`**（`failure` 取自流的终态 chunk），不要硬塞进构造函数。
+- 提供方不支持 `GenerateOptions` 中的某个字段：`throw new LlmError(..., 'UNSUPPORTED_OPTION')`——**该码已是内置码**（在 `LLM_FAILURE_CODES` 里），绝不静默丢弃。
+- 所有 harness 错误都继承 **`HarnessError`**（0.2.2-rc.3 起单独成包 `@deepseek-ai/dsh-error`，`dsh-llm` 再导出同一类）：它带稳定 `code` 与 `cause` 链；`tool/result` 与回放靠它保留失败类别。
 - 每个 HTTP 请求合并 `attributionHeaders()`，并传递 `options.signal`。
 - 可选：覆写 `resolveModel()`（返回提供方/模型身份 + 可选 `context`、`reasoning`、`systemPromptUpdate`、`toolUpdate` 与 **`inputModalities`**——未声明图片能力时运行时会主动把图片投影掉）与 `listModels()`（公布模型选项）。
 - 可选：覆写 `prepareCall(provider, model, signal?)`，把连接事实绑定到**本次生成**，避免「能力解析」与「派发」之间配置变化导致混用两代配置（动态端点的适配器应覆写它）。
@@ -647,13 +664,14 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 - pnpm ≥10 默认拒绝 git 依赖的 `prepare`，**用户需在 profile 的 `pnpm-workspace.yaml` 加 `allowBuilds: <pkg>: true`** 并重新 `add`。要诚实告知用户：这等于允许该包在安装时执行代码。
 - 不想让用户授权构建 → 发布 npm，或交付**已构建的** tarball（`pnpm pack`）：tarball 与本地 checkout 安装都**不需要** `allowBuilds`。
 
-### 组合包作者要注意的五件事（0.2.0+，截至 0.2.2-alpha.2）
+### 组合包作者要注意的六件事（0.2.0+，截至 0.2.2-rc.3）
 
 1. **DSH 版本契约 —— `engines.dsh` 优先于 peerDependencies（0.2.1-alpha.3 起）**：兼容检查现在**先看 `engines.dsh`**，看它一个 range 就决定；DSH 的 `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` peer 规则仅在**没有 `engines.dsh`** 时才生效。一旦声明了 `engines.dsh`，你必须让它的范围覆盖你支持的所有 DSH 版本（peer 范围不再会"自动补齐"）。`workspace:` 协议**只在 peerDependencies 里合法**，`engines.dsh` 里写 `workspace:` 一律不兼容。`engines` 不是对象、或 `engines.dsh` 不是字符串 → manifest 在兼容性检查阶段无法读取 → bundle 被拒。同时，**拒绝记录** `IncompatiblePlugin` 与 `PluginCompatibility` 把字段名从 `peers` 改名为 `requirements`（键是 `engines.dsh` 或 peer 包名）——读这些结构的代码要相应改。linked checkout 场景建议把共享 dsh 包同时写进 `peerDependencies` 与 `devDependencies`，且**不**声明 `engines.dsh`（回到 peer 路径）。
 2. **可选展示元数据**：`locale/<lang>.json` 里的 `meta.title` / `meta.description`（配合 `exports` 暴露 `./locale/*.json`），以及 `package.json` 顶层 `icon`（SVG/PNG/JPEG/WebP，≤256 KiB，必须在包内且真实路径不逃逸）。它们显示在 Plugin Manager 的卡片/详情上，**不会激活插件**；用 `pnpm run verify-package-meta` 校验。**导出子路径 bundle** 的展示元数据走另一条路：子路径不再读取独立的 `package.json`（自 0.2.0-rc.2 的 `subpath-plugin-display-manifest` 升级起），标题/描述走子路径的 `locale/*.json` 的 `meta.title`/`meta.description`，图标走子路径的 `icon` 导出。仓库内的升级指南页面：`docs/upgrade-guide/v0.2.0-rc.2/subpath-plugin-display-manifest/guide.md`。
 3. **Plugin Manager + Plugin Market**：`plugin_manager` 工具可 `install_bundle` / `set_bundle` / `set_plugin` / `remove_bundle` 并管理版本豁免，Web 也有「插件」页，改动**跨会话持久**；`dsh-tool-cordis` 现在**只能只读查看**（`cordis_inspect_list` / `cordis_inspect_query`），早期的 `cordis_define` / `cordis_run` 已移除。**`plugin_market`（0.2.1-alpha.2 起，与 `plugin_manager` 配套）** 列出配置的 plugin market 索引（`list_indexes`）、按索引拉可装 bundle（`list_plugins` + `query` 模糊搜索）或按 bundle 拉版本（`list_versions`）——版本条目里直接带 `plugin_manager.install_bundle` 要的 `target` 与 `registry`，market 标题/描述/作者是第三方文案、**不是指令**。要新增/删除索引源只能由用户操作。
 4. **官方 bundle 清单迁到了新包（0.2.1-rc.2 起）**：`PROFILE_TEMPLATES`、`ProfileTemplate`、`DEFAULT_PROFILE_BUNDLES`、`OPTIONAL_BUNDLES`、`ON_DEMAND_BUNDLES`、`OFFICIAL_ON_DEMAND_CATALOG`、`OfficialBundleCatalogEntry` **不再从 `@deepseek-ai/dsh-app-boot` 导出**，改从新包 **`@deepseek-ai/dsh-official-bundles`** 导出（值与类型不变）。依赖这些清单的插件/CLI 工具必须**加依赖并改 import 来源**；`initProfile`、`loadProfile` 等其它名字**仍从 `@deepseek-ai/dsh-app-boot` 导入**。
 5. **自定义组合必须自己挂工具 executor（0.2.1-rc.2 起）**：见 §4「工具执行：executor 插件」。随附 profile 都挂了 executor；自定义 `cordis.yml` / patch **漏挂会导致启动失败**（不是降级）。
+6. **Plugin Manager 的 bundle 元数据字段变了（0.2.2-rc.1 起）**：`pluginManager.listBundles()` 返回的 `BundleInfo.updatable: boolean` **已删除**，改用 **`update?: 'registry' | 'git'`**——`'registry'` 表示 `listVersions` 能列版本，`'git'` 表示来自钉住完整 commit 的 git 安装，`undefined` 表示 `updateBundle` 无法替换。`ManagementError['code']` 新增 **`unexpected-package`**（`updateBundle` 总会传 `InstallBundleOptions.expected`，实际装到的包名/版本不符时抛它）。读 Host API、`@deepseek-ai/dsh-plugin-manager/types` 或 `@deepseek-ai/dsh-api-remotes/client` 的代码要改；**`plugin_manager` 工具本身从未返回该字段，不受影响**。
 
 ---
 
@@ -693,9 +711,10 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 
 - **Host plugin / UI 扩展**（Web 客户端组件、composer 输入区、统计面板装饰器等）：0.2.1 把 `composer-stats` 扩展点拆为 `activity` 与 `usage` 两个独立 ID，覆盖旧 `stats` 整行的插件要更新注册 ID。**0.2.1-rc.2 ~ 0.2.2-alpha.2 期间 UI 层还有一批破坏性改名**（按影响面汇总，逐条细则见上游 `docs/upgrade-guide/`）：右键菜单注入名 `ctx.menus` → `ctx.contextMenus`，类型 `MenuTargetMap` → `ContextMenuTargetMap`（**无兼容别名**），Slot 贡献路径 `sidebar.workspaces.session.menu.item` / `sidebar.right.tab.menu.item` → `contextMenu.content`，菜单项图标 prop `symbol` → `icon?: ReactNode`；`MenuTarget` → `ContextMenuTarget`，注入名 `menuTarget` / `useMenuTarget` → `contextMenuTarget` / `useContextMenuTarget`，动作图标改走 `contextMenu.icon` Slot；图片视图与 `MarkdownDelegate.fileImages` 新增必需的 `fileDrag` 注入成员（新增 `@deepseek-ai/dsh-client-ui-file-drag` 包）；Web 端文件保存改为 `save(source, 'download')`（`canSaveAs` 恒为 `false`，`savedFile` / `reveal` 已移除）；推理 Slot 的 `conversation.chat.reasoning.body` 新增 `rawText`（模型原始输出），原 `text` 改为 Chat 预处理后的展示文本。**自定义 Client composition 还必须补挂 `@deepseek-ai/dsh-client-ui-context-menu` 与 `@deepseek-ai/dsh-client-ui-file-actions` 两行**。详见 `docs/subsystems/` 下对应文档（仅仓库内，未发布到文档站）。
 - **Schedule / 自动化任务扩展**：0.2.1 起自动化任务改为 Web 内置能力，`schedule_*` 工具按模式提供（标准、创造、PTC 模式可用；极简模式与子代理不可用），并新增 `subagent_session` 错误码。**0.2.2-alpha.2 起工具名与 API 整体重构**：`schedule_create` / `schedule_list` / `schedule_view` / `schedule_edit` 取代旧工具，`schedule_create` 收 `title` / `prompt` / `rrule` / `target`（不再接受时间选择器），`schedule_edit` 用 `action: "update" | "delete"` 取代 `schedule_update` / `schedule_delete`；原生调用改为 `create({ title, prompt, timing, target? })` 与 `edit(request)`（远端为 `schedule/create`、`schedule/edit`），Session 绑定的 `delete` / `update` 已移除；定时类型改用判别式（`{ kind: "cron", cron }` / `{ kind: "rrule", rrule }`），状态用 `paused` / `ended` 取代 `inactive`。子系统页面：https://deepseek-harness.github.io/deepseek-harness/reference/subsystems/schedule 。
-- **MCP / SSH / browser-use / computer-use / otel / product-telemetry / boot / voice-input / office-to-pdf** 等 0.2.0 新增的子系统，文档均只存在于上游仓库 `docs/subsystems/`，相关文件内已给链接。
+- **MCP / SSH / browser-use / computer-use / otel / product-telemetry / boot / voice-input / office-kit** 等 0.2.0+ 新增的子系统，文档均只存在于上游仓库 `docs/subsystems/`，相关文件内已给链接。注意 **`dsh-office-to-pdf` 已改名为 `dsh-office-kit`**、服务 `ctx.officeToPdf` → **`ctx.officeKit`**（详见 §12）。
 - **Claude Code Mods 兼容层**（0.2.1-alpha.1 引入的实验性 bridge）：仅仓库 `docs/subsystems/claude-code-mods.md`，文档站尚未发布。
-- **子代理编排细节**：`@deepseek-ai/dsh-tool-subagent` 的 `modelSelectionSettings` 已改名为 `modelSelection`、新增 `modelDiscovery`（每工具域一个实例，默认 `false`），`/list-models` 导出已移除；`@deepseek-ai/dsh-tool-subagent-control` 合并注册 `send_message` / `interrupt_agent` / `list_agents` 三个工具，`/list-agents` 导出已移除（禁用该行会同时禁掉三个工具）。详见 §10 与上游指南。
+- **子代理编排细节（0.2.2-alpha.3 起全面具名）**：`@deepseek-ai/dsh-tool-subagent` 的 `modelSelectionSettings` 已改名 `modelSelection`、新增 `modelDiscovery`（每工具域一个实例，默认 `false`），`/list-models` 导出已移除；`@deepseek-ai/dsh-tool-subagent-control` 合并注册 `send_message` / `interrupt_agent` / `list_agents` 三个工具，`/list-agents` 导出已移除（禁用该行会同时禁掉三个工具）。**具名化细则见 §12 表格**（`agent_id` → `agent`、`list_agents` 行改形、`parentAgent` 移除、catalog payload v3）。
+- **Web 搜索 / 抓取（0.2.2-rc.1 起）**：默认改用 **DeepSeek Search API**，搜索与抓取可**分别**选择计费账号或 API Key；旧的 `@deepseek-ai/dsh-web-search-exa` / `dsh-web-search-perplexity` 包**已删除**，旧的 provider 认证字段被"有序凭据来源"取代——自定义 provider 或显式配置要按上游 `web-search-billing` 指南调整。
 
 ---
 
@@ -739,6 +758,22 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 | **自定义组合没挂工具 executor** | 0.2.1-rc.2 起 executor 行必须启用，否则**启动失败**（§4） |
 | **`@deepseek-ai/dsh-user-approval` 排在 `dsh-session-projection` 前面** | 0.2.1-rc.2 起 `ApprovalService` 依赖 `sessionProjections`，缺失时**激活失败**（不再回退到读事件日志）；配置层必须把 projection 排在前面 |
 | **读 `dsh-tool-subagent` 的 `modelSelectionSettings`** | 0.2.1-rc.1 起改名为 `modelSelection`；模型发现另需 `modelDiscovery: true`（每工具域一个实例） |
+| **等 `fiber.update()` 之后又去 `await fiber.await()`** | cordis **4.1.0** 起 `update()` 返回 `Awaitable<void>`，**直接 `await fiber.update(config)` 即可**；早期版本返回 `void` 时才需要 `fiber.await()` |
+| **按下标比较 `LoggerLevel`** | cordis 4.1.0 起数值重排为 `ERROR=0` / **`WARN=1`** / **`INFO=2`** / `DEBUG=3`（旧版 `INFO=1` / `WARN=2`）；按数字大小判级别的 exporter 会静默错位，请用枚举名比较 |
+| **按旧签名实现 `internal/update` 监听器** | cordis 4.1.0 起监听器签名是 `(config, next)`，**`noSave` 不再传入**（它仍是 `Fiber.update()` 的第二个实参） |
+| **给 `LlmError` 构造函数传提供方自有错误码** | 0.2.2-rc.3 起构造参数类型收紧为 `BuiltinLlmFailureCode`（`LLM_FAILURE_CODES` 的键 + `HTTP_<number>`）。自有码改用 **`LlmError.fromFailure(failure, options?)`** |
+| **`ctx.tools.guard()` 只返回 `string`** | 仍合法，但 0.2.2-rc.3 起可返回 `ToolGuardDenial`（`{ reason, info? }`）把结构化错误身份一并持久化 |
+| **读审批拒绝结果时只看 message** | 0.2.2-rc.3 起审批拒绝带 `{ name: 'ApprovalError', code: 'APPROVAL_REJECTED' \| 'APPROVAL_CANCELLED' \| 'APPROVAL_UNAVAILABLE' }`；用 `error.code` 分支，别解析文案 |
+| **工具体缺上下文时抛普通 `Error`** | 改用 **`ToolContextUnavailableError`**（code `TOOL_CONTEXT_UNAVAILABLE`），语义是"调用方无法纠正"，message 要指明缺哪个上下文 |
+| **包装 / 替换 `Session.append` 只实现单事件签名** | 0.2.2-rc.3 起有两个重载（`append(type, data)` 与 `append([[type, data], ...])`）；测试替身与 wrapper 必须都支持 |
+| **`send_message({ agent_id })` / `interrupt_agent({ agent_id })`** | 0.2.2-alpha.3 起参数名改为 **`agent`**（接受名字或 Session id）；仍传 `agent_id` **参数校验失败** |
+| **按旧形状解析 `list_agents` 输出** | 0.2.2-alpha.3 起行是 **`{ name, status, description? }`**（不再有 `kind` / `id` / `label` / `parent` / `depth` / `reason`）；不可读分支的 `status` 为 `corrupt` / `unsupported` / `unavailable` |
+| **Team 任务读 `ownerId` / 传 `owner: "unowned"`** | 0.2.2-alpha.3 起用 **`owner`**（名字）；列无主任务用 **`unowned: true`**。Host 侧 `ctx.agentTeams` 仍读 `ownerId`，展示用 `ownerName ?? ownerId` |
+| **给 `AgentCreateOptions` 传 `parentAgent` / 调 `ctx.agents.enter(agent, parent)`** | 0.2.2-alpha.3 起 **`parentAgent` 已移除**，`enter(agent)` 不再收父 Agent；创建者关系改由 `subagent/catalog` 表达（名字路径，根是 `lead`） |
+| **`SubagentActivation` 缺 `name`** | 0.2.2-alpha.3 起 `name` **必填**；`SubagentActivationSpec.name` 可选。catalog 写入 **payload version 3**，旧版 DSH 打不开含 v3 的 Session——多进程共用一个 Session store 时必须先全部升级 |
+| **用 `ctx.officeToPdf` / `dsh-office-to-pdf`** | 0.2.2-alpha.3 起改名为 **`ctx.officeKit`** / **`dsh-office-kit`**（行 id `office-kit`，Remote `officeKit/*`，类型 `OfficeKit*`）；LibreOffice Kit 缺失不再加载失败，转换时报 `OfficeKitError` code `unavailable`，装好 Kit 无需重载 |
+| **读 `BundleInfo.updatable`** | 0.2.2-rc.1 起改名为 **`update?: 'registry' \| 'git'`**；`ManagementError['code']` 新增 `unexpected-package`（`plugin_manager` 工具本身不受影响） |
+| **PTC 子调用没有额度约束** | 0.2.2-rc.3 起 `tool-executor-ptc` 新增 `maxSubCallsPerMinute`（默认 `1024`，按解析后的超时折算，含失败调用）；超限抛 `ToolCallLimitExceededError` |
 | waterfall 调用方忘传最后一个 `next` 实参 | 调用方传最内层延续：`ctx.waterfall(name, ...args, next)`（与「监听器必须调 `next()`」是两件事） |
 | 怀疑 SKILL.md 与官方 DSH 不一致 | 跑 `bash scripts/verify.sh`：版本三处一致 + frontmatter 合法 + 官方链接 200（CI 也会跑） |
 
@@ -765,10 +800,13 @@ dsh plugin --profile demo remove dsh-hello-plugin   # 移除
 - 服务与 seam 全局视图：https://deepseek-harness.github.io/deepseek-harness/reference/capability-seams
 - 0.2.0-rc.2 升级指南（含 `remove-runtime-invariants`、`subpath-plugin-display-manifest`、`schedule-bundle-retired`、`account-sign-in-errors`）：仓库内 `docs/upgrade-guide/v0.2.0-rc.2/`（文档站尚未发布索引页）。
 - 0.2.1-alpha.2 ~ alpha.4 升级指南（**12 篇**；推荐关注的与插件开发相关的：`plugin-engines-dsh` / `plugin-install-over-installed` / `sdk-minimal-image-compaction` / `stored-credentials-precedence` / `pi-ai-model-discovery`；其余如 Azure route、DeepSeek 账户、Desktop 快捷键、AccountBonusNotification 不影响插件开发）：https://github.com/deepseek-ai/deepseek-harness/tree/master/docs/upgrade-guide （按子目录 `v0.2.1-alpha.{2,3,4}/<name>/guide.md` 打开）。每篇的关键改动已经并入本 SKILL.md §10/§12 与对应 References。
-- **0.2.1-rc.1 ~ 0.2.2-alpha.2 升级指南（**45 篇**，本轮基线的主要来源）**：同样在 `docs/upgrade-guide/` 下，按子目录 `v0.2.1-rc.{1,2,3,4}/` 与 `v0.2.2-alpha.2/` 打开。**与插件开发直接相关的 25 篇**：`conditional-tools` / `tool-executor-plugins` / `subagent-control-tools` / `session-projection-handles` / `session-store-writes` / `attachment-read-access` / `llm-request-purpose-declarations` / `schedule-agent-tools` / `schedule-remote-host-tasks` / `ptc-script-format` / `ptc-caller-cancellation` / `web-fetch-private-destinations` / `webserver-index-peer` / `official-bundle-lists` / `approval-projection-dependency` / `independent-session-forks` / `pi-ai-protocol-replay` / `pi-ai-model-catalog` / `context-menu-services` / `context-menu-target` / `file-drag-callbacks` / `web-file-downloads` / `model-listing-refresh` / `reasoning-body-props` / `model-badge-package-removal`。这些的关键改动已经并入本 SKILL.md §4/§5/§7/§8/§10/§11/§12 与对应 References。
+- **0.2.1-rc.1 ~ 0.2.2-alpha.2 升级指南（**45 篇**）**：同样在 `docs/upgrade-guide/` 下，按子目录 `v0.2.1-rc.{1,2,3,4}/` 与 `v0.2.2-alpha.2/` 打开。**与插件开发直接相关的 25 篇**：`conditional-tools` / `tool-executor-plugins` / `subagent-control-tools` / `session-projection-handles` / `session-store-writes` / `attachment-read-access` / `llm-request-purpose-declarations` / `schedule-agent-tools` / `schedule-remote-host-tasks` / `ptc-script-format` / `ptc-caller-cancellation` / `web-fetch-private-destinations` / `webserver-index-peer` / `official-bundle-lists` / `approval-projection-dependency` / `independent-session-forks` / `pi-ai-protocol-replay` / `pi-ai-model-catalog` / `context-menu-services` / `context-menu-target` / `file-drag-callbacks` / `web-file-downloads` / `model-listing-refresh` / `reasoning-body-props` / `model-badge-package-removal`。这些的关键改动已经并入本 SKILL.md §4/§5/§7/§8/§10/§11/§12 与对应 References。
+- **0.2.2-alpha.3 ~ 0.2.2-rc.3 升级指南（本次基线的主要来源；rc.3 仓库内实际发布 24 篇：alpha.3 有 5 篇、rc.1 有 19 篇）**：按 `docs/upgrade-guide/v0.2.2-alpha.3/` 与 `docs/upgrade-guide/v0.2.2-rc.1/` 打开。**与插件开发直接相关的 9 篇**：`office-kit-package`（`ctx.officeToPdf` → `ctx.officeKit`）/ `subagent-names`（工具按名寻址、`list_agents` 改形、catalog v3）/ `attachment-error-codes`（`AttachmentError` 改继承 `HarnessError`，工具与模型请求失败保留 `ATTACHMENT_*` 码）/ `plugin-update-method`（`BundleInfo.updatable` → `update`）/ `session-append-overloads`（`Session.append` 双重重载）/ `terminal-backend-cleanup-error`（`CLEANUP_FAILED`）/ `runtime-context-reminders`（`<system-reminder>` 包装与 `source.sections`）/ `web-search-billing`（DeepSeek Search API 计费与凭据来源）/ `dsh-doc-skill`（Creator mode 四技能合并为 `dsh-doc`）。其余（`cua-*`、`forge-*`、`account-*`、`archive-worktrees`、`window-drag-regions`、`terminal-bundle-sidebar-backend`、`office-operation-tools`、`office-skill-resources`、`chat-process-activity-context`、`subagent-interrupt-default`）属 UI / CUA / 账户 / 计划任务宿主侧，未进本技能正文。
+  > ⚠️ **陷阱**：`master` 分支的 `docs/upgrade-guide/v0.2.2-rc.2/` 以及部分后补的 rc.1 篇目（`cordis-root-and-intercept-metadata`、`python-ptc-removal`、`ptc-bootstrap-protocol`、`ptc-scoped-repl-default`、`ptc-inspect-output`、`shell-fs-tool-error-codes`、`experimental-tool-error-codes`、`package-export-cleanup` 等）在 **rc.3 标签里并不存在**，其内容也未落到 rc.3 代码（已逐条用源码验证：cordis 4.1.0 仍有 `ctx.root` / `Service.config` / `Service.resolveConfig`；rc.3 仍有 experimental Python PTC 与 `jsonSchemaToPy`；`PROGRAM_PROTOCOL_VERSION` 仍为 2；`PtcProgramFormat` 仍无 `scoped-repl`）。**这些属于下一版变更，不要提前跟进。**
+- **上游自带的插件开发资料**：Creator mode 自 0.2.2-rc.1 起把四个 skill（含 `cordis-plugin-development`）合并为单个 **`dsh-doc`**，插件开发内容在 `@deepseek-ai/dsh-agent-preset/skills/dsh-doc/references/plugin-development.md`。它是 **DSH 内置** skill；本技能是**面向任何宿主**（DSH / Claude Code / Codex / 任意 Agent Skills 宿主）的独立文档包，两者可并存。
 - PTC 运行时子系统（自 0.2.1-alpha.1 起从 `code-runtime` 改名）与 Claude Code Mods 兼容层（0.2.1-alpha.1 新增的实验性 bridge，**仅仓库**）：https://deepseek-harness.github.io/deepseek-harness/reference/subsystems/ptc-runtime 与 https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/subsystems/claude-code-mods.md 。
 源码仓库：https://github.com/deepseek-ai/deepseek-harness
 
 本技能自身：仓库 https://github.com/green-dalii/dsh-plugin-dev-skill ，版本见同目录 `VERSION` 文件（更新检查流程见 §0.1）。
 
-> 索引与**术语对照表**（上游重命名备忘，如 Code Mode → PTC mode、`CallId` → `ToolCallId`、`ctx.codeRuntime` → `ctx.ptcRuntime`）见 `References/00-INDEX.md`；注意文档站发布的是 `develop/**`、`guide/**`、`reference/**` 与已发布的部分 `reference/subsystems/*`（已确认的有 `ptc-runtime`、`schedule`、`approval` 等），而 `glossary`、`event-producer-consumer`、`defensive-patterns` 以及多数 `subsystems/**` 页面（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 以及 0.2.1 新增的 `claude-code-mods` 等）**仅存在于仓库**，相关文件内已给出 GitHub 链接。
+> 索引与**术语对照表**（上游重命名备忘，如 Code Mode → PTC mode、`CallId` → `ToolCallId`、`ctx.codeRuntime` → `ctx.ptcRuntime`）见 `References/00-INDEX.md`；注意文档站发布的是 `develop/**`、`guide/**`、`reference/**` 与已发布的部分 `reference/subsystems/*`（已确认的有 `ptc-runtime`、`schedule`、`approval` 等），而 `glossary`、`event-producer-consumer`、`defensive-patterns` 以及多数 `subsystems/**` 页面（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-kit` 以及 `claude-code-mods` 等）**仅存在于仓库**，相关文件内已给出 GitHub 链接。

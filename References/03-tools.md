@@ -1,7 +1,7 @@
 # 03 · 工具开发完整参考（defineTool）
 
 > 精简提炼自 develop/basic/tool、reference/cookbook/adding-a-tool、reference/subsystems/tools、reference/tool-execution-pipeline。
-> API 以本地 SDK `@deepseek-ai/dsh-tools` **0.2.2-alpha.2** 为准。**0.2.1-rc.2 是一次大重构**：工具执行拆成 executor 插件、工具声明改由「步骤准入」决定——见 §7/§8/§9。逐版本变化见 `References/00-INDEX.md`。
+> API 以本地 SDK `@deepseek-ai/dsh-tools` **0.2.2-rc.3** 为准。**0.2.1-rc.2 是一次大重构**：工具执行拆成 executor 插件、工具声明改由「步骤准入」决定——见 §7/§8/§9。逐版本变化见 `References/00-INDEX.md`。
 > 生产级参考实现：`packages/shell/tool-bash`（前台 + 后台 + 沙箱）、`packages/fs/tool-fs`（diff 卡片）、`packages/web/tool-web`（web 卡片）。
 
 ## 1. 最小形态
@@ -98,9 +98,9 @@ return {
 | 扩展点 | 模式 | 用途 | 返回 |
 |---|---|---|---|
 | `tools/pre-execute` | waterfall | allow/deny/ask 策略 | `PreToolDecision`: `{kind:'allow'}` / `{kind:'deny',reason,info?:ToolErrorInfo}`（`ToolErrorInfo` 含 `reason?`）/ `{kind:'cancel'}`（规范的前置取消结果，不呈现为策略拒绝）/ `{kind:'ask',reason?,displayReason?}` |
-| `ctx.tools.guard()` | 单调守卫 | 最终拒绝（后续无法撤销） | `string | undefined`（返回 reason 即拒绝） |
+| `ctx.tools.guard()` | 单调守卫 | 最终拒绝（后续无法撤销） | **`string \| ToolGuardDenial \| undefined`**（0.2.2-rc.3 起可返回 `{ reason, info? }` 把结构化错误身份一并持久化；返回 `undefined` 放行） |
 | `tools/execute` | waterfall | 环绕分发：超时/重试/指标；可替换 `exec.signal` 不可移除 | `ToolExecutionResult` |
-| `tools/post-execute` | waterfall | 替换内容或值、阻止结果、附加模型上下文 | `PostToolDecision`: `accept` / `block` |
+| `tools/post-execute` | waterfall | 替换内容或值、阻止结果、附加模型上下文 | `PostToolDecision`: `accept` / `block`（0.2.2-rc.3 起 `block` 可带 `info?: ToolErrorInfo`） |
 | `tools/ptc-dispatch-log` | waterfall | 改写一次 `run_code` 子分派**持久日志副本**的内容（程序已拿到完整值，模型两者都看不到） | `ContentBlock[]` |
 | `tools/change` | emit | 工具集变化（注册/注销/作用域限制变化）；不受作用域过滤 | — |
 | `tools/result` | emit | 只读观测不可变最终结果（日志/审计） | — |
@@ -109,6 +109,10 @@ return {
 
 - `tools/pre-execute` 返回 `ask` 只在审批服务返回 `allowed-once` 后继续，否则拒绝；无审批通道或无 agent 时 ask 也变成拒绝。
 - guard 是单调的：任何 guard 都能拒绝，但没有任何 guard 能把已被拒绝的调用改回允许。
+- **错误身份（0.2.2-rc.3 起）**：`tool/result` 的 `error` 会持久化错误类名与码。抛出 **`HarnessError` 子类**（基类来自新包 `@deepseek-ai/dsh-error`）才会带 `error.name` + `error.code`；普通 `Error` 只有 message。常见身份：
+  - 审批拒绝 → `{ name: 'ApprovalError', code: 'APPROVAL_REJECTED' | 'APPROVAL_CANCELLED' | 'APPROVAL_UNAVAILABLE' }`（`APPROVAL_UNAVAILABLE` = 没有审批服务/Agent/通道能应答）
+  - 取消（signal 已 abort 且抛出物不是 `HarnessError`）→ `{ name: 'AbortError', code: 'ABORTED' }`
+  - 工具体缺上下文 → `ToolContextUnavailableError`（`TOOL_CONTEXT_UNAVAILABLE`），不可由模型纠正
 - `tools/post-execute` 替换内容会保留规范值与元数据；替换值会重新校验并重算内容/元数据；`block` 会把纠正反馈变成 `isError`。**内容替换是展示策略而非保密策略**——要隐藏程序化值必须 `block` 或替换该值（PTC mode 程序仍能拿到 `value`）。
 - PTC mode 的 `run_code` 子分派走同一条完整流水线：携带父级 token、记录 `tool/ptc-dispatch`、把拒绝呈现为有约束力的驳回，并省略 `additionalContexts` 以保持调用与结果相邻。
 - **尽量不要把部署策略内建到工具中**——放钩子插件（见 `11-cookbook.md` 权限门禁示例）。
@@ -220,6 +224,8 @@ try {
   - `@deepseek-ai/dsh-tool-executor-ptc` —— PTC SDK 渲染器与 `CodeRunFailedError`。
   - `@deepseek-ai/dsh-tool-executor-ptc/types` —— 共享 dispatch 事件与 `ptc-mode` message-source 声明；Host 侧策略扩展用 `import type { PtcDispatchLog } from '@deepseek-ai/dsh-tool-executor-ptc'`。
 - `maxParallelSubCalls` 现在在 PTC executor 配置里；`agent-loop.maxParallelToolCalls`（默认 `10`）仍在原处，**实时编辑只影响下一批**（不再是下一个 tool group）。
+- **`tool-executor-ptc` 的调用额度（0.2.2-rc.3 起）**：新增 `maxSubCallsPerMinute`（默认 **`1024`**）——按解析后的 runtime 超时折算的**每分钟子调用额度**，含失败调用，用来兜住模型写出的死循环。超限抛 `ToolCallLimitExceededError`，message 指出第几次调用未被派发并建议检查循环终止或拆分 `run_code` 调用。
+- **非 TypeScript PTC provider（0.2.2-rc.3 起）**：executor 只接受声明 TypeScript 语言的 provider；用其它语言建 `/run-code` 工具或组装提示词会以 `ToolContextUnavailableError` / `TOOL_CONTEXT_UNAVAILABLE` 失败。
 
 ---
 

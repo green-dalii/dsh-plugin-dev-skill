@@ -4,6 +4,44 @@
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-15
+
+DSH 上游发布 `dsh-v0.2.2-rc.3`（中间经过 `0.2.2-alpha.3` / `rc.1` / `rc.2`）：cordis 升到 **4.1.0**，错误契约重构，工具守卫与审批获得结构化错误身份，Session 支持批量写入，子代理全面具名。本版本把 SDK 基线升到 `0.2.2-rc.3`，并按**源码级 diff**（浅克隆两个 tag 对比 526 个包内源文件）逐条修订。
+
+### 破坏性变更（tool / LLM / service 三面）
+
+- **`dsh-llm` 错误码不再自由**：构造函数 `code` 从 `string` 收紧为 **`BuiltinLlmFailureCode`**（`keyof LLM_FAILURE_CODES | \`HTTP_${number}\``，共 **50** 个内置码）；新增 `RETRY_CODE_CHOICES`（8 个可重试候选）与静态方法 **`LlmError.fromFailure(failure, options?)`** 用于提供方自有码。**`HarnessError` 迁到新包 `@deepseek-ai/dsh-error`**（`dsh-llm` 再导出同一个类）。`UNSUPPORTED_OPTION` 由"适配器自有约定"变为内置码。
+- **`dsh-tools` 守卫可返回结构化拒绝**：`ToolGuard` 由 `string | undefined` 放宽为 **`string | ToolGuardDenial | undefined`**（`{ reason, info? }`），`checkGuards()` 相应返回 `ToolGuardDenial | undefined`；`tools/pre-execute` 的 `block` 决策新增 `info?: ToolErrorInfo`。
+- **审批拒绝带身份**：一律记录 `{ name: 'ApprovalError', code: 'APPROVAL_REJECTED' | 'APPROVAL_CANCELLED' | 'APPROVAL_UNAVAILABLE' }`。取消语义调整为：signal 已 abort 且抛出物不是 `HarnessError` 时记 `{ name: 'AbortError', code: 'ABORTED' }`。新增 **`ToolContextUnavailableError`**（`TOOL_CONTEXT_UNAVAILABLE`）。
+- **`Session.append` 双重重载**：新增数组形式 `append([[type, data], ...])` 与类型 `SessionEventInput`；批量提交先提交整批再按序发布（`session.seq` / `session.surface` 已含整批，`session.currentBatchPublication` 标识当前成员）。包装或测试替身须实现两个重载。
+- **子代理全面具名**：`send_message` / `interrupt_agent` 的 `agent_id` → **`agent`**（名字或 Session id）；`list_agents` 行由 `{ kind, id, label, parent, depth, reason }` 改为 **`{ name, status, description? }`**；Team 任务 `ownerId` → **`owner`**（无主用 `unowned: true`）；**`AgentCreateOptions.parentAgent` 移除**、`ctx.agents.enter(agent)` 不再收父 Agent；`SubagentActivation.name` 必填；`subagent/catalog` 写 **payload version 3**（旧版 DSH 打不开此类 Session）。
+- **`ctx.officeToPdf` → `ctx.officeKit`**：包 `dsh-office-to-pdf` → **`dsh-office-kit`**，行 id `office-kit`，Remote `officeKit/*`，类型 `OfficeKit*`；LibreOffice Kit 缺失不再加载失败，转换时报 `OfficeKitError` code `unavailable`。
+- **cordis 4.1.0**：`Fiber.update()` 返回 **`Awaitable<void>`**（可直接 `await`）；**`LoggerLevel` 数值重排为 `WARN=1` / `INFO=2`**（旧 `INFO=1` / `WARN=2`）；`internal/update` 监听器签名收窄为 **`(config, next)`**。
+
+### 新增
+
+- **`maxSubCallsPerMinute`**（`tool-executor-ptc`，默认 `1024`）：按解析后超时折算的每分钟子调用额度，含失败调用；超限抛 `ToolCallLimitExceededError`。
+- **新 seam**：`ctx.mcpManager`（`mcp/mcp-manager`）、`ctx.deepseekChatImport`、`ctx.sessionLogDeepSeek`；seam 表由 107 → **110** 项。
+- **`session/event` 新增 `team/mode`** 事件类型。
+- **Plugin Manager**：`BundleInfo.updatable: boolean` → **`update?: 'registry' | 'git'`**；`ManagementError['code']` 新增 `unexpected-package`；`InstallBundleOptions.expected`。
+- **`ptc-runtime-node`**：新增 program import 拦截（`ProgramImportRequest` / `ProgramImportResult`）与 `stopGraceMs`（默认 `3000`）。
+- **Web 搜索/抓取**：默认改用 DeepSeek Search API，搜索与抓取可分别选计费账号或 API Key；旧 `dsh-web-search-exa` / `dsh-web-search-perplexity` 包已删除。
+- 新增包：`@deepseek-ai/dsh-error`、`dsh-fs-patch`（`apply_patch` 工具，默认关闭）、`dsh-mcp-manager`、`dsh-office-kit`、`dsh-tool-office`、`dsh-terminal-panel`、`dsh-ripgrep`。
+- SKILL.md §13 增补 **0.2.2-alpha.3 ~ rc.3 的 24 篇指南**入口与 9 篇相关篇目清单；并说明上游 Creator mode 四技能已合并为单个 **`dsh-doc`** skill。
+
+### 修复
+
+- **SKILL.md §1 与 `References/02` / `09`**：`Fiber.update()` "返回 `void`，必须 `await fiber.await()`" 的说法在 cordis 4.1.0 已过时——改为"返回 `Awaitable<void>`，直接 await"。
+- **SKILL.md §8 与 `References/05`**：删除"`code` 是自由字符串、SDK 不提供错误码联合类型"与"`UNSUPPORTED_OPTION` 核心不导出"两处**事实性错误**。
+- **`References/08`**：`ctx.officeToPdf` 行改为 `ctx.officeKit`。
+- 逐条验证并**明确挡掉** master 分支上存在、但 rc.3 未落地的 13 篇指南（`cordis-root-and-intercept-metadata`、`python-ptc-removal`、`ptc-bootstrap-protocol`、`ptc-scoped-repl-default`、`ptc-inspect-output`、`shell-fs-tool-error-codes`、`experimental-tool-error-codes`、`package-export-cleanup` 等）——用源码证据记录在 SKILL.md §13，避免下次误跟。
+
+### 元数据
+
+- **`VERSION` / SKILL.md frontmatter**：0.7.0 → **0.8.0**；`metadata.sdk-baseline`：`0.2.2-alpha.2` → **`0.2.2-rc.3`**。
+- **README 徽章**：DSH `0.2.2-rc.3`（链接指向 `dsh-v0.2.2-rc.3` release）、skill `0.8.0`、updated `2026-11-15`。
+- **`References/00-INDEX.md`**：基线声明重写，术语对照表新增 11 行。
+
 ## [0.7.0] - 2026-11-01
 
 DSH 上游发布 `dsh-v0.2.2-alpha.2`（中间经过 `0.2.1-alpha.5` 与 `0.2.1-rc.1` ~ `rc.5`）：**这是一次大重构**——跨越 43 篇上游升级指南，其中 **25 篇对插件开发有实质影响**，**对 tool / LLM / service 插件的公共 API 破坏**。本版本把 SDK 基线升到 `0.2.2-alpha.2`（cordis `4.0.6-alpha.1`），并按破坏性变更的实际影响面逐条修订 SKILL.md / References。

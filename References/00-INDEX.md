@@ -6,7 +6,9 @@
 
 使用方式：先读项目根目录的 `SKILL.md`（操作手册），需要深度背景时按需查阅本目录对应文件。
 
-**SDK 基线**：所有 API 陈述以 `@deepseek-ai/*` **0.2.2-alpha.2**（cordis **4.0.6-alpha.1**）的类型定义实测为准。**0.2.1-rc.1 ~ 0.2.2-alpha.2 是一次大重构**（跨越 43 篇上游升级指南，其中 25 篇对插件开发有实质影响），**对 tool / LLM / service 插件的公共 API 破坏**：① 工具执行模式拆成独立 executor 插件（`dsh-tools` 的 `mode` / `maxParallelSubCalls` 配置字段删除、`ctx.tools.presentAs()` 移除、`DSH_TOOLS_MODE` 失效）；② 工具声明改由「步骤准入」决定（`ctx.tools.register(def, { when })` 条件注册、`system-prompt/assemble` 不再携带工具数组）；③ `agent/request` 事件不再公开；④ session 投影注册改为异步返回 `ProjectionHandle`；⑤ `GenerateOptions.purpose` 改为声明式（`LlmRequestPurposeMap`）；⑥ PTC 新增 `script` 程序格式与 `retainsState`，调用方取消改用 `ABORTED`；⑦ 官方 bundle 清单迁到 `@deepseek-ai/dsh-official-bundles`。官方文档站发布 `develop/**`、`guide/**`、`reference/**` 与部分 `subsystems/{ptc-runtime, schedule, approval, claude-code-mods, …}`；而 `docs/glossary`、`docs/event-producer-consumer`、`docs/defensive-patterns` 与多数 `docs/subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 等）**仅存在于仓库**，相关链接指向 GitHub blob。各版本升级指南由 SKILL.md §13 给到 GitHub 原文链接。
+**SDK 基线**：所有 API 陈述以 `@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）的类型定义实测为准。**0.2.1-rc.1 ~ 0.2.2-alpha.2 是一次大重构**（跨越 43 篇上游升级指南，其中 25 篇对插件开发有实质影响），**对 tool / LLM / service 插件的公共 API 破坏**：① 工具执行模式拆成独立 executor 插件（`dsh-tools` 的 `mode` / `maxParallelSubCalls` 配置字段删除、`ctx.tools.presentAs()` 移除、`DSH_TOOLS_MODE` 失效）；② 工具声明改由「步骤准入」决定（`ctx.tools.register(def, { when })` 条件注册、`system-prompt/assemble` 不再携带工具数组）；③ `agent/request` 事件不再公开；④ session 投影注册改为异步返回 `ProjectionHandle`；⑤ `GenerateOptions.purpose` 改为声明式（`LlmRequestPurposeMap`）；⑥ PTC 新增 `script` 程序格式与 `retainsState`，调用方取消改用 `ABORTED`；⑦ 官方 bundle 清单迁到 `@deepseek-ai/dsh-official-bundles`。
+
+**0.2.2-alpha.3 ~ 0.2.2-rc.3（本次基线）**：cordis 升 **4.1.0**（`Fiber.update()` 返回 `Awaitable<void>`、`LoggerLevel` 数值重排为 `WARN=1`/`INFO=2`、`internal/update` 监听器签名收窄为 `(config, next)`）；**错误契约重构**——`HarnessError` 迁到新包 `@deepseek-ai/dsh-error`、`dsh-llm` 新增 `LLM_FAILURE_CODES`（50 码）/`BuiltinLlmFailureCode`/`LlmError.fromFailure()`；**工具守卫与审批带结构化错误身份**（`ToolGuardDenial`、`ApprovalError` + `APPROVAL_*`、`ToolContextUnavailableError`）；**`Session.append` 支持批量数组重载**；**子代理全面具名**（`agent_id`→`agent`、`list_agents` 行改形、`parentAgent` 移除、catalog payload v3）；`ctx.officeToPdf`→**`ctx.officeKit`**；新增 seam `ctx.mcpManager`/`ctx.deepseekChatImport`/`ctx.sessionLogDeepSeek`。官方文档站发布 `develop/**`、`guide/**`、`reference/**` 与部分 `subsystems/{ptc-runtime, schedule, approval, claude-code-mods, …}`；而 `docs/glossary`、`docs/event-producer-consumer`、`docs/defensive-patterns` 与多数 `docs/subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-kit` 等）**仅存在于仓库**，相关链接指向 GitHub blob。各版本升级指南由 SKILL.md §13 给到 GitHub 原文链接。
 
 | 文件 | 主题 | 官方对应章节 |
 |---|---|---|
@@ -46,3 +48,13 @@
 | `ctx.sessionProjections.register(def)` 返回 disposer | **`Promise<ProjectionHandle<S>>`** | 0.2.1-rc.2 起返回 thenable（`instanceof Promise` 为 `false`），须 await 并持有 handle |
 | `@deepseek-ai/dsh-app-boot` 的 bundle 清单导出 | **`@deepseek-ai/dsh-official-bundles`** | 0.2.1-rc.2 迁包（`initProfile` / `loadProfile` 仍在 `dsh-app-boot`） |
 | `dsh-tool-subagent` 的 `modelSelectionSettings` | **`modelSelection`** | 0.2.1-rc.1 改名；模型发现另需 `modelDiscovery: true` |
+| `ctx.officeToPdf` / `dsh-office-to-pdf` | **`ctx.officeKit` / `dsh-office-kit`** | 0.2.2-alpha.3 改名；行 id `office-kit`、Remote `officeKit/*`、类型 `OfficeKit*` |
+| `send_message({ agent_id })` / `interrupt_agent({ agent_id })` | **`{ agent }`** | 0.2.2-alpha.3 起按名寻址（名字或 Session id）；旧参数校验失败 |
+| `list_agents` 行 `{ kind, id, label, parent, depth, reason }` | **`{ name, status, description? }`** | 0.2.2-alpha.3 起；Team 任务 `ownerId` → `owner` |
+| `AgentCreateOptions.parentAgent` / `ctx.agents.enter(agent, parent)` | **（已移除）** | 0.2.2-alpha.3 起创建者关系由 `subagent/catalog` 表达（名字路径，根是 `lead`） |
+| `BundleInfo.updatable: boolean` | **`BundleInfo.update?: 'registry' \| 'git'`** | 0.2.2-rc.1 起；`ManagementError` 另增 `unexpected-package` |
+| `LlmError` 构造的 `code: string` | **`code: BuiltinLlmFailureCode`** | 0.2.2-rc.3 起；自有码改用 `LlmError.fromFailure(failure)` |
+| `@deepseek-ai/dsh-llm` 的 `HarnessError` | **`@deepseek-ai/dsh-error`** | 0.2.2-rc.3 起单独成包，`dsh-llm` 再导出同一个类 |
+| `Session.append(type, data)` | **另加数组重载** `append([[type, data], ...])` | 0.2.2-rc.3 起；wrapper / 测试替身须实现两个重载 |
+| `LoggerLevel` 的 `INFO=1` / `WARN=2` | **`WARN=1` / `INFO=2`** | cordis 4.1.0 数值重排；按枚举名比较，勿按下标 |
+| `Fiber.update()` 返回 `void` | **返回 `Awaitable<void>`** | cordis 4.1.0 起可直接 `await fiber.update(config)` |
