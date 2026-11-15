@@ -4,67 +4,92 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Updated](https://img.shields.io/badge/updated-2026--11--15-informational)](CHANGELOG.md)
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.2--rc.3-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3)
-[![Skill version](https://img.shields.io/badge/skill-0.9.0-brightgreen)](VERSION)
+[![Skill version](https://img.shields.io/badge/skill-0.9.1-brightgreen)](VERSION)
 [![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
-**一个让任何 AI 编码 Agent 都能正确开发 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 插件的 Agent Skill**——高效、符合官方规范。
+**可在以下编码 Agent 中加载：**<br>
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.2--rc.3%20%C2%B7%20official%20compatible-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3) [![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-informational)](https://code.claude.com/docs/en/skills) [![Codex CLI](https://img.shields.io/badge/Codex%20CLI-compatible-informational)](https://github.com/openai/codex) [![Pi](https://img.shields.io/badge/Pi-compatible-informational)](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md) [![Cursor](https://img.shields.io/badge/Cursor-compatible-informational)](https://cursor.com/docs/context/skills) ![Google Antigravity](https://img.shields.io/badge/Google%20Antigravity-compatible-informational) [![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-compatible-informational)](https://code.visualstudio.com/docs/copilot/customization/agent-skills) [![OpenCode](https://img.shields.io/badge/OpenCode-compatible-informational)](https://opencode.ai/docs/skills/) [![Amp](https://img.shields.io/badge/Amp-compatible-informational)](https://ampcode.com/docs) [![Cline](https://img.shields.io/badge/Cline-compatible-informational)](https://docs.cline.bot) [![Goose](https://img.shields.io/badge/Goose-compatible-informational)](https://goose-docs.ai) [![Kiro](https://img.shields.io/badge/Kiro-compatible-informational)](https://kiro.dev/docs/skills/) [![Kimi Code](https://img.shields.io/badge/Kimi%20Code-compatible-informational)](https://code.kimi.com) ![ZCode](https://img.shields.io/badge/ZCode-compatible-informational) ![Minimax Code](https://img.shields.io/badge/Minimax%20Code-compatible-informational) [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-standard-brightgreen)](https://agentskills.io/clients)
 
-加载 [`SKILL.md`](SKILL.md)，Agent 即可获得分流规则、10 条铁律、版本演进摘要、任务→文件路由表与交付前自查；操作手册正文在 [`References/`](References/00-INDEX.md) 下的 **25 篇文档**里，**每篇都压在 8,192 字符以内**，以便完整穿过 DSH 的 tool-result 剪枝。
+**一份教任何 AI 编码 Agent 正确、高效、符合规范地开发 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 插件的技能包。** 它由一个路由索引（[`SKILL.md`](SKILL.md)）与 25 篇参考文档组成，每篇都压在 8,192 字符以内，以便完整穿过 DSH 的 tool-result 剪枝。
 
-**别称 / 检索关键词**：DSH 插件开发技能、DeepSeek Harness 插件开发、`dsh-plugin-dev-skill`。
+它**是给 Agent 加载的，不是给人通读的**；但它同时可以**叠加在 DSH 自带的创作模式之上**——那才是它真正发挥威力的地方，见[与 DSH 创作模式叠加使用](#与-dsh-创作模式叠加使用)。
+
+**别名**：DSH 插件技能、DeepSeek Harness 插件开发技能、`dsh-plugin-dev-skill`。
+
+## 快速开始
+
+**你不需要手动安装，也不需要自己读 `SKILL.md`。把下面这句话粘进你的 Agent 就行：**
+
+> 请把 https://github.com/green-dalii/dsh-plugin-dev-skill 安装到你的技能目录（文件夹 `dsh-plugin-dev-skill`，内含 `SKILL.md` 与 `References/`），当任务涉及开发 DeepSeek Harness 插件时使用它。先执行它 §1 的自我更新检查。
+
+就这么一条。Agent 会自己克隆仓库、放进宿主的技能目录；此后**只要任务涉及 DSH 插件，它会自动加载 `SKILL.md`**——你不需要记任何命令名。
+
+**如果你用的就是 DSH**（Desktop / Web / CLI）：先把会话切到**创作模式**，再粘同一句话。创作模式会补上运行时探针与「装进 profile」的能力，见下一节。
+
+**如果你用的是别的 Agent 宿主**（Claude Code、Codex CLI、Cursor 等）：同一句话就行——那句话**刻意不写目录**，因为 Agent 本来就知道自己的宿主从哪里加载技能。
+
+## 与 DSH 创作模式叠加使用
+
+如果你就是在 DSH 里干活，你手上有两样东西：**DSH 自带的创作模式**（preset `cordis`，随附 `dsh-doc` 技能与 `cordis_inspect_*` 探针）和**本技能**。两者是互补而非竞争关系——**创作模式是手，本技能是地图**。两者同时加载，Agent 就不必猜。
+
+| | DSH 创作模式（`dsh-doc` + `cordis_inspect_*`） | 本技能 |
+|---|---|---|
+| **知道什么** | *正在运行的*安装实际暴露了什么——现役 Service 方法、事件分发模式、Client Slot、任一插件的 `packageDir` | *API 面*长什么样（压缩成 25 篇）、**跨版本改了什么**、以及让插件「正确」的设计铁律 |
+| **能做什么** | 把 bundle 装进当前 profile（`install_bundle`）、启停插件行、读 `application` / `warnings` | 提供可直接照抄的 TS 模板、10 条铁律、110 条服务 seam 目录、累积迁移表 |
+| **盲区** | 没有跨版本记忆：只读当前安装版本的文档与源码 | 看不见运行时：读不到你机器上跑着的 DSH，也装不了任何东西 |
+
+**一个具体的配合流程。** 在创作模式的会话里说：
+
+> 给我的 profile 加一个插件，把某个会话导出成 Markdown。
+
+1. 创作模式调 `cordis_inspect_query`，确认当前版本 `ctx.sessions` / `ctx.storage` 的真实签名。
+2. 本技能给出 `defineTool` / service 骨架与铁律——副作用归 effect 托管、用 `inject` 而不是 `ctx.get`、所有可调值进 `Config`——于是第一版草稿就已经符合规范。
+3. 创作模式用 `plugin_manager` 的 `install_bundle` 装进 profile，并读回 `application: applied`。
+4. 遇到不认识的 API 时，[`References/12b-migration-errors.md`](References/12b-migration-errors.md) 告诉你它是从哪个版本开始变的，[`References/13-upgrade-guides.md`](References/13-upgrade-guides.md) 给出上游指南原文链接。
+
+分流不是靠运气：[`SKILL.md`](SKILL.md) §0 内置了这张分工表，两个技能都加载的 Agent 会按任务自己选，而不是猜。
 
 ## 目录
 
-- [为什么需要这个技能](#为什么需要这个技能)
+- [快速开始](#快速开始)
+- [与 DSH 创作模式叠加使用](#与-dsh-创作模式叠加使用)
 - [你能得到什么](#你能得到什么)
-- [三步上手](#三步上手)
-- [结构](#结构)
-- [自检能力](#自检能力)
+- [为什么值得](#为什么值得)
+- [项目结构](#项目结构)
 - [安装](#安装)
-  - [作为 DSH 技能](#作为-dsh-技能)
-  - [在其他 Agent 宿主中使用（Claude Code、Codex）](#在其他-agent-宿主中使用claude-codecodex)
+- [自检能力](#自检能力)
 - [常见问题（FAQ）](#常见问题faq)
 - [资料来源](#资料来源)
 - [相关项目](#相关项目)
 - [贡献](#贡献)
 - [许可](#许可)
 
-## 为什么需要这个技能
-
-写一个 DSH "Hello World" 插件只需一行。但要写出**正确的**插件——`defineTool` 输出契约遵守、可逆效应替代手工清理、`inject` 依赖语义、Standard Schema 配置校验、事件分发模式选型、真正能装上车的打包——才是本技能编码的内容。
-
-技能**基于第一性原理**：每条铁律都基于底层框架 Cordis 的学术基础（[arXiv:2608.25512](https://arxiv.org/abs/2608.25512)），并把这些原理落地成可直接照抄的代码模板。每条 API 陈述都对照真实 SDK 类型在声明基线（`@deepseek-ai/*` 0.2.2-rc.3、cordis 4.1.0）实测过；模板在撰写时已对照该基线校验，但**不在 CI 中做类型检查**——DSH SDK 不是公开 npm 包。
-
 ## 你能得到什么
 
 - **心智模型先行**：Cordis「可逆效应 + 反应式余效应」理论，凝练成 10 条任何插件作者都必须遵守的铁律。
 - **覆盖五类插件面**：`tool`（`defineTool`）、`llm`（adapter）、`service`（definition + provider + consumer）、`event`（dispatch modes）、`bundle`（profile + manifest + Plugin Manager）。
-- **模板经过真实 SDK 类型校验**：代码样例在撰写时对照基线 SDK 校验过，且就是维护者自己使用的那几段。
+- **模板对照真实 SDK 类型校验过**：代码样例在撰写时对照基线 SDK 校验，且就是维护者自己使用的那几段。
+- **跨版本记忆**：一张按发布累积的破坏性变更表，Agent 知道某个 API *什么时候*变过，而不用每次重新踩坑。
 - **自带自检**：附带 [`scripts/verify.sh`](scripts/verify.sh)——一行基线复核（版本一致性 + README 徽章交叉核对 + frontmatter 合法性 + 上游 URL 存活 + 阅读预算与索引完整性），项目自身的 CI 在每次 push 上都会跑它。
-- **Tag-pinned 更新检查**：见 `SKILL.md` §1 与 [`AGENTS.md`](AGENTS.md) 「Mandatory flow on entry」。
+- **Tag-pinned 更新检查**：见 `SKILL.md` §1 与 [`AGENTS.md`](AGENTS.md) 的「Mandatory flow on entry」。
 - **可追踪上游**：每个主题的官方文档 URL 收在该主题最后一篇的末尾（拆分出来的各部分互相指向）。
 
 Agent 介入仓库时的约定（加载、检查、不能动哪些文件）见 [`AGENTS.md`](AGENTS.md)。
+## 为什么值得
 
-## 三步上手
+写一个 DSH 的 "Hello World" 插件只需一行。但要写出**正确的**插件——`defineTool` 输出契约遵守、可逆效应替代手工清理、`inject` 依赖语义、Standard Schema 配置校验、事件分发模式选型、真正能装上车的打包——才是本技能编码的内容。
 
-1. **安装**本技能（推荐符号链接——见 [安装](#安装)）。
-2. **打开** `SKILL.md`；Agent 会自动跑 §1 的更新检查并提示是否有新版本。
-3. **照着** [`References/14-workflow-and-scope.md`](References/14-workflow-and-scope.md) §1 的四阶段流程（侦察 → 实现 → 验证 → 交付）走。
-4. **Agent 写工具时**：用 [`References/03-tools.md`](References/03-tools.md) §1 里的 `defineTool` 模板（整段照抄，只需改四个字段 `name` / `description` / `parameters` / `output.schema`）。
-5. **发版或提 PR 前**：跑 `bash scripts/verify.sh`——绿灯意味着版本、frontmatter 与所有上游链接都一致。
-
-## 结构
+它**基于第一性原理**：每条规则都扎根于底层框架 Cordis 的学术基础（[arXiv:2608.25512](https://arxiv.org/abs/2608.25512)），再落地成可直接照抄的代码模板。每条 API 陈述都对照真实 SDK 类型在声明基线（`@deepseek-ai/*` 0.2.2-rc.3、cordis 4.1.0）实测过；模板在撰写时已对照该基线校验，但**不在 CI 中做类型检查**——DSH SDK 不是公开 npm 包。
+## 项目结构
 
 ```
 dsh-plugin-dev-skill/
 ├── SKILL.md                     # 索引层：分流规则、铁律、任务→文件路由（≤ 8192 字符）
 ├── VERSION                      # 技能版本号；SKILL.md §1 要求载入时检查它
 ├── AGENTS.md                    # CLI Agent 自动读取的约定文件
-├── README.md                    # 英文说明（默认）
+├── README.md                    # 英文说明
 ├── README.zh-CN.md              # 本文件（中文说明）
 ├── CHANGELOG.md                 # 变更日志
 ├── CONTRIBUTING.md              # 贡献指南
@@ -100,23 +125,9 @@ dsh-plugin-dev-skill/
 │   └── verify.sh                # 基线复核（版本/frontmatter/链接/字符预算），CI 在每次 push 上跑
 └── .github/workflows/ci.yml     # GitHub Actions：verify.sh + 上游 release 信号
 ```
-
-## 自检能力
-
-`scripts/verify.sh` 是本项目自身的质量门。它检查四件事：
-
-1. **版本一致**：`VERSION`、SKILL.md frontmatter `metadata.version`、最新 CHANGELOG 标题三者必须相等；README 徽章另做交叉核对——`skill-<ver>` 对 `VERSION`，SDK 徽章里的 release tag 对 `metadata.sdk-baseline`。
-2. **SKILL.md frontmatter 合法**：`name` 必须是 kebab-case（`^[a-z0-9]+(?:-[a-z0-9]+)*$`）；`description` 与 `metadata.{version, upstream, sdk-baseline}` 必须存在。
-3. **上游 URL 存活**：`*.md` 内所有指向 `deepseek-harness.github.io`、`github.com/deepseek-ai/`、`github.com/cordiverse`、`arxiv.org`、`registry.npmjs.org` 与 `raw.githubusercontent.com` 的 URL 必须返回**恰好 `200`**。CDN 临时 `000` 会重试两次才判失败。
-4. **阅读预算与索引完整性**：`SKILL.md` 与每个 `References/*.md` 不超过 **8,192 字符**——即 `compaction-tool-result-pruner` 的阈值（`thresholdChars: 8192`、`headChars: 4096`、`tailChars: 1024`，`standard` / `ptc` / `cordis` 三个 preset 相同）。技能是通过 tool result 送达模型的，超过这条线就会在上下文压缩时丢掉中间部分。同一项检查还会验证 `SKILL.md` 恰好路由到 `References/` 中实际存在的文件。
-
-macOS bash 3 兼容；支持 `SKIP_FRONT=1` / `SKIP_VERSION=1` / `SKIP_URLS=1` / `SKIP_BUDGET=1` 局部跳过。
-
-```sh
-bash scripts/verify.sh   # 绿灯退出 0；任何漂移退出 1
-```
-
 ## 安装
+
+上面的[快速开始](#快速开始)已经够了。本节是手动参考——当你想用符号链接的 git 检出，或需要某个宿主的确定路径时看。
 
 ### 作为 DSH 技能
 
@@ -144,47 +155,40 @@ cp SKILL.md VERSION ~/.dsh/skills/dsh-plugin-dev-skill/
 cp -r References ~/.dsh/skills/dsh-plugin-dev-skill/References
 ```
 
-**保持最新**：本技能自带 [`VERSION`](VERSION)，并在 `SKILL.md` §0.1 要求 Agent **载入后的第一件事就是检查是否有新版本**——`git ls-remote --tags` 取最新发布 tag，再读 `${TAG}/VERSION`（tag 钉死，避开 `main` 分支 CDN 缓存延迟），做语义化比较；若远端更新则先更新（符号链接/git 检出走 `git pull`；普通拷贝走重新 clone + `rsync`），**更新完再使用本技能**。推荐的安装形态就是上面的**符号链接**：一句 `git pull` 就地把已加载的技能更新掉；DSH 会跟随符号链接的技能目录（`watchFollowSymlinks` 默认开启），Claude Code 与 Codex 同样支持。如果无法检查（离线、无网络、无写权限），Agent 应明确说明「未能检查更新」，并基于本地版本继续，而不是假装检查过。
+**保持最新**：本技能自带 [`VERSION`](VERSION)，并在 `SKILL.md` §1 要求 Agent **载入后的第一件事就是检查是否有新版本**——`git ls-remote --tags` 取最新发布 tag，再读 `${TAG}/VERSION`（tag 钉死，避开 `main` 分支 CDN 缓存延迟），做语义化比较；若远端更新则先更新（符号链接/git 检出走 `git pull`；普通拷贝走重新 clone + `rsync`），**更新完再使用本技能**。推荐的安装形态就是上面的**符号链接**：一句 `git pull` 就地把已加载的技能更新掉；DSH 会跟随符号链接的技能目录（`watchFollowSymlinks` 默认开启），Claude Code 与 Codex 同样支持。如果无法检查（离线、无网络、无写权限），Agent 应明确说明「未能检查更新」，并基于本地版本继续，而不是假装检查过。
 
-### 在其他 Agent 宿主中使用（Claude Code、Codex）
+### 在其他 Agent 宿主中使用
 
-本技能遵循开放的 [Agent Skills 标准](https://agentskills.io)：一个包含 `SKILL.md` 与 YAML frontmatter（`name` / `description` / `whenToUse`）及配套 `References/` 目录的文件夹——与 Claude Code、Codex 及众多 Agent 宿主使用的形态一致，凡是支持 Agent Skills 的地方都可以安装。
+本技能遵循开放的 [Agent Skills 标准](https://agentskills.io)：一个名为 `dsh-plugin-dev-skill` 的文件夹，内含 `SKILL.md`（YAML frontmatter `name` / `description` / `whenToUse`）与配套的 `References/` 目录。凡是支持 Agent Skills 的宿主都能加载。
 
-**方式 A：让 Agent 自己安装（推荐）**——直接把仓库地址告诉它，让它自行克隆安装。例如在 Claude Code 会话里粘贴：
+安装方式和[快速开始](#快速开始)完全一致：**把仓库地址交给 Agent，让它自己把文件夹放到宿主的技能目录里。** 上面刻意不写具体目录——Agent 知道它宿主的约定，而写死某一家的路径只会让这条指令在其它宿主上变成错的。
 
-> 请把 https://github.com/green-dalii/dsh-plugin-dev-skill 这个技能安装到 `~/.claude/skills/dsh-plugin-dev-skill/`，之后我处理 DeepSeek Harness 插件开发时加载 `SKILL.md`。
-
-或者在 Codex CLI 会话里粘贴：
-
-> 请把 https://github.com/green-dalii/dsh-plugin-dev-skill 这个技能安装到 `~/.agents/skills/dsh-plugin-dev-skill/`。
-
-通用说法（适用于任何 Agent）：
-
-> 请把 https://github.com/green-dalii/dsh-plugin-dev-skill 安装到你的技能目录（文件夹 `dsh-plugin-dev-skill`，内含 `SKILL.md` 与 `References/`），当任务涉及开发 DeepSeek Harness（DSH）插件时使用它。
-
-**方式 B：手动安装**
-
-| Agent / 宿主 | 安装位置 | 调用方式 |
-|---|---|---|
-| Claude Code（个人级） | `~/.claude/skills/dsh-plugin-dev-skill/SKILL.md` | `/dsh-plugin-dev-skill`，或描述匹配时自动加载 |
-| Claude Code（项目级） | `<仓库>/.claude/skills/dsh-plugin-dev-skill/SKILL.md` | 同上 |
-| Codex CLI（用户级） | `~/.agents/skills/dsh-plugin-dev-skill/SKILL.md` | `/skills` 浏览，`$dsh-plugin-dev-skill` 提及 |
-| Codex CLI（仓库级） | `<仓库>/.agents/skills/dsh-plugin-dev-skill/SKILL.md` | 同上 |
-| DSH | `~/.dsh/skills/dsh-plugin-dev-skill/SKILL.md` | 见上方[作为 DSH 技能](#作为-dsh-技能) |
-| 任意 Agent Skills 宿主 | `<技能目录>/dsh-plugin-dev-skill/SKILL.md` | 按宿主说明 |
+如果你想手动装，克隆到宿主的技能目录并保持文件夹名即可：
 
 ```sh
-git clone https://github.com/green-dalii/dsh-plugin-dev-skill.git ~/.claude/skills/dsh-plugin-dev-skill
-# 或改为符号链接：
-ln -s /path/to/dsh-plugin-dev-skill ~/.claude/skills/dsh-plugin-dev-skill
+git clone https://github.com/green-dalii/dsh-plugin-dev-skill.git <你的技能目录>/dsh-plugin-dev-skill
 ```
 
 注意事项：
 
-- 文件夹名请保持 `dsh-plugin-dev-skill`——必须与 frontmatter 中的 `name` 一致（Claude Code 会用它作为命令名）。
+- 文件夹名必须与 frontmatter 的 `name` 一致——Claude Code 会用它作为命令名。
 - 不支持的宿主会忽略 `whenToUse` 等扩展 frontmatter 字段，不影响加载。
-- 彩蛋：DSH 同样读取项目级 `.agents/skills`，所以在 `<仓库>/.agents/skills/dsh-plugin-dev-skill/` 放一份，Codex 与 DSH 可以共用。
+- DSH 同样读取 `<仓库>/.agents/skills`，所以一份拷贝可以同时服务 Codex 与 DSH。
 
+## 自检能力
+
+`scripts/verify.sh` 是本项目自身的质量门。它检查四件事：
+
+1. **版本一致**：`VERSION`、SKILL.md frontmatter `metadata.version`、最新 CHANGELOG 标题三者必须相等；README 徽章另做交叉核对——`skill-<ver>` 对 `VERSION`，SDK 徽章里的 release tag 对 `metadata.sdk-baseline`。
+2. **SKILL.md frontmatter 合法**：`name` 必须是 kebab-case（`^[a-z0-9]+(?:-[a-z0-9]+)*$`）；`description` 与 `metadata.{version, upstream, sdk-baseline}` 必须存在。
+3. **上游 URL 存活**：`*.md` 内所有指向 `deepseek-harness.github.io`、`github.com/deepseek-ai/`、`github.com/cordiverse`、`arxiv.org`、`registry.npmjs.org` 与 `raw.githubusercontent.com` 的 URL 必须返回**恰好 `200`**。CDN 临时 `000` 会重试两次才判失败。
+4. **阅读预算与索引完整性**：`SKILL.md` 与每个 `References/*.md` 不超过 **8,192 字符**——即 `compaction-tool-result-pruner` 的阈值（`thresholdChars: 8192`、`headChars: 4096`、`tailChars: 1024`，`standard` / `ptc` / `cordis` 三个 preset 相同）。技能是通过 tool result 送达模型的，超过这条线就会在上下文压缩时丢掉中间部分。同一项检查还会验证 `SKILL.md` 恰好路由到 `References/` 中实际存在的文件。
+
+macOS bash 3 兼容；支持 `SKIP_FRONT=1` / `SKIP_VERSION=1` / `SKIP_URLS=1` / `SKIP_BUDGET=1` 局部跳过。
+
+```sh
+bash scripts/verify.sh   # 绿灯退出 0；任何漂移退出 1
+```
 ## 常见问题（FAQ）
 
 ### DeepSeek Harness（DSH）是什么？
@@ -195,13 +199,17 @@ DeepSeek Harness 是一个 Agent Harness SDK：其中每一项能力——工具
 
 能写。最小插件只是一个导出 `apply(ctx)` 函数的模块，官方文档也讲了。本技能的价值在于**一次写对**：`defineTool` 的规范输出契约、用可逆效应替代手工清理、`inject` 的依赖语义、Standard Schema 配置校验、事件分发模式选型，以及真正能装上车的打包方式。
 
+### 它会取代 DSH 的创作模式吗？
+
+不会，它是叠加在创作模式之上的。创作模式能看见并改动你**正在运行的**安装；本技能知道 **API 面**是什么样、以及跨版本改了什么。分工与一个完整的配合示例见[与 DSH 创作模式叠加使用](#与-dsh-创作模式叠加使用)。
+
 ### 用它可以做出什么？
 
 用 `defineTool` 注册的工具、LLM 适配器（`LlmAdapter.stream()`）、服务定义/提供方/消费方、监听 `tools/*` 与 `agent/*` 的钩子插件、UI 插件、协议桥（ACP、SDK）、后台任务，以及可发布的组合包与 profile。
 
 ### 哪些 Agent 能加载它？
 
-任何实现 Agent Skills 标准的宿主，包括 DSH（项目级与用户级技能目录）、Claude Code（`~/.claude/skills/`）与 Codex CLI（`~/.agents/skills/`）——详见[安装](#安装)。
+任何实现 Agent Skills 标准的宿主。顶部的兼容徽章列出我们跟踪的那些——其中 **DSH 是官方支持目标**（所有 API 陈述都以它实测为准），其余宿主通过同一标准加载同一个文件夹。每个宿主有自己的技能目录，但你不用知道它：Agent 知道（见[快速开始](#快速开始)）。
 
 ### 技能内容是英文的吗？
 
@@ -213,16 +221,11 @@ DeepSeek Harness 是一个 Agent Harness SDK：其中每一项能力——工具
 
 ### 如何保持最新？
 
-推荐把技能安装为指向 git 检出的**符号链接**，`git pull` 即可就地把已加载的技能更新掉。此外，技能在**每次载入时会检查自身版本**：把本机 `VERSION` 与最新发布 tag 比对，若有新版本则先更新再使用（`SKILL.md` §1）。远端检查只取一个极小的文件，离线时会优雅降级。
-
-### 可以让 Agent 自己安装吗？
-
-可以。把仓库地址告诉 Agent，让它把技能装进自己的技能目录即可——可直接复制上文[方式 A](#在其他-agent-宿主中使用claude-codecodex) 里的提示词。
+推荐把技能安装为指向 git 检出的**符号链接**，`git pull` 即可就地把已加载的技能更新掉。你不需要记着更新：技能在**每次载入时会检查自身版本**——把本机 `VERSION` 与最新发布 tag 比对，若有新版本则先更新再使用（`SKILL.md` §1）。远端检查只取一个极小的文件，离线时会优雅降级。
 
 ### 发现 API 写错或链接失效怎么办？
 
 欢迎开 Issue 或 PR——见 [CONTRIBUTING.md](CONTRIBUTING.md)。每个主题的官方文档 URL 收在该主题最后一篇的末尾，便于核对并修正上游漂移。
-
 ## 资料来源
 
 - 官方文档站（中文/英文）：https://deepseek-harness.github.io/deepseek-harness/develop/basic/
@@ -231,7 +234,6 @@ DeepSeek Harness 是一个 Agent Harness SDK：其中每一项能力——工具
 - 论文：《A Programming Paradigm for Spatiotemporal Composability》（Cordis 框架的学术基础，arXiv:2608.25512）：https://arxiv.org/abs/2608.25512
 
 所有参考文档均为**精简提炼**（不是官方文档照搬），以「开发出正确、高效、符合规范的插件」为目标组织。
-
 ## 相关项目
 
 同一作者的其它项目：
@@ -242,11 +244,9 @@ DeepSeek Harness 是一个 Agent Harness SDK：其中每一项能力——工具
 | [`green-dalii/pi-shift-router`](https://github.com/green-dalii/pi-shift-router) | `dsh-shift-router` 所改编的原版 Pi coding-agent 扩展：由 LLM judge 把每一轮 agent 交给合适的模型——例行工作走快速执行，难题走强推理——并带多模型故障转移。[主页](https://shiftrouter.greenerai.top) |
 | [`GD4AI/obsidian-llm-wiki`](https://github.com/GD4AI/obsidian-llm-wiki) | Obsidian 社区插件（id `karpathywiki`），实现 Karpathy 的 LLM Wiki：把笔记与 PDF 变成互相链接的 LLM 知识库——实体页/概念页、图驱动的问答、本地优先隐私。[主页](https://llmwiki.greenerai.top) |
 | [`green-dalii/obsidian-llm-wiki-cli`](https://github.com/green-dalii/obsidian-llm-wiki-cli) | 无头摄取 CLI（npm [`karpathywiki-cli`](https://www.npmjs.com/package/karpathywiki-cli)，`llm-wiki` 可执行文件）：在 Node 下直接跑插件生产环境的 `WikiEngine`，不需要 Obsidian 渲染器、零 `obsidian` 导入。 |
-
 ## 贡献
 
 欢迎提交 Issue 与 PR！请先阅读 [CONTRIBUTING.md](CONTRIBUTING.md)。安全相关问题见 [SECURITY.md](SECURITY.md)。提 PR 前先本地跑 `bash scripts/verify.sh`——CI 也会跑一遍。
-
 ## 许可
 
 [MIT](LICENSE) © 2026 green-dalii

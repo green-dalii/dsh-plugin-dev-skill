@@ -4,6 +4,24 @@
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-15
+
+README 重写（双语），从「维护者视角的功能清单」改为「用户 / Agent 视角的接入说明」。技能正文未变，SDK 基线不变。
+
+### 变更
+
+- **首屏改为 `Quick Start` / `快速开始`**：位置在目录之前，说明不再要求用户手动安装或自己读 `SKILL.md`，而是一条可直接粘进 Agent 的指令——粘完即装即用，之后由 Agent 按 `whenToUse` 自行加载。原「三步上手」（实际列了 5 步，名不副实）整节删除。
+- **新增「与 DSH 创作模式叠加使用」章节**：说明本技能与 DSH 内置创作模式（preset `cordis`，随附 `dsh-doc` 与 `cordis_inspect_*` 探针）是**互补而非替代**关系；给出能力对照表（各自知道什么 / 能做什么 / 盲区），以及一条完整的配合流程（探针确认签名 → 本技能出骨架与铁律 → `install_bundle` 装进 profile → 按版本表追溯 API 变更）。
+- **章节重排**：`Quick Start` → `与创作模式叠加` → `目录` → 其余；「安装」明确降级为手动参考，其下的宿主路径表与符号链接方案原样保留。
+- **徽章墙新增编码 Agent 兼容性徽章**：DSH（标注 `official compatible`，版本与 release tag 链接保留供 `verify.sh` 交叉核对）、Claude Code、Codex CLI、Pi、Cursor、Google Antigravity、GitHub Copilot、OpenCode、Amp、Cline、Goose、Kiro、Kimi Code、ZCode、Minimax Code，以及 `Agent Skills` 标准徽章。
+- **目录精简**：只保留二级标题，移除 FAQ 下 9 条子项，修正 `快速开始` 重命名后的锚点。
+- FAQ 新增「它会取代 DSH 的创作模式吗？」。
+- 「你能得到什么」补充**跨版本记忆**一条。
+
+### 元数据
+
+- `VERSION` / `metadata.version` / `CHANGELOG` 同步到 **0.9.1**；README 徽章同步。
+
 ## [0.9.0] - 2026-11-15
 
 架构性重构：`SKILL.md` 从 56,012 字符的手册瘦身为 **5,199 字符**的索引与铁律，正文全部迁入 `References/`；`References/` 由 12 篇重排为 **25 篇，每篇 ≤ 8192 字符**。起因是核对 DSH 自身 `compaction-tool-result-pruner`（`thresholdChars: 8192` / `headChars: 4096` / `tailChars: 1024`，`standard` / `ptc` / `cordis` 三 preset 相同）：技能正文经 tool result 送达模型，超过阈值的部分在压缩时只保留首尾——旧 `SKILL.md` 是阈值的 6.8 倍，长会话里中间约 91% 会被砍掉。SDK 基线不变（`0.2.2-rc.3` / cordis `4.1.0`）。
