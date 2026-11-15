@@ -1,6 +1,6 @@
 # 02 · 插件基础：形态、生命周期、effect 与 HMR
 
-> 精简提炼自 develop/basic/（第一个插件）、develop/framework/（插件与生命周期）、cordis-tutorial 第 1、2 章。API 签名以本地 `@deepseek-ai/cordis` **4.1.0** + **`@deepseek-ai/*` 0.2.2-rc.3** 为准。基线变更与逐版本差异见 `References/00-INDEX.md` 与 SKILL.md §0/§10/§12。
+> 精简提炼自 develop/basic/（第一个插件）、develop/framework/（插件与生命周期）、cordis-tutorial 第 1、2 章。API 签名以本地 `@deepseek-ai/cordis` **4.1.0** + **`@deepseek-ai/*` 0.2.2-rc.3** 为准。基线变更与逐版本差异见 `References/00-INDEX.md` 与 SKILL.md §1；打包与安装见 `07-publish.md` / `07b-publish-advanced.md` §8；错误表见 `12-mistakes.md` / `12b-migration-errors.md`。
 
 ## 1. 插件是什么
 
@@ -18,6 +18,16 @@ export function apply(ctx: Context) {
 ```
 
 模块级还可导出 `Config`（standard-schema 校验器）声明自己的配置；校验失败时插件以 `ValidationError` 停在 FAILED，`apply` 永不执行。`provide`、`intercept` 与它们属于同一组静态元数据。
+
+**运行时与包地图**：插件是 **TypeScript 模块**（也接受 JS），运行于 **Node.js ESM** 环境。核心依赖包都在 `@deepseek-ai` 作用域下：
+
+| 包 | 职责 |
+|---|---|
+| `@deepseek-ai/cordis` | 插件框架本体：context、fiber、事件分发、注册表、reflect 层 |
+| `@deepseek-ai/schemastery` | 配置 schema 校验（Standard Schema 实现），`Config` 用它构建 |
+| `@deepseek-ai/dsh-tools` | `defineTool` 与工具注册表服务（`ctx.tools`） |
+| `@deepseek-ai/dsh-llm` | `LlmAdapter`、`StreamChunk`、`GenerateOptions`、`ToolCallId`（旧名 `CallId` 已不再导出） |
+| 各能力 seam 包 | `dsh-shell` / `dsh-session` / `dsh-agent` / `dsh-system-prompt` / `dsh-fs` / `dsh-jobs` / `dsh-credentials` 等；完整清单见 `08b-seams-core.md` 与 `08c-seams-platform.md` |
 
 ## 2. 三种插件形态
 
@@ -53,7 +63,7 @@ export default class MyService extends Service {
 - `ctx.tools.register(tool)` — 工具注册
 - `ctx.llm.registerAdapter(names, adapter)` — LLM 适配器注册
 - `ctx.plugin(childPlugin)` — 子插件（随父插件递归卸载）
-- `ctx.provide(name, value?, check?)` — 直接提供一个服务（`Service` 的底层原语）
+- `ctx.provide(name, value)` — 直接提供一个服务（`Service` 的底层原语）；可用性谓词 `check` 只在 `ctx.reflect.provide(name, value, check)` 上（`ctx.provide` 没有第三个参数）
 - `ctx.effect(() => cleanup, label?)` — 自定义资源
 
 ```ts
@@ -136,7 +146,7 @@ cordis **4.1.0** 起 `Fiber.update(config, noSave?)` **返回 `Awaitable<void>`*
 
 ## 7. HMR（热模块替换）
 
-加载 `@deepseek-ai/cordis-plugin-hmr`（base 里的行 `id: hmr`；上游新文档称 `dsh-hmr`）后，修改插件源文件触发：卸载旧插件（清理所有注册）→ 重新加载新代码 → 执行新 `apply`。
+加载 `@deepseek-ai/dsh-hmr`（base 里的行 `id: hmr`；0.2.0 前名为 `@deepseek-ai/cordis-plugin-hmr`）后，修改插件源文件触发：卸载旧插件（清理所有注册）→ 重新加载新代码 → 执行新 `apply`。
 
 - 因为注册自动清理，热替换不会残留旧实例的注册。
 - 默认只监视**配置**变更并热重载受影响的行；**外部插件的模块（代码）变更在当前实现中仍需重启进程**。

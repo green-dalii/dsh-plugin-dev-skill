@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Apt baseline check (SKILL frontmatter / version triple / URL 200)
+      - name: Baseline check (frontmatter / version triple + badges / URL 200 / char budget + index)
         run: bash scripts/verify.sh
 
       - name: Spot-check the running DSH sources still match what we document

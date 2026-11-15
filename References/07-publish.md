@@ -1,6 +1,6 @@
 # 07 · 打包与安装插件
 
-> 精简提炼自 develop/basic/publish 与 `apps/cli/reference`（CLI 行为参考）。SDK 基线 `@deepseek-ai/*` **0.2.2-alpha.2**；§2 的版本契约、bundle 清单迁包与 executor 挂载要求已按 0.2.1-rc.2 ~ 0.2.2-alpha.2 修订。
+> 精简提炼自 develop/basic/publish 与 `apps/cli/reference`（CLI 行为参考）。SDK 基线 `@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）；§2 的版本契约、bundle 清单迁包与 executor 挂载要求已按 0.2.1-rc.2 ~ 0.2.2-rc.3 修订。
 
 ## 1. 两个概念：组合包（bundle）与 profile
 
@@ -47,13 +47,20 @@ manifest 另有两个可选的新键：`dsh.manifestVersion: 1`（manifest 格�
 
 **官方 bundle 清单迁包（0.2.1-rc.2 起）**：`PROFILE_TEMPLATES`、`ProfileTemplate`、`DEFAULT_PROFILE_BUNDLES`、`OPTIONAL_BUNDLES`、`ON_DEMAND_BUNDLES`、`OFFICIAL_ON_DEMAND_CATALOG`、`OfficialBundleCatalogEntry` **不再从 `@deepseek-ai/dsh-app-boot` 导出**，改从新包 **`@deepseek-ai/dsh-official-bundles`** 导出（值与类型不变）。依赖这些清单的插件 / CLI 工具必须**加依赖并改 import 来源**；`initProfile`、`loadProfile` 等其它名字**仍从 `@deepseek-ai/dsh-app-boot` 导入**。
 
-**自定义组合必须挂工具 executor（0.2.1-rc.2 起）**：`dsh-tools` 的 `mode` / `maxParallelSubCalls` 配置字段**已删除**（加载时直接拒绝），Native / PTC 执行改由 `@deepseek-ai/dsh-tool-executor-native` / `@deepseek-ai/dsh-tool-executor-ptc` 承担。随附 profile 都挂了 executor；**自定义 `cordis.yml` / patch 漏挂会导致启动失败**（不是降级）。同理，`@deepseek-ai/dsh-user-approval` **必须排在 `@deepseek-ai/dsh-session-projection` 之后**（`ApprovalService` 依赖 `sessionProjections`，缺失时激活失败）。
+**自定义组合必须挂工具 executor（0.2.1-rc.2 起）**：`dsh-tools` 的 `mode` / `maxParallelSubCalls` 配置字段**已删除**（加载时直接拒绝），Native / PTC 执行改由 `@deepseek-ai/dsh-tool-executor-native` / `@deepseek-ai/dsh-tool-executor-ptc` 承担。随附 profile 都挂了 executor；**自定义 `cordis.yml` / patch 漏挂会导致启动失败**（不是降级）。
+
+**依赖 / 激活顺序要求**：
+
+- `@deepseek-ai/dsh-user-approval` **必须排在 `@deepseek-ai/dsh-session-projection` 之后**——`ApprovalService` 依赖 `sessionProjections`，缺失或未就绪时激活会**失败**（**不再退化为回读事件日志**）。
+- 工具 executor 行（`tool-executor-native` / `tool-executor-ptc`）**必须启用**，否则启动失败。
+- `@deepseek-ai/dsh-tool-subagent/model-selection-settings`（若需要多模型路由）**必须排在创建 Agent 之前**，并提供 `sessions` 与 `sessionProjections` 服务。
 
 ## 3. profile 结构（自动维护）
 
-profile 目录含两个文件：
+profile 目录含三个文件：
 
 - `package.json` — 树外插件依赖（pnpm 管理）+ `dsh.profile` manifest：有序 `bundles` 列表（`patchReload` 字段已删除，残留键是**惰性的**，没有读取方）。
+- `cordis.yml` — 空列表，由 Profile Manager 维护，不要手写。
 - `cordis.patch.yml` — 用户自己的 patch 层（每个组合包层之后应用）。
 
 首次初始化还会生成 `pnpm-workspace.yaml`（pnpm 配置；从 git 安装时的 `allowBuilds` 写在它里面，由 pnpm 维护）。
@@ -100,51 +107,5 @@ dsh plugin --profile demo remove dsh-hello-plugin  # 同时移除依赖和对应
 - 你用 `!!js` 从运行时服务读值时（如 `port: !!js ctx.webStartup.port ?? 8080`），用户 patch 用字面量替换整个 `config` 会连同这次运行时读取一起去掉。
 - 内置组合包名（`@deepseek-ai/dsh-base`、`@deepseek-ai/dsh-web-app`、`@deepseek-ai/dsh-headless`、`@deepseek-ai/dsh-sdk-app`、`@deepseek-ai/dsh-sdk-minimal`、`@deepseek-ai/dsh-acp-app`）先从 dsh 安装目录解析，再从 profile 的 `node_modules` 解析；pnpm 只管后者。**安装的包拥有自己的依赖**，组合包可放心依赖 `@deepseek-ai/dsh-base` 存在且与安装一致。
 
-## 6. 从 GitHub 安装：构建脚本这道坎
 
-git 安装拉取的是**源码，不是构建产物**（没有环节运行 `build`）。必须两边各做一件事：
-
-- **作者**：提供自包含的 `prepare` 脚本（pnpm 在 git 安装后运行它），不能假设仅开发环境才有的上下文（如旁边有 monorepo checkout）。关键是 `prepare` 用专用 tsdown 配置直接转译 `src/`，不建项目引用、不做类型检查。
-- **用户**：pnpm ≥10 默认拒绝 git 依赖的 `prepare`，首次 `add` 会失败；把 pnpm 打印的确切包键加进 profile 的 `pnpm-workspace.yaml` 的 `allowBuilds` 并重新 `add`：
-
-```yaml
-allowBuilds:
-  dsh-hello-plugin: true
-```
-
-**要如实看待这项授权**：允许该包代码在安装时于你的机器上执行，且不在 agent 沙箱内。只对源码可信的包授权，并锁定 commit（`github:you/hello-plugin#<sha>`）。
-
-**不想让用户授权构建** → 分发构建产物（安装已构建的 tarball 或本地 checkout 不需要 `allowBuilds`）：
-- 发布 npm：`pnpm publish` 时构建好 `lib/`。
-- 交付 tarball：`pnpm pack`，用户 `dsh plugin add ./hello-plugin-0.1.0.tgz`。
-
-## 7. 表层组合包持有自己的命令行（进阶）
-
-可运行应用的组合包挂载一个普通提供方插件，导出 `inject = ['cmdlineArgs']`，用 `@deepseek-ai/dsh-cmdline` 的 `parseCmdline(ctx, program)` 解析共享的不可变参数快照，再在 action 中把应用自有服务提供出去。真实例子见 `@deepseek-ai/dsh-web-app` 的 `./startup` 导出：
-
-```yaml
-- id: hello-startup
-  name: 'dsh-hello-plugin/startup'
-```
-
-受参数配置的行注入提供方服务，并用 `!!js` 读取（带部署默认值回退）：
-
-```yaml
-- id: my-app
-  name: '@example/my-app'
-  inject: [myAppStartup]
-  config:
-    port: !!js ctx.myAppStartup.port ?? 8080
-```
-
-遇到 `--help` 时提供方不发布该服务 → 这些行不激活。启动器只解析自身 flag，其余原样交给 profile，因此加应用专属 flag 无需改启动器；`ctx.cmdlineArgs.get()` 是共享的不可变读取。
-
----
-
-## 官方文档链接
-
-> 本文为精简提炼，官方文档更新时请从以下 URL 获取新内容并修订本文：
-
-- **打包与安装插件**：https://deepseek-harness.github.io/deepseek-harness/develop/basic/publish
-- **架构（Profile 与组合包）**：https://github.com/deepseek-ai/deepseek-harness/blob/master/docs/architecture.zh.md
-- **CLI 行为参考**：https://github.com/deepseek-ai/deepseek-harness/blob/master/apps/cli/reference/README.zh.md
+> 本主题的官方文档链接见 `07b-publish-advanced.md` 末尾。

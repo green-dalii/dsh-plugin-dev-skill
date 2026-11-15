@@ -1,35 +1,46 @@
 # 参考资料索引（References）
 
-本目录是 **DeepSeek Harness（DSH）插件开发**的人机可读精简提炼资料，由官方文档站
-（https://deepseek-harness.github.io/deepseek-harness/ ）与仓库源码（https://github.com/deepseek-ai/deepseek-harness ）
-提炼而成，**不是官方文档的照搬**，而是面向“开发插件”这一目标的高信号浓缩。
+> 本目录是 DSH 插件开发的**操作手册正文**，由官方文档站（https://deepseek-harness.github.io/deepseek-harness/ ）与仓库源码
+> 提炼而成——**不是官方文档的照搬**，而是面向「开发插件」这一目标的高信号浓缩。仓库根的 `SKILL.md` 是**索引与铁律**（≤ 8192 字符）。
+> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
 
-使用方式：先读项目根目录的 `SKILL.md`（操作手册），需要深度背景时按需查阅本目录对应文件。
+**为什么每篇都要 ≤ 8192 字符**：DSH 的 `compaction-tool-result-pruner` 配置为 `thresholdChars: 8192` / `headChars: 4096` / `tailChars: 1024`（`standard` / `ptc` / `cordis` 三个 preset 相同），超过阈值的 tool result 在压缩时**只保留首尾**。技能正文是通过 tool result 送达模型的，所以任何一篇超过 8192 字符，长会话里就会被砍掉中间——这不是风格问题，是「读不到」问题。`scripts/verify.sh` 会强制守住这条线。
 
-**SDK 基线**：所有 API 陈述以 `@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）的类型定义实测为准。**0.2.1-rc.1 ~ 0.2.2-alpha.2 是一次大重构**（跨越 43 篇上游升级指南，其中 25 篇对插件开发有实质影响），**对 tool / LLM / service 插件的公共 API 破坏**：① 工具执行模式拆成独立 executor 插件（`dsh-tools` 的 `mode` / `maxParallelSubCalls` 配置字段删除、`ctx.tools.presentAs()` 移除、`DSH_TOOLS_MODE` 失效）；② 工具声明改由「步骤准入」决定（`ctx.tools.register(def, { when })` 条件注册、`system-prompt/assemble` 不再携带工具数组）；③ `agent/request` 事件不再公开；④ session 投影注册改为异步返回 `ProjectionHandle`；⑤ `GenerateOptions.purpose` 改为声明式（`LlmRequestPurposeMap`）；⑥ PTC 新增 `script` 程序格式与 `retainsState`，调用方取消改用 `ABORTED`；⑦ 官方 bundle 清单迁到 `@deepseek-ai/dsh-official-bundles`。
+## 文件总览
 
-**0.2.2-alpha.3 ~ 0.2.2-rc.3（本次基线）**：cordis 升 **4.1.0**（`Fiber.update()` 返回 `Awaitable<void>`、`LoggerLevel` 数值重排为 `WARN=1`/`INFO=2`、`internal/update` 监听器签名收窄为 `(config, next)`）；**错误契约重构**——`HarnessError` 迁到新包 `@deepseek-ai/dsh-error`、`dsh-llm` 新增 `LLM_FAILURE_CODES`（50 码）/`BuiltinLlmFailureCode`/`LlmError.fromFailure()`；**工具守卫与审批带结构化错误身份**（`ToolGuardDenial`、`ApprovalError` + `APPROVAL_*`、`ToolContextUnavailableError`）；**`Session.append` 支持批量数组重载**；**子代理全面具名**（`agent_id`→`agent`、`list_agents` 行改形、`parentAgent` 移除、catalog payload v3）；`ctx.officeToPdf`→**`ctx.officeKit`**；新增 seam `ctx.mcpManager`/`ctx.deepseekChatImport`/`ctx.sessionLogDeepSeek`。官方文档站发布 `develop/**`、`guide/**`、`reference/**` 与部分 `subsystems/{ptc-runtime, schedule, approval, claude-code-mods, …}`；而 `docs/glossary`、`docs/event-producer-consumer`、`docs/defensive-patterns` 与多数 `docs/subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-kit` 等）**仅存在于仓库**，相关链接指向 GitHub blob。各版本升级指南由 SKILL.md §13 给到 GitHub 原文链接。
-
-| 文件 | 主题 | 官方对应章节 |
+| 文件 | 主题 | 上游对应 |
 |---|---|---|
-| `01-dsh-architecture.md` | DSH 架构总览：CLI、profile、bundle、配置层、插件加载 | guide + develop/basic + 架构（仓库） |
-| `02-plugin-basics.md` | 第一个插件、三种形态、inject、effect、生命周期、HMR | develop/basic/、develop/framework/、cordis-tutorial 1-2 |
-| `03-tools.md` | 工具开发完整参考：defineTool、执行流水线、后台任务、UI 卡片 | develop/basic/tool、cookbook/adding-a-tool、subsystems/tools、tool-execution-pipeline |
-| `04-config.md` | 插件配置与 Schemastery schema、设置页 | develop/basic/config、cordis-tutorial 5、cookbook/adding-a-settings-card |
-| `05-llm-adapter.md` | LLM 适配器完整指南：LlmAdapter、StreamChunk、GenerateOptions | develop/practice/llm-adapter、cookbook/adding-an-llm-adapter、subsystems/llm-streaming |
-| `06-framework-services-events.md` | 服务与依赖、事件系统、作用域过滤分发、生产方契约 | develop/framework/、cordis-tutorial 3-4、cordis-api/* |
-| `07-publish.md` | 打包、安装、profile、配置层顺序、运行时依赖归属 | develop/basic/publish + CLI 参考 |
-| `08-capability-layering.md` | 三种角色能力设计 + 能力 seam 目录 | develop/practice/、reference/capability-seams |
-| `09-cordis-primer.md` | Cordis 入门：核心概念、分发模式、ctx API 速查 | reference/cordis-primer、cordis-api/* |
+| `00-INDEX.md` | 本文件：文件总览、SDK 基线、术语对照 | — |
+| `01-dsh-architecture.md` | DSH 架构总览：CLI、profile/bundle、配置层、插件加载、内核主干、事件域 | guide + develop/basic + docs/architecture（仓库） |
+| `02-plugin-basics.md` | 插件是什么、运行时与包地图、三种形态、inject/effect、Fiber 状态机、HMR | develop/basic/、develop/framework/、cordis-tutorial 1-2 |
+| `03-tools.md` | 工具基础：最小形态、execute 契约、定义级元数据、ValueSchemaSpec | develop/basic/tool、cookbook/adding-a-tool |
+| `03b-tools-advanced.md` | 工具进阶：后台任务、执行策略与观测、UI 卡片 | subsystems/tools、tool-execution-pipeline |
+| `03c-tools-pipeline.md` | 工具流水线：作用域与「步骤准入」、PTC mode、executor 插件 | reference/subsystems/tools、executor 包源码 |
+| `04-config.md` | 插件配置与 Schemastery：Config 导出、严格校验、`!!js`、设置页 | develop/basic/config、cordis-tutorial 5、cookbook/adding-a-settings-card |
+| `05-llm-adapter.md` | LLM 适配器：LlmAdapter、StreamChunk 协议、GenerateOptions、注册 | develop/practice/llm-adapter、cookbook/adding-an-llm-adapter |
+| `05b-llm-errors.md` | LLM 错误：LLM_FAILURE_CODES、retryChoice、fromFailure、HarnessError、pi-ai 1.3.0 | subsystems/llm-streaming、`dsh-llm` 类型定义 |
+| `06-services.md` | 服务与依赖：消费方/提供方、服务隔离、依赖行为语义 | develop/framework/、cordis-tutorial 3-4 |
+| `06b-events.md` | 事件系统：分发模式、类型安全、作用域过滤、常用 Harness 事件速览 | develop/framework/、cordis-api/*、event-producer-consumer（仓库） |
+| `07-publish.md` | 打包与安装：bundle/profile、安装移除、配置层顺序 | develop/basic/publish、`apps/cli` 参考 |
+| `07b-publish-advanced.md` | 发布进阶：git 安装坑、表层组合包、组合包作者六件事、重装已安装包 | CLI 参考 + docs/upgrade-guide/* |
+| `08-capability-layering.md` | 能力分层：Service Definition / Provider / Consumer 与三步实现 | develop/practice/、reference/capability-seams |
+| `08b-seams-core.md` | 能力 Seam 目录（一）：核心服务（llm…tokenMeter，32 条） | reference/capability-seams |
+| `08c-seams-platform.md` | 能力 Seam 目录（二）：平台与 UI（ptcRuntime…pluginRecommendations，34 条） | reference/capability-seams |
+| `09-cordis-primer.md` | Cordis 入门：五个核心概念、分发模式、waterfall、Service、Fiber、Loader | reference/cordis-primer、cordis-tutorial |
+| `09b-cordis-ctx-api.md` | Cordis ctx API 速查：框架继承面 + 常用成员 | cordis-api/*、`vendor/cordis` 源码 |
 | `10-spatiotemporal.md` | 论文《A Programming Paradigm for Spatiotemporal Composability》解读 | [arXiv:2608.25512](https://arxiv.org/abs/2608.25512) |
 | `11-cookbook.md` | 扩展模式：权限门禁、UI 插件、协议桥、功能→机制映射 | reference/cookbook/extension-cookbook、subsystems/conversation |
+| `12-mistakes.md` | 通用错误与修正（与版本无关的设计 / 实现错误） | docs/defensive-patterns（仓库） |
+| `12b-migration-errors.md` | 版本迁移错误：带版本标记的破坏性变更对照表 | docs/upgrade-guide/* |
+| `13-upgrade-guides.md` | 升级指南原文索引、官方链接、⚠️ master 陷阱、与 `dsh-doc` 的分工 | docs/upgrade-guide/README.md、`dsh-doc` skill 源码 |
+| `14-workflow-and-scope.md` | 开发流程四阶段 + 覆盖范围边界（UI / Schedule / 子代理 / Web 搜索） | docs/upgrade-guide（宿主侧篇目） |
+| `15-self-update.md` | 本技能的自我更新流程（载入后必跑的完整版） | 本仓库 |
 
 原始材料：
 
-- 官方文档站（中文/英文双语）：`develop/basic/`、`develop/framework/`、`develop/practice/`、`develop/cordis-tutorial/`、`reference/`
+- 官方文档站（中英双语）：`develop/basic/`、`develop/framework/`、`develop/practice/`、`develop/cordis-tutorial/`、`reference/`
 - 仓库：https://github.com/deepseek-ai/deepseek-harness
-- 论文：《A Programming Paradigm for Spatiotemporal Composability》（DeepSeek-AI / 北京大学，Cordis 框架的学术基础，Shi / Zhang / Cui, 2026）：
-  https://arxiv.org/abs/2608.25512
+- 论文：《A Programming Paradigm for Spatiotemporal Composability》（DeepSeek-AI / 北京大学，Cordis 框架的学术基础，Shi / Zhang / Cui, 2026）：https://arxiv.org/abs/2608.25512
 
 ## 术语对照（上游重命名备忘）
 
@@ -58,3 +69,4 @@
 | `Session.append(type, data)` | **另加数组重载** `append([[type, data], ...])` | 0.2.2-rc.3 起；wrapper / 测试替身须实现两个重载 |
 | `LoggerLevel` 的 `INFO=1` / `WARN=2` | **`WARN=1` / `INFO=2`** | cordis 4.1.0 数值重排；按枚举名比较，勿按下标 |
 | `Fiber.update()` 返回 `void` | **返回 `Awaitable<void>`** | cordis 4.1.0 起可直接 `await fiber.update(config)` |
+

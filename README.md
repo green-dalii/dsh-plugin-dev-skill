@@ -5,14 +5,14 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Updated](https://img.shields.io/badge/updated-2026--11--15-informational)](CHANGELOG.md)
 [![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.2--rc.3-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3)
-[![Skill version](https://img.shields.io/badge/skill-0.8.0-brightgreen)](VERSION)
+[![Skill version](https://img.shields.io/badge/skill-0.9.0-brightgreen)](VERSION)
 [![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 **An agent skill that teaches any AI coding agent how to develop [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) plugins** — correctly, efficiently, and in line with the official conventions.
 
-Load [`SKILL.md`](SKILL.md) and the agent gets the mental model, copy-pasteable code templates, a step-by-step development workflow, and a verification checklist. Deeper background lives in 11 condensed reference docs under [`References/`](References/00-INDEX.md).
+Load [`SKILL.md`](SKILL.md) and the agent gets the routing rules, the ten hard invariants, a version-evolution summary, a task→file index, and a pre-delivery checklist; the operating manual itself lives in **25 reference docs under [`References/`](References/00-INDEX.md)**, each kept under **8,192 characters** so it survives DSH's tool-result pruner intact.
 
 **Also known as**: DSH plugin skill, DeepSeek Harness plugin development skill, `dsh-plugin-dev-skill`.
 
@@ -36,33 +36,33 @@ Load [`SKILL.md`](SKILL.md) and the agent gets the mental model, copy-pasteable 
 
 Writing a "Hello World" DSH plugin is one line. Writing a plugin that **is right** — `defineTool` output contract honored, revertible-effect cleanup instead of manual teardown, `inject` dependency semantics, Standard-Schema configuration, correct event dispatch modes, packaging that actually installs — is what this skill encodes.
 
-The skill is **first-principles based**: it grounds every rule in the academic foundation of the underlying framework (Cordis, [arXiv:2608.25512](https://arxiv.org/abs/2608.25512)) and then turns those rules into copy-pasteable code templates. Every API statement in the skill is verified against the real SDK types at the documented baseline (`@deepseek-ai/*` 0.2.2-alpha.2, cordis 4.0.6-alpha.1), and the templates pass `tsc --strict`.
+The skill is **first-principles based**: it grounds every rule in the academic foundation of the underlying framework (Cordis, [arXiv:2608.25512](https://arxiv.org/abs/2608.25512)) and then turns those rules into copy-pasteable code templates. Every API statement in the skill is verified against the real SDK types at the documented baseline (`@deepseek-ai/*` 0.2.2-rc.3, cordis 4.1.0); the templates were validated against those types when written — they are not typechecked in CI, because the DSH SDK is not a public npm package.
 
 ## What you get
 
-- **Mental model first**: the "revertible effects + reactive coeffects" theory of Cordis, condensed into 6 rules any plugin author must follow.
+- **Mental model first**: the "revertible effects + reactive coeffects" theory of Cordis, condensed into 10 invariants any plugin author must follow.
 - **Five plugin surfaces covered**: `tool` (`defineTool`), `llm` (adapter), `service` (definition + provider + consumer), `event` (dispatch modes), `bundle` (profile + manifest + Plugin Manager).
-- **Templates verified against the real SDK**: code samples pass `tsc --strict` and run end-to-end against the real Cordis loader.
-- **Self-verifying**: ships [`scripts/verify.sh`](scripts/verify.sh) — a one-line baseline check (version consistency + SKILL.md frontmatter legality + upstream URL liveness) that the project's own CI runs on every push.
-- **Tag-pinned update check**: see `SKILL.md §0.1` and [`AGENTS.md`](AGENTS.md) "Mandatory flow on entry".
-- **Traceable upstream**: every reference doc ends with the official-doc URLs.
+- **Templates checked against the real SDK types**: code samples were validated against the baseline SDK when written, and are the ones the maintainers ship with.
+- **Self-verifying**: ships [`scripts/verify.sh`](scripts/verify.sh) — a one-line baseline check (version consistency + README badge cross-check + frontmatter legality + upstream URL liveness + reading budget and index integrity) that the project's own CI runs on every push.
+- **Tag-pinned update check**: see `SKILL.md` §1 and [`AGENTS.md`](AGENTS.md) "Mandatory flow on entry".
+- **Traceable upstream**: every topic's official-doc URLs close the last file of that topic (each split part points at its sibling).
 
 For agent entry conventions (what an agent should do when it lands in this repo), see [`AGENTS.md`](AGENTS.md).
 
 ## Quick Start
 
 1. **Install** the skill (symlink preferred — see [Install](#install)).
-2. **Open** `SKILL.md`; the agent will perform §0.1's update check automatically and warn you if a newer version exists.
-3. **Follow** the four-phase workflow in `SKILL.md` §11: recon → implement → verify → deliver.
-4. **When the agent writes a tool**: use the `defineTool` template in `SKILL.md §4` (it's a copy-paste-and-edit block; the only four fields you usually change are `name`, `description`, `parameters`, `output.schema`).
+2. **Open** `SKILL.md`; the agent will perform §1's update check automatically and warn you if a newer version exists.
+3. **Follow** the four-phase workflow in [`References/14-workflow-and-scope.md`](References/14-workflow-and-scope.md) §1: recon → implement → verify → deliver.
+4. **When the agent writes a tool**: use the `defineTool` template in [`References/03-tools.md`](References/03-tools.md) §1 (it's a copy-paste-and-edit block; the only four fields you usually change are `name`, `description`, `parameters`, `output.schema`).
 5. **Before publishing or sending a PR**: run `bash scripts/verify.sh` — green means version, frontmatter, and all upstream links are consistent.
 
 ## Structure
 
 ```
 dsh-plugin-dev-skill/
-├── SKILL.md                     # Main skill file: the operating manual (read this first)
-├── VERSION                      # Skill version; SKILL.md §0.1 requires checking it on load
+├── SKILL.md                     # Index layer: routing rules, invariants, task→file index (<= 8192 chars)
+├── VERSION                      # Skill version; SKILL.md §1 requires checking it on load
 ├── AGENTS.md                    # Convention file read by CLI agents
 ├── README.md                    # This file (English)
 ├── README.zh-CN.md              # 中文说明
@@ -70,33 +70,47 @@ dsh-plugin-dev-skill/
 ├── CONTRIBUTING.md              # Contribution guide
 ├── SECURITY.md                  # Security policy
 ├── LICENSE                      # MIT
-├── References/                  # Condensed, human/agent-readable reference material
-│   ├── 00-INDEX.md              # Index
-│   ├── 01-dsh-architecture.md   # DSH architecture overview
-│   ├── 02-plugin-basics.md      # Plugin basics: shapes/lifecycle/effect/HMR
-│   ├── 03-tools.md              # Tool development reference (defineTool)
-│   ├── 04-config.md             # Plugin configuration & Schemastery
-│   ├── 05-llm-adapter.md        # LLM adapter guide
-│   ├── 06-framework-services-events.md  # Services & dependencies, event system
-│   ├── 07-publish.md            # Packaging/install/profile/config layers
-│   ├── 08-capability-layering.md# Three-role capability design & seam catalog
-│   ├── 09-cordis-primer.md      # Cordis primer & ctx API cheat sheet
+├── References/                  # The operating manual (25 docs, each <= 8192 chars)
+│   ├── 00-INDEX.md              # File overview, SDK baseline, upstream rename glossary
+│   ├── 01-dsh-architecture.md   # DSH architecture: CLI, profile/bundle, config layers, loading
+│   ├── 02-plugin-basics.md      # Plugin shapes, runtime/package map, inject/effect, Fiber, HMR
+│   ├── 03-tools.md              # Tool basics: defineTool, execute contract, schema vocabulary
+│   ├── 03b-tools-advanced.md    # Background jobs, execution policies, UI cards
+│   ├── 03c-tools-pipeline.md    # Step admission (`when`), PTC mode, executor plugins
+│   ├── 04-config.md             # Configuration & Schemastery
+│   ├── 05-llm-adapter.md        # LLM adapter: StreamChunk protocol, GenerateOptions, registration
+│   ├── 05b-llm-errors.md        # LLM failure codes, retryChoice, fromFailure, pi-ai 1.3.0
+│   ├── 06-services.md           # Services & dependencies: consumer/provider, isolation
+│   ├── 06b-events.md            # Event system, dispatch modes, common Harness events
+│   ├── 07-publish.md            # Packaging, install, profile, config-layer order
+│   ├── 07b-publish-advanced.md  # git install pitfalls, surface bundles, six authoring rules
+│   ├── 08-capability-layering.md# Three-role capability design
+│   ├── 08b-seams-core.md        # Seam catalog (1): core services
+│   ├── 08c-seams-platform.md    # Seam catalog (2): platform/UI services
+│   ├── 09-cordis-primer.md      # Cordis primer: concepts, dispatch, Service, Fiber, Loader
+│   ├── 09b-cordis-ctx-api.md    # ctx API cheat sheet
 │   ├── 10-spatiotemporal.md     # Paper summary (spatiotemporal composability)
-│   └── 11-cookbook.md           # Extension patterns (hooks/UI/protocol bridges/feature→mechanism)
+│   ├── 11-cookbook.md           # Extension patterns (hooks/UI/protocol bridges/feature→mechanism)
+│   ├── 12-mistakes.md           # Common mistakes not tied to a version
+│   ├── 12b-migration-errors.md  # Version-tagged breaking changes
+│   ├── 13-upgrade-guides.md     # Upgrade-guide index, official links, dsh-doc split
+│   ├── 14-workflow-and-scope.md # Four-stage workflow + scope boundaries
+│   └── 15-self-update.md        # This skill's own update procedure
 ├── scripts/
-│   └── verify.sh                # Baseline check (version/frontmatter/URLs); CI runs this on every push
+│   └── verify.sh                # Baseline check (version/frontmatter/URLs/char-budget); CI runs it on every push
 └── .github/workflows/ci.yml     # GitHub Actions: verify.sh + upstream release signal
 ```
 
 ## Self-Verification
 
-`scripts/verify.sh` is the project's own quality gate. It checks three things:
+`scripts/verify.sh` is the project's own quality gate. It checks four things:
 
-1. **Version consistency**: `VERSION`, `SKILL.md` frontmatter `metadata.version`, the latest `CHANGELOG.md` heading, and the README badge all read the same value.
+1. **Version consistency**: `VERSION`, `SKILL.md` frontmatter `metadata.version` and the latest `CHANGELOG.md` heading must be equal; the README badges are separately cross-checked — `skill-<ver>` against `VERSION`, and the release tag in the SDK badge against `metadata.sdk-baseline`.
 2. **SKILL.md frontmatter legality**: `name` is kebab-case (`^[a-z0-9]+(?:-[a-z0-9]+)*$`), `description` and `metadata.{version, upstream, sdk-baseline}` are present.
-3. **Upstream URL liveness**: every URL in `*.md` that points to `deepseek-harness.github.io`, `github.com/deepseek-ai/`, `cordis`, `arxiv.org`, the private `registry.npmmirror.com`, and `raw.githubusercontent.com` returns 2xx. CDN transient `000`s are retried; `npmjs.org` 403 on `@deepseek-ai/dsh-*` packages is tolerated (those packages are only on the private registry).
+3. **Upstream URL liveness**: every URL in `*.md` that points to `deepseek-harness.github.io`, `github.com/deepseek-ai/`, `github.com/cordiverse`, `arxiv.org`, `registry.npmjs.org`, or `raw.githubusercontent.com` must return exactly `200`. Transient CDN `000` responses are retried up to twice before failing.
+4. **Reading budget & index integrity**: `SKILL.md` and every `References/*.md` is at most **8,192 characters** — the `compaction-tool-result-pruner` threshold (`thresholdChars: 8192`, `headChars: 4096`, `tailChars: 1024`; identical in the `standard`, `ptc` and `cordis` presets). A skill is delivered as a tool result, so anything over the line loses its middle on context compaction. The same check asserts `SKILL.md` routes to exactly the files that exist under `References/`.
 
-macOS bash 3 compatible. Honors `SKIP_FRONT=1`, `SKIP_VERSION=1`, `SKIP_URLS=1` for partial runs.
+macOS bash 3 compatible. Honors `SKIP_FRONT=1`, `SKIP_VERSION=1`, `SKIP_URLS=1`, `SKIP_BUDGET=1` for partial runs.
 
 ```sh
 bash scripts/verify.sh   # exits 0 on green, 1 on any drift
@@ -195,11 +209,11 @@ The skill body (`SKILL.md`) and reference docs are written in Chinese, matching 
 
 ### Which DeepSeek Harness version does it target?
 
-`@deepseek-ai/*` **0.2.1-alpha.1** together with cordis **4.0.5-alpha.1** — the versions every API statement was verified against. Release 0.2.0 landed the headline renames (`ctx.codeRuntime` → `ctx.ptcRuntime`, Plugin Manager, E2B → SSH family); release 0.2.1-alpha.1 is mainly Web UX + bug fixes, with **zero breaking changes to the tool/LLM/service plugin public API**. The full delta is recorded in [`CHANGELOG.md`](CHANGELOG.md) and the reference docs.
+`@deepseek-ai/*` **0.2.2-rc.3** together with cordis **4.1.0** — the versions every API statement was verified against. Since 0.2.0 the headline changes are the `ctx.codeRuntime` → `ctx.ptcRuntime` rename, Plugin Manager shipping with the distribution, the E2B → SSH family swap, the 0.2.1-rc.1 ~ 0.2.2-alpha.2 restructuring (executor plugins, `when`-based tool admission), and the 0.2.2-rc.3 error-contract rework (`@deepseek-ai/dsh-error`, `LLM_FAILURE_CODES`). The full delta is in [`CHANGELOG.md`](CHANGELOG.md) and [`References/12b-migration-errors.md`](References/12b-migration-errors.md).
 
 ### How do I keep the skill up to date?
 
-Install it as a symlink to a git checkout so `git pull` updates it in place. The skill also checks its own version on load: it compares the local `VERSION` against the latest published tag and, if a newer release exists, updates before using itself (`SKILL.md` §0.1). The remote check is a single tiny file fetch and degrades gracefully offline.
+Install it as a symlink to a git checkout so `git pull` updates it in place. The skill also checks its own version on load: it compares the local `VERSION` against the latest published tag and, if a newer release exists, updates before using itself (`SKILL.md` §1). The remote check is a single tiny file fetch and degrades gracefully offline.
 
 ### Can an agent install the skill by itself?
 
@@ -207,7 +221,7 @@ Yes. Tell your agent the repository URL and ask it to install the skill into its
 
 ### How do I report a wrong API or a broken link?
 
-Open an issue or a pull request — see [CONTRIBUTING.md](CONTRIBUTING.md). Every reference doc ends with the official documentation URLs, which makes upstream drift easy to verify and fix.
+Open an issue or a pull request — see [CONTRIBUTING.md](CONTRIBUTING.md). Every topic's official documentation URLs are collected at the end of that topic's last file, which makes upstream drift easy to verify and fix.
 
 ## Sources
 

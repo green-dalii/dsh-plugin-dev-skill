@@ -1,5 +1,7 @@
 # 11 · 扩展模式（Extension Cookbook）
 
+> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+
 > 精简提炼自 reference/cookbook/extension-cookbook 与 reference/subsystems/conversation。
 > 代码片段省略 import 与辅助实现，不可直接复制运行——它们是模式参考。
 

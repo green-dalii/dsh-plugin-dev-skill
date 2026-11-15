@@ -4,6 +4,49 @@
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-15
+
+架构性重构：`SKILL.md` 从 56,012 字符的手册瘦身为 **5,199 字符**的索引与铁律，正文全部迁入 `References/`；`References/` 由 12 篇重排为 **25 篇，每篇 ≤ 8192 字符**。起因是核对 DSH 自身 `compaction-tool-result-pruner`（`thresholdChars: 8192` / `headChars: 4096` / `tailChars: 1024`，`standard` / `ptc` / `cordis` 三 preset 相同）：技能正文经 tool result 送达模型，超过阈值的部分在压缩时只保留首尾——旧 `SKILL.md` 是阈值的 6.8 倍，长会话里中间约 91% 会被砍掉。SDK 基线不变（`0.2.2-rc.3` / cordis `4.1.0`）。
+
+### 破坏性变更（文件结构）
+
+- **`SKILL.md` 改为索引层**：只保留分流规则、10 条铁律、版本演进摘要、任务→文件路由表、交付前自查。正文按主题迁入 `References/`。
+- **`References/03-tools.md` 拆为三篇**：`03-tools.md`（最小形态 / execute 契约 / schema 词汇）、`03b-tools-advanced.md`（后台任务 / 执行策略 / UI 卡片）、`03c-tools-pipeline.md`（步骤准入 / PTC / executor）。
+- **`References/06-framework-services-events.md` 删除**，拆为 `06-services.md`（服务与依赖）与 `06b-events.md`（事件系统与常用事件）。
+- **`References/05-llm-adapter.md` 拆出 `05b-llm-errors.md`**（错误处理、实现结构、pi-ai 版本与模型目录变动）。
+- **`References/08-capability-layering.md` 拆出 seam 目录**：`08b-seams-core.md`（32 条核心 seam）与 `08c-seams-platform.md`（34 条平台/UI seam）。
+- **`References/09-cordis-primer.md` 拆出 `09b-cordis-ctx-api.md`**（ctx API 速查）。
+- **`References/07-publish.md` 拆出 `07b-publish-advanced.md`**（git 安装坑、表层组合包、组合包作者六件事、重装已安装包）。
+- `References/05-llm-adapter.md` 与 `07-publish.md` 的章节编号保留原值，不做重排（跨篇引用不受影响）。
+
+### 新增
+
+- **`References/12-mistakes.md` / `12b-migration-errors.md`**：原 `SKILL.md §12` 的 55 行错误表按「与版本无关的通用错误」/「带版本标记的破坏性变更」拆为两篇。
+- **`References/13-upgrade-guides.md`**：原 `SKILL.md §13` 的升级指南索引、官方链接、⚠️ `master` 陷阱；新增 **§3 与上游内置 skill `dsh-doc` 的分工表**（说明 `dsh-doc` 并非创作模式专属、它是路由层而非手册、两者如何分流）。
+- **`References/14-workflow-and-scope.md`**：原 `SKILL.md §11` 的开发流程四阶段 + 覆盖范围边界。
+- **`References/15-self-update.md`**：原 `SKILL.md §0.1` 的自我更新完整流程（`SKILL.md` 只留压缩版）。
+- **`scripts/verify.sh` 新增第 4 项检查**：`SKILL.md` 与每个 `References/*.md` ≤ 8192 字符（阅读预算），且 `SKILL.md` 必须路由到 `References/` 中实际存在的每一个文件、不得路由到不存在的文件。CI 同步生效。
+- **`scripts/verify.sh` 第 2 项检查加固**：README 徽章从「只打印」改为**交叉核对**——`skill-<ver>` 必须等于 `VERSION`，SDK 徽章里的 release tag 必须等于 `metadata.sdk-baseline`。同时删除了一段从未触发的 `www.npmjs.com` 403 豁免死代码。
+
+### 修复
+
+- **`ctx.provide` 的第三参数是类型错误**（`References/02-plugin-basics.md` §3、`References/09b-cordis-ctx-api.md`）：`Context` 的类型重载只有 `(name, value)` / `(name, value?)`；可用性谓词 `check` 只存在于运行时实现，须走 **`ctx.reflect.provide(name, value, check)`**（`Context` 声明了 `reflect: ReflectService`）。旧文写成 `ctx.provide(name, value, check?)` 会导致类型检查不过。
+- **HMR 包名过期**（`References/02-plugin-basics.md` §7）：`@deepseek-ai/cordis-plugin-hmr` → **`@deepseek-ai/dsh-hmr`**（0.2.0 改名）。
+- **`ctx.web` 仍列已删除的搜索提供方**（`References/08b-seams-core.md`）：`web-search-exa` / `web-search-perplexity` 已于 0.2.2-rc.1 删除，现为 `web-search-deepseek` + `web-fetch-http`。
+- **`References/07-publish.md` 基线行过期**：`0.2.2-alpha.2` → `0.2.2-rc.3`（cordis `4.1.0`）。
+- **升级指南篇数自相矛盾**（原 `SKILL.md` 同一区间一处写 43 篇、另一处写 45 篇，与 `00-INDEX.md` 又冲突）：改为「篇数随补丁版本变化，以遍历目录为准」，只保留稳定的篇名线索。
+- **`claude-code-mods` 发布状态口径不一**：`00-INDEX.md` 暗示已发布、`SKILL.md` 说仅仓库；统一为「仅仓库」。
+- **`Schema.array(String)`**：`Schema.array` 的元素参数要求 Schema 实例，改为 `Schema.array(Schema.string())`。
+
+### 文档
+
+- `References/00-INDEX.md` 重写为「文件总览 + 术语对照」，补充 13 个新文件的说明，并说明 8192 字符预算的由来。
+- `README.md` / `README.zh-CN.md` 更新徽章与文件树。
+
+### 元数据
+
+- `VERSION` / `metadata.version` / `CHANGELOG` 同步到 **0.9.0**；`metadata.sdk-baseline` 保持 **0.2.2-rc.3**。
+
 ## [0.8.0] - 2026-11-15
 
 DSH 上游发布 `dsh-v0.2.2-rc.3`（中间经过 `0.2.2-alpha.3` / `rc.1` / `rc.2`）：cordis 升到 **4.1.0**，错误契约重构，工具守卫与审批获得结构化错误身份，Session 支持批量写入，子代理全面具名。本版本把 SDK 基线升到 `0.2.2-rc.3`，并按**源码级 diff**（浅克隆两个 tag 对比 526 个包内源文件）逐条修订。

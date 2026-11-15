@@ -13,7 +13,7 @@
 ## 如何贡献
 
 - **修正错误**：发现官方文档或本项目引用有误、链接失效、示例代码不工作，请提交 PR。
-- **同步官方更新**：官方文档更新后，`References/` 每篇末尾都有"官方文档链接"，请对照更新并修订对应精炼内容，同时在 `CHANGELOG.md` 记录。
+- **同步官方更新**：官方文档更新后，每个主题的官方文档 URL 收在该主题最后一篇的 `## 官方文档链接` 里，请对照更新并修订对应精炼内容，同时在 `CHANGELOG.md` 记录。
 - **新增参考**：若某主题（如新的子系统、新扩展点）值得补充，请遵循下面的内容约定新增或扩展文档。
 - **改善技能可用性**：`SKILL.md` 的任何改进——更清晰的模板、更准的铁律、更实用的自查表——都非常欢迎。
 
@@ -21,9 +21,10 @@
 
 1. **精简提炼，不照搬**：`References/` 是对官方文档的高信号浓缩，不要整段复制官方原文；保留指向官方的 URL。
 2. **面向 Agent 与人类**：文档应同时可被 Agent 按步骤执行、可被人类快速阅读。
-3. **示例代码必须可运行**：`SKILL.md` 与参考文档中的代码模板需能通过类型检查与端到端运行（见下文"开发与验证"）。
+3. **示例代码须对照真实类型**：参考文档中的代码模板在撰写时须对照基线 SDK 的类型定义校验。CI **不做**类型检查（DSH SDK 不是公开 npm 包），所以新增模板请在本地确认。
 4. **中文为主，保留英文术语**：与官方中文文档保持一致；术语首次出现可附英文。
-5. **文件命名**：`References/` 使用 `NN-主题.md`（两位数字序号 + kebab-case），并在 `00-INDEX.md` 登记。
+5. **文件命名**：`References/` 使用 `NN-主题.md` / `NNb-主题.md`（两位数字序号 + 可选字母后缀 + kebab-case），并在 `00-INDEX.md` 与 `SKILL.md` 的路由表登记。
+6. **单篇 ≤ 8192 字符**：超过 DSH `compaction-tool-result-pruner` 阈值的内容在上下文压缩时只保留首尾，等于读不到。**要加内容就拆篇，不要拉长单篇**；`bash scripts/verify.sh` 会强制这条。
 
 ## 提交流程
 
@@ -46,7 +47,7 @@
 | `CHANGELOG.md` | 新增版本条目（[Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/) 格式） |
 | git | 提交、打 tag（`vX.Y.Z`）并推送 |
 
-> `VERSION` 是 Agent 在载入技能时用于比对更新的依据（见 `SKILL.md` §0.1），所以**发版必须同步它**，否则更新检查会失效。
+> `VERSION` 是 Agent 在载入技能时用于比对更新的依据（见 `SKILL.md` §1 与 `References/15-self-update.md`），所以**发版必须同步它**，否则更新检查会失效。
 
 徽章是 shields.io 静态徽章，改完可用下面的命令确认能正常渲染：
 
@@ -79,7 +80,7 @@ C=$(grep -m1 -oE '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' CHANGELOG.md | tr -d '#[] ')
 [ "$V" = "$M" ] && [ "$V" = "$C" ] && echo "✓ version $V consistent" || echo "✗ mismatch: $V / $M / $C"
 ```
 
-注意：官方文档站发布 `develop/**`、`guide/**` 与 `reference/**`（`architecture` 已在 `/reference/` 发布、`lsp`/`slots`/`skills`/`scope`/`commands`/`ptc-runtime` 等子系统页也已发布）；仅 `glossary`、`event-producer-consumer`、`defensive-patterns` 与 0.2.0 新增的多数 `subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-to-pdf` 等）**仅存在于仓库**，引用时应给出 GitHub 源码链接。
+注意：官方文档站发布 `develop/**`、`guide/**` 与 `reference/**`（`architecture` 已在 `/reference/` 发布、`lsp`/`slots`/`skills`/`scope`/`commands`/`ptc-runtime` 等子系统页也已发布）；仅 `glossary`、`event-producer-consumer`、`defensive-patterns` 与 0.2.0 新增的多数 `subsystems/*`（`deliverables`、`mcp`、`ssh`、`browser-use`、`computer-use`、`otel`、`product-telemetry`、`boot`、`voice-input`、`office-kit` 等；`office-to-pdf` 已于 0.2.2-alpha.3 改名为 `office-kit`）**仅存在于仓库**，引用时应给出 GitHub 源码链接。
 
 验证通过后，在 PR 描述中说明验证结果。
 

@@ -1,5 +1,7 @@
 # 04 · 插件配置与 Schemastery
 
+> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+
 > 精简提炼自 develop/basic/config、cordis-tutorial 第 5 章。
 
 ## 1. 导出 Config（接口 + schema）
@@ -90,6 +92,8 @@ Loader 支持 `!!js` 标签，用于必须在加载时计算的配置值：
 配置变更触发插件热替换：卸载旧实例 → 加载新实例。由于注册都是 effect 自动清理，替换后不残留旧实例的注册。
 
 前提是最终组合允许 HMR（`patchReload` 字段已删除，热重载现在是 YAML 组合的属性）：base 的 `hmr` 行现在是 `@deepseek-ai/dsh-hmr`，在 base 系 profile（含 `web`）**默认启用**（`disabled: !!js "!ctx.get('profileContext')"`、`config.root: []`），只监视 profile manifest 与 profile/home 两处 patch 文件，所以改 `cordis.yml`/`cordis.patch.yml` 的 `config` 就能热重载；**launcher 不再挂任何 watcher**。**源码模块**热替换是另一回事——默认 `root: []` 只保留显式配置监视，要在 profile patch 里把该行的 `config.root` 改成 `["."]` 才监听模块；`headless`/`sdk`/`acp` bundle 显式禁用该行。
+
+- **0.2.1 起**：开启 dev directory 监听后，HMR 还能在源码变更时刷新**包入口与依赖映射**，并正确重载仍在运行的原入口——配置层以外的二次重启通常不再需要。
 
 ## 7. 把配置放上 Web 设置页（可选）
 
