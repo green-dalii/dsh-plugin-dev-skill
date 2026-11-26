@@ -4,6 +4,32 @@
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-26
+
+SDK 基线由 `dsh-v0.2.2-rc.3` 升到 `dsh-v0.2.3-alpha.2`（cordis 4.1.0 → 4.2.0-alpha.1），逐篇消化上游 rc.3 → rc.4 → rc.5 → 0.2.3-alpha.1 → alpha.2 的 40 篇升级指南中 31 篇插件开发相关变更。cordis 4.1.0 的三项 API 事实（`Fiber.update()` 返回 `Awaitable<void>`、`LoggerLevel` 数值、`internal/update` 签名）已在新版源码复核，继续有效。
+
+### 新增
+
+- `References/03d-ptc-runtime.md`：PTC 运行时专篇——`scoped-repl` 程序格式与 `executionMode` 默认值翻转、`maxOutputBytes` / `outputTruncated`、bootstrap 协议 5、`PtcInspectableValue`、MCP 图片值改 `Image`。`03c-tools-pipeline.md` 的 PTC 细节迁入本篇并改指路。
+- `References/12c-migration-errors.md`：0.2.2-rc.4 ~ 0.2.3-alpha.2 的破坏性变更对照表；`12b` 收敛为「至 rc.3」，错误自查清单改为 1/3 三部分。
+- `References/13-upgrade-guides.md` 新增 rc.3 → alpha.2 四段指南索引；§2 的 master 陷阱注释更正（部分「下一版变更」已落地）。
+
+### 变更
+
+- **工具探针**：`cordis_inspect_list` / `cordis_inspect_query` 合并为 `cordis_inspect({ query })`，SKILL.md / `07*` / `13` 同步。
+- **PTC**：默认 `executionMode` 改为 `persistent-in-memory` + `replScoped`（格式 `scoped-repl`），顶层 `return` 被拒；显式配置不受影响。
+- **LLM / 凭据**：新增 `ctx.deepseekAuth`（`authorize` / `candidates`），一批 `resolveApiKey` / `resolveAccountToken` / `normalizeApiKey` 导出删除；`DeepSeekFilePolicy` 新增四个必填上传字段；`refusal` 停止原因改报 `CONTENT_REFUSED`；`imageMaxBytes` → `imageTargetBytes`。
+- **系统提示词**：后续 `system/message` 改增量 section 更新，新增 `contentIndex` / `noticeIndex`，自定义循环须用 `PromptAssembly.systemUpdates(retry)`，组合须先挂 `session-projection`。
+- **工具与服务**：`working_directory` / `create_worktree` 工具删除，新增 `ctx.worktrees.enter` 与 `enter_worktree`；`ctx.profileContext.overlays` → `overlayPaths`；子代理初始任务来源改 `agent-message`，模型选择改读 `ctx.subagentModelSelection.allowedRoutes()`；`CreateAgentOptions.parentSource`；`ctx.sessionQuery.inspectSession` 删除，改 `observeSession`。
+- **Action Cards**：`callId` → `cardId`（`ActionCardId`）、`ActionCardKind` 去掉 `skill` / `invitation`、`queuedMessageLimit` 删除、不再有共享 `replaced` 阶段。
+- **打包 / 配置**：base bundle 新增 `upstream-skills` 行（须与 `skill` 一起禁用）；`dsh-personalized-recommendations` 退役，六行改由 web app 默认挂载；Office 三技能合并为 `office`；`engines.node` 提到 `^24.22.3 || >=26.13.1`；loader 用 YAML 1.2 core schema + 条目选项校验，`applyEntryPatches` 返回 `{ data, index }`。
+- **运行时边界**：`workspace-write` 边界随 Session 工作目录移动；DeepSeek 搜索默认按模型路由到 `deepseek-official` provider；SDK prompt 新增 `timeZone` 参数。
+- 术语对照表（`00-INDEX.md`）补入上述重命名。
+
+### 元数据
+
+- `VERSION` / `metadata.version` / `CHANGELOG` 同步到 **0.10.0**；`metadata.sdk-baseline` → **0.2.3-alpha.2**；README 徽章与基线链接同步。
+
 ## [0.9.1] - 2026-11-15
 
 README 重写（双语），从「维护者视角的功能清单」改为「用户 / Agent 视角的接入说明」。技能正文未变，SDK 基线不变。

@@ -1,6 +1,6 @@
 # 01 · DSH 架构总览
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 精简提炼自官方文档（guide + develop/basic/publish + CLI 参考 + architecture）。目标：建立“DSH 是什么、插件如何被加载与组合”的整体地图。
 

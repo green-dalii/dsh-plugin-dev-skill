@@ -1,8 +1,8 @@
 # 12 · 通用错误与修正（对照自查）
 
-> 本文件是错误自查清单的第 1/2 部分：**与版本无关的设计 / 实现错误**。
-> 带版本标记的破坏性变更见同目录 `12b-migration-errors.md`；升级指南原文索引见 `13-upgrade-guides.md`。
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> 本文件是错误自查清单的第 1/3 部分：**与版本无关的设计 / 实现错误**。
+> 带版本标记的破坏性变更见 `12b-migration-errors.md`（至 rc.3）与 `12c-migration-errors.md`（rc.4 ~ 0.2.3-alpha.2）；升级指南原文索引见 `13-upgrade-guides.md`。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 | 错误 | 修正 |
 |---|---|

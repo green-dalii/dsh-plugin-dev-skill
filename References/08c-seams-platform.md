@@ -1,6 +1,6 @@
 # 08c · 能力 Seam 目录（二）：平台、UI 与演进
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 本篇承接 `08-capability-layering.md` 的 `## 5.` 能力 Seam 目录，是其中的后半张表（平台、UI 与演进部分）及版本结构变化小节。
 > 本表前半部分（核心服务）见 `08b-seams-core.md`；分层设计概念与设计要点见 `08-capability-layering.md`。
@@ -30,17 +30,18 @@
 | `ctx.translator` | core | 0.2.1-alpha.x 起新增：`internal/status` 消费者，把 session/agent 状态投影到外部可读形态 |
 | `ctx.remoteAccess` | core | 0.2.1-alpha.x 起新增：远程访问宿主能力；`webserver/index-inject` 在 webserver 注入时挂它 |
 | `ctx.webApp` | core | 0.2.1-alpha.x 起新增：与 `ctx.web`（搜索/抓取）并列的 Web 应用 seam |
-| `ctx.workingDirectory` | core | 0.2.1-alpha.x 起新增：会话级 cwd；`system-prompt/assemble` 监听者之一，`session/event` 持久化字段 |
-| `ctx.worktrees` | core | 0.2.1-alpha.x 起新增：git worktree 状态折叠（合并/分支/合并视图） |
+| `ctx.workingDirectory` | core | 0.2.1-alpha.x 起新增：会话级 cwd；`system-prompt/assemble` 监听者之一，`session/event` 持久化字段。**0.2.3-alpha.2 起**：模型工具 `working_directory` 与包 `@deepseek-ai/dsh-tool-working-directory` 删除，`dsh-base` / `dsh-sdk-minimal` 不再挂载；读 cwd 用上下文行 `Current working directory:`，目录变更记 `workspace-root/change`（细则见 08b 迁移行） |
+| `ctx.worktrees` | core | 0.2.1-alpha.x 起新增：git worktree 状态折叠（合并/分支/合并视图）。**0.2.3-alpha.2 起**：模型工具 `create_worktree` 删除，改用 `enter_worktree({ name?, from? })`；新增 Host 方法 `ctx.worktrees.enter(agent, { name })`，`cleanupOf(sessionId, null)` 返回 `{ removed }` 或保留策略下 `null`（细则见 08b 迁移行） |
 | `ctx.cotTranslation` | core | 0.2.1-alpha.x 起新增：链式思考翻译 seam（与其他 adapter seam 同级别） |
-| `ctx.actionCards` | core | 0.2.1-rc.2 起新增：动作卡片注册（`propose_action` 工具的 kind 包在此 seam 上）；个性化推荐 bundle 提供随附 kind |
+| `ctx.actionCards` | core | 0.2.1-rc.2 起新增：动作卡片注册（随附 kind 原由个性化推荐 bundle 提供，0.2.2-rc.5 起该 bundle 退役、六行改由 `dsh-web-app` 默认挂载）。**0.2.3-alpha.2 起**：模型工具 `propose_action` **已删除**，模型在回答中输出围栏 `action-card` 块（`action` / `title` / `brief` / `details`），`@deepseek-ai/dsh-action-cards` 从已记录的回答读取；`ActionCardKind` 去掉 `skill` 与 `invitation`；`ActionCardProposal` / `ActionCardDecision` / `ctx.actionCards.act()` / `actionCards` Remote 键按 `cardId`（类型 `ActionCardId`）而非 `callId`，决策携带 `cardId`；服务字段 `queuedMessageLimit` 删除（`cordis.patch.yml` 中 `id: action-cards` 下该值被忽略），`Config` 只剩 `enabled`，包不再导出 `ActionCardError`。后续提案不再把早先卡片置 `replaced`；版本 3 检查点 Host 从日志重建 actionCards 投影；读 `ActionCardView.decisions` 按提案 `cardId` 索引，无决策=未开始，删除旧共享 `replaced` 阶段处理；每回合只取首个有效 action-card 块 |
 | `ctx.cuaAccess` | core | 0.2.1-rc.2 起新增：computer-use 访问控制 |
 | `ctx.forge` | core | 0.2.1-rc.2 起新增：Forge 提供方注册（`forge/providers-changed` 事件） |
 | `ctx.forgePanel` | core | 0.2.1-rc.2 起新增：Forge 面板能力 |
 | `ctx.forgeSession` | core | 0.2.1-rc.2 起新增：Forge 会话能力 |
 | `ctx.headlessStartup` | core | 0.2.1-rc.2 起新增：headless 启动期能力 |
 | `ctx.liveshareShares` | core | 0.2.1-rc.2 起新增：LiveShare 共享项（对应新增的 `experimental/liveshare-protocol` 包） |
-| `ctx.pluginRecommendations` | core | 0.2.1-rc.2 起新增：插件推荐（个性化推荐 bundle 的来源） |
+| `ctx.pluginRecommendations` | core | 0.2.1-rc.2 起新增：插件推荐；0.2.2-rc.5 起原 `dsh-personalized-recommendations` bundle 退役，`plugin-recommendations` 等六行改由 `dsh-web-app` 默认挂载 |
+| `ctx.profileContext` | core | 来自 `@deepseek-ai/dsh-app-boot`（0.2.0-rc.2 起的插件作者服务）。**0.2.3-alpha.2 起**：`overlays: readonly PatchOptions[]` → `overlayPaths: readonly string[]`（`--patch` 绝对路径，按 argv 顺序）；`readProfilePatches()` 每次调用重读文件（缺失/非法即抛错），`dsh-hmr` 在 `--patch` 编辑时重组合。替代读取 `ctx.profileContext.overlayPaths.flatMap(path => loadOverlayPatches(binName, path))`，完整组合 `readProfilePatches(binName, ctx.profileContext)` |
 
 > ⚠️ 0.2.1-alpha.1 起 **`ctx.invariants` 已删除**：包 `@deepseek-ai/dsh-invariants` 与各包 `<pkg>/invariant` 子路径都不再导出；`InvariantRegistry` / `InvariantInstaller` / `InvariantFailure` / `InvariantError` 不存在。`sdk-minimal` 中五个 `*-invariant` id 也已清理。诊断失败改用自有通道上报——见 `12b-migration-errors.md` 错误表。
 
@@ -52,8 +53,16 @@
 - **提供方变动**：`ctx.workflowEngine` 的实现由 `workflow-worker-thread` 改为 `workflow-ptc`；`ctx.settings` 的 `settings-file` 提供方已移除（`@deepseek-ai/dsh-settings-file` 不再存在）。
 - 上游 `capability-seams` 表格的服务行数由 `0.1.5-rc.2` 的 72 行增至 `0.2.0-rc.2` 的 92 行；**0.2.1-alpha.4 又新增 7 项**：`pluginMarket` / `translator` / `remoteAccess` / `webApp` / `workingDirectory` / `worktrees` / `cotTranslation`；**0.2.1-rc.2 起再新增 8 项**：`actionCards` / `cuaAccess` / `forge` / `forgePanel` / `forgeSession` / `headlessStartup` / `liveshareShares` / `pluginRecommendations`；**0.2.2-rc.3 为 110 项**（新增 `mcpManager` / `deepseekChatImport` / `sessionLogDeepSeek`，`officeToPdf` 改名为 `officeKit`）。
 
-> 本表已按本地 `0.2.2-rc.3` SDK 重新核对：上游 `capability-seams` 页面是生成物且比本表长得多（该版有 **110** 个 `ctx.*` 服务），本表只保留插件开发常用项；以本地安装为准时，请先用该服务的 TypeScript 接口核对 key。
+> 本表上次按本地 `0.2.2-rc.3` SDK 核对（新基线以各 seam 的 TypeScript 接口为准）：上游 `capability-seams` 页面是生成物且比本表长得多（该版有 **110** 个 `ctx.*` 服务），本表只保留插件开发常用项；以本地安装为准时，请先用该服务的 TypeScript 接口核对 key。
 >
 > 完整列表（含每个 seam 的 Definition 包、全部 Provider 与直接消费方）以官方 capability-seams 页面为准；开发时以各服务 TypeScript 接口和子系统页面的 `cordis-surface` 区块为权威，不要维护静态清单。
+
+### `0.2.3-alpha.2` 迁移行（平台 seam）
+
+| 旧 | 新 |
+|---|---|
+| `propose_action` / `callId` / 共享 `replaced` 阶段 / `ActionCardError` / `queuedMessageLimit` | `action-card` 围栏块 / `cardId`（`ActionCardId`）/ 按提案 `cardId` 索引 `decisions` / 无 `ActionCardError` / `Config` 仅 `enabled` |
+| patch 仍点名 `tool-working-directory` | 报 `patch: entry "tool-working-directory" not found` |
+| `ctx.profileContext.overlays`（`PatchOptions[]`） | `overlayPaths`（`string[]`），见上 |
 
 > 本主题的官方文档链接见 `08-capability-layering.md` 末尾。

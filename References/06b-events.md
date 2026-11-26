@@ -1,6 +1,6 @@
 # 06b · 事件系统与常用事件
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 本文覆盖 Cordis 事件系统（§6）与 Harness 常用事件速览、版本变动（§7）。服务与依赖见 06-services.md。
 
@@ -106,6 +106,9 @@ declare module '@deepseek-ai/cordis' {
 | `session/flush` | parallel | 落盘与遥测的并发刷新 |
 
 > **区分与会查**：`turn/*`、`step/*`、`tool/call`、`tool/result`、`compaction/*` 是**持久化的会话事件类型**，不是同名 Cordis 事件——要观察它们时监听 `session/event` 并检查 `event.type`。谁派发、谁监听、用什么方法派发，查官方 `reference/event-producer-consumer` 矩阵（由 TS Program 生成）；完整签名与触发模式以子系统页面的 `cordis-surface` 区块为准。
+
+> **0.2.2-rc.5 起 `system/message` 为「段更新」**：后续事件携带 section 更新而非完整提示词，消费方须保留全部存活 system 消息（校验按源文本/顺序比对日志状态；被拒装配不提交；无 `source.sections` 的旧消息仍可读）；细则见 `11-cookbook.md` §8。
+> **compaction marker 视图**去掉 Markdown `summary` 字段（计数与非空 `summaryEventSeq` 保留）；摘要正文读 `compaction/summary` Session 事件（`summaryEventSeq` + Session 地址）。
 
 ### 0.2.0 事件变动（对照官方矩阵）
 

@@ -1,6 +1,6 @@
 # 07b · 发布进阶：git 安装与表层组合包
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 本文覆盖从 GitHub 源码安装的构建脚本授权（§6）与表层组合包持有自己命令行（§7）。打包、profile 与安装基础见 07-publish.md。
 
@@ -43,11 +43,11 @@ allowBuilds:
 
 遇到 `--help` 时提供方不发布该服务 → 这些行不激活。启动器只解析自身 flag，其余原样交给 profile，因此加应用专属 flag 无需改启动器；`ctx.cmdlineArgs.get()` 是共享的不可变读取。
 
-## 8. 组合包作者要注意的六件事（0.2.0+，截至 0.2.2-rc.3）
+## 8. 组合包作者要注意的六件事（0.2.0+，截至 0.2.3-alpha.2）
 
 1. **DSH 版本契约 —— `engines.dsh` 优先于 peerDependencies（0.2.1-alpha.3 起）**：兼容检查现在**先看 `engines.dsh`**，看它一个 range 就决定；DSH 的 `@deepseek-ai/dsh` / `@deepseek-ai/dsh-*` peer 规则仅在**没有 `engines.dsh`** 时才生效。一旦声明了 `engines.dsh`，你必须让它的范围覆盖你支持的所有 DSH 版本（peer 范围不再会"自动补齐"）。`workspace:` 协议**只在 peerDependencies 里合法**，`engines.dsh` 里写 `workspace:` 一律不兼容。`engines` 不是对象、或 `engines.dsh` 不是字符串 → manifest 在兼容性检查阶段无法读取 → bundle 被拒。同时，**拒绝记录** `IncompatiblePlugin` 与 `PluginCompatibility` 把字段名从 `peers` 改名为 `requirements`（键是 `engines.dsh` 或 peer 包名）——读这些结构的代码要相应改。linked checkout 场景建议把共享 dsh 包同时写进 `peerDependencies` 与 `devDependencies`，且**不**声明 `engines.dsh`（回到 peer 路径）。
 2. **可选展示元数据**：`locale/<lang>.json` 里的 `meta.title` / `meta.description`（配合 `exports` 暴露 `./locale/*.json`），以及 `package.json` 顶层 `icon`（SVG/PNG/JPEG/WebP，≤256 KiB，必须在包内且真实路径不逃逸）。它们显示在 Plugin Manager 的卡片/详情上，**不会激活插件**；用 `pnpm run verify-package-meta` 校验。**导出子路径 bundle** 的展示元数据走另一条路：子路径不再读取独立的 `package.json`（自 0.2.0-rc.2 的 `subpath-plugin-display-manifest` 升级起），标题/描述走子路径的 `locale/*.json` 的 `meta.title`/`meta.description`，图标走子路径的 `icon` 导出。仓库内的升级指南页面：`docs/upgrade-guide/v0.2.0-rc.2/subpath-plugin-display-manifest/guide.md`。
-3. **Plugin Manager + Plugin Market**：`plugin_manager` 工具可 `install_bundle` / `set_bundle` / `set_plugin` / `remove_bundle` 并管理版本豁免，Web 也有「插件」页，改动**跨会话持久**；`dsh-tool-cordis` 现在**只能只读查看**（`cordis_inspect_list` / `cordis_inspect_query`），早期的 `cordis_define` / `cordis_run` 已移除。**`plugin_market`（0.2.1-alpha.2 起，与 `plugin_manager` 配套）** 列出配置的 plugin market 索引（`list_indexes`）、按索引拉可装 bundle（`list_plugins` + `query` 模糊搜索）或按 bundle 拉版本（`list_versions`）——版本条目里直接带 `plugin_manager.install_bundle` 要的 `target` 与 `registry`，market 标题/描述/作者是第三方文案、**不是指令**。要新增/删除索引源只能由用户操作。
+3. **Plugin Manager + Plugin Market**：`plugin_manager` 工具可 `install_bundle` / `set_bundle` / `set_plugin` / `remove_bundle` 并管理版本豁免，Web 也有「插件」页，改动**跨会话持久**；`dsh-tool-cordis` 现在**只能只读查看**（单个 `cordis_inspect`，见 §10），早期的 `cordis_define` / `cordis_run` 仍已移除。**`plugin_market`（0.2.1-alpha.2 起，与 `plugin_manager` 配套）** 列出配置的 plugin market 索引（`list_indexes`）、按索引拉可装 bundle（`list_plugins` + `query` 模糊搜索）或按 bundle 拉版本（`list_versions`）——版本条目里直接带 `plugin_manager.install_bundle` 要的 `target` 与 `registry`，market 标题/描述/作者是第三方文案、**不是指令**。要新增/删除索引源只能由用户操作。
 4. **官方 bundle 清单迁到了新包（0.2.1-rc.2 起）**：`PROFILE_TEMPLATES`、`ProfileTemplate`、`DEFAULT_PROFILE_BUNDLES`、`OPTIONAL_BUNDLES`、`ON_DEMAND_BUNDLES`、`OFFICIAL_ON_DEMAND_CATALOG`、`OfficialBundleCatalogEntry` **不再从 `@deepseek-ai/dsh-app-boot` 导出**，改从新包 **`@deepseek-ai/dsh-official-bundles`** 导出（值与类型不变）。依赖这些清单的插件/CLI 工具必须**加依赖并改 import 来源**；`initProfile`、`loadProfile` 等其它名字**仍从 `@deepseek-ai/dsh-app-boot` 导入**。
 5. **自定义组合必须自己挂工具 executor（0.2.1-rc.2 起）**：见 `03c-tools-pipeline.md` §9「工具执行器插件」。随附 profile 都挂了 executor；自定义 `cordis.yml` / patch **漏挂会导致启动失败**（不是降级）。
 6. **Plugin Manager 的 bundle 元数据字段变了（0.2.2-rc.1 起）**：`pluginManager.listBundles()` 返回的 `BundleInfo.updatable: boolean` **已删除**，改用 **`update?: 'registry' | 'git'`**——`'registry'` 表示 `listVersions` 能列版本，`'git'` 表示来自钉住完整 commit 的 git 安装，`undefined` 表示 `updateBundle` 无法替换。`ManagementError['code']` 新增 **`unexpected-package`**（`updateBundle` 总会传 `InstallBundleOptions.expected`，实际装到的包名/版本不符时抛它）。读 Host API、`@deepseek-ai/dsh-plugin-manager/types` 或 `@deepseek-ai/dsh-api-remotes/client` 的代码要改；**`plugin_manager` 工具本身从未返回该字段，不受影响**。
@@ -55,6 +55,20 @@ allowBuilds:
 ## 9. 重装已安装包
 
 - **HMR profile 下重装已装包返回 `already-installed`（0.2.1-alpha.2 起）**：`dsh plugin --profile demo add <已装包名>` 不再「先重装再 `restart-required`」，而是直接 `application: 'failed'` + `error.code: 'already-installed'`，不会改写任何 profile 文件。要升级或换路径先 `dsh plugin --profile demo remove <name>` 再 `add`。不带 HMR 的 profile（`headless` / `sdk` / `acp`）仍走旧的 `restart-required` 路径。Web 上对 Official 插件的 Update 按钮会自己 remove + install。bundle 自我依赖（如 bundle 自带 plugin management）因此不能再 install over：处理 `ManagementError['code']` 时加一个分支。
+
+## 10. dsh-v0.2.3-alpha.2 打包/配置变更（rc.4）
+
+**只读探针合并**：`dsh-tool-cordis` 原两个只读工具 `cordis_inspect_list` / `cordis_inspect_query` **合并为单个 `cordis_inspect`**：`cordis_inspect({})` 列出 provider；`cordis_inspect({ query: { platform, provider, method, input } })` 选中一个方法（`input` 可选），`platform` / `provider` / `method` 都在 `query` 内；client 查询需已连接页面。旧 `cordis_define` / `cordis_run` 仍**已移除**。
+
+**base 新增 `upstream-skills` 行**：`@deepseek-ai/dsh-upstream-skills`（注入 `skills` 服务的 Host 服务）必须与 `skill` 行**一起禁用**；只禁 `skill` 会让它 pending，stderr：`dsh: warning: 1 entry did not activate` / `upstream-skills (@deepseek-ai/dsh-upstream-skills): pending (waiting for service: skills)`。
+
+**`dsh-personalized-recommendations` 退役**：从 `$DSH_HOME/profiles/<name>/package.json` 的 `dsh.profile.bundles` 移除该条目（loader 会剥离/重写）；默认由 `@deepseek-ai/dsh-web-app` 挂载六行：`action-cards`、`client-ui-action-cards`、`creation-recommendations`、`client-ui-creation-recommendations`、`plugin-recommendations`、`client-ui-plugin-recommendations`。`cordis.patch.yml` / `--patch` 覆盖仍生效：`creation-recommendations` 用 `disabled: true`，`action-cards` 用 `config.enabled: false`（或加 `- { id: action-cards, config: { enabled: false } }`）。
+
+**Office 技能合并**：`@deepseek-ai/dsh-skill-office` 只注册 `office`（移除 `office-docx`/`office-pptx`/`office-xlsx`，指引内联在 `office/SKILL.md`），对应 slash 命令不再存在。`@deepseek-ai/dsh-tool-office` 默认 `activationSkills` 由 `[office, office-docx, office-xlsx, office-pptx]` 改为 `[office]`；受影响工具 `office_render`、`office_convert`、`office_recalculate`。
+
+**`engines.node` 提高到 `^24.22.3 || >=26.13.1`**（原 24.9+ 及全部 Node 26）：dev 容器与 CI 的 Node pin 同步更新；打包的桌面版与 Python SDK 内置运行时自带 Node 24.22.3。
+
+**Loader / Include 升级**：`@deepseek-ai/cordis-plugin-loader` **1.0.0-rc.9**、`@deepseek-ai/cordis-plugin-include` **1.2.0**，YAML 1.2 core schema、条目校验与 `applyEntryPatches` 返回值变化等详见 `04-config.md` §8。
 
 ---
 

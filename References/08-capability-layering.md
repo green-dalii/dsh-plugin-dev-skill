@@ -1,6 +1,6 @@
 # 08 · 能力分层设计（三个角色）与能力 Seam 目录
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 精简提炼自 develop/practice/（能力的三层拆分）、reference/capability-seams 与 glossary。
 

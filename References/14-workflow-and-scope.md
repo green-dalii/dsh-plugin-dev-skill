@@ -1,6 +1,6 @@
 # 14 · 开发流程与覆盖范围边界
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 本文件给两件事：① 一个 Agent 从侦察到交付的**四阶段流程**（照着走即可）；② 本技能**做什么 / 不做什么**的边界，
 > 以及边界外那些变化最快的宿主侧改名（UI、Schedule、子代理、Web 搜索）。
@@ -44,5 +44,13 @@
 - **Schedule / 自动化任务扩展**：0.2.1 起自动化任务改为 Web 内置能力，`schedule_*` 工具按模式提供（标准、创造、PTC 模式可用；极简模式与子代理不可用），并新增 `subagent_session` 错误码。**0.2.2-alpha.2 起工具名与 API 整体重构**：`schedule_create` / `schedule_list` / `schedule_view` / `schedule_edit` 取代旧工具，`schedule_create` 收 `title` / `prompt` / `rrule` / `target`（不再接受时间选择器），`schedule_edit` 用 `action: "update" | "delete"` 取代 `schedule_update` / `schedule_delete`；原生调用改为 `create({ title, prompt, timing, target? })` 与 `edit(request)`（远端为 `schedule/create`、`schedule/edit`），Session 绑定的 `delete` / `update` 已移除；定时类型改用判别式（`{ kind: "cron", cron }` / `{ kind: "rrule", rrule }`），状态用 `paused` / `ended` 取代 `inactive`。子系统页面：https://deepseek-harness.github.io/deepseek-harness/reference/subsystems/schedule 。
 - **MCP / SSH / browser-use / computer-use / otel / product-telemetry / boot / voice-input / office-kit** 等 0.2.0+ 新增的子系统，文档均只存在于上游仓库 `docs/subsystems/`，相关文件内已给链接。注意 **`dsh-office-to-pdf` 已改名为 `dsh-office-kit`**、服务 `ctx.officeToPdf` → **`ctx.officeKit`**（详见 `12b-migration-errors.md`）。
 - **Claude Code Mods 兼容层**（0.2.1-alpha.1 引入的实验性 bridge）：仅仓库 `docs/subsystems/claude-code-mods.md`，文档站尚未发布。
-- **子代理编排细节（0.2.2-alpha.3 起全面具名）**：`@deepseek-ai/dsh-tool-subagent` 的 `modelSelectionSettings` 已改名 `modelSelection`、新增 `modelDiscovery`（每工具域一个实例，默认 `false`），`/list-models` 导出已移除；`@deepseek-ai/dsh-tool-subagent-control` 合并注册 `send_message` / `interrupt_agent` / `list_agents` 三个工具，`/list-agents` 导出已移除（禁用该行会同时禁掉三个工具）。**具名化细则见 `12b-migration-errors.md` 表格**（`agent_id` → `agent`、`list_agents` 行改形、`parentAgent` 移除、catalog payload v3）。
+- **子代理编排细节（0.2.2-alpha.3 起全面具名）**：`@deepseek-ai/dsh-tool-subagent` 的 `modelSelectionSettings` 已改名 `modelSelection`、新增 `modelDiscovery`（每工具域一个实例，默认 `false`），`/list-models` 导出已移除；`@deepseek-ai/dsh-tool-subagent-control` 合并注册 `send_message` / `interrupt_agent` / `list_agents` 三个工具，`/list-agents` 导出已移除（禁用该行会同时禁掉三个工具）。**0.2.3-alpha.2 起**模型选择改走每次调用读 `ctx.subagentModelSelection.allowedRoutes()`（见 `08b-seams-core.md` 迁移行）。**具名化细则见 `12b-migration-errors.md` 表格**（`agent_id` → `agent`、`list_agents` 行改形、`parentAgent` 移除、catalog payload v3）。
 - **Web 搜索 / 抓取（0.2.2-rc.1 起）**：默认改用 **DeepSeek Search API**，搜索与抓取可**分别**选择计费账号或 API Key；旧的 `@deepseek-ai/dsh-web-search-exa` / `dsh-web-search-perplexity` 包**已删除**，旧的 provider 认证字段被"有序凭据来源"取代——自定义 provider 或显式配置要按上游 `web-search-billing` 指南调整。
+
+### `0.2.3-alpha.2` 边界变化摘要（Host / UI / internal）
+
+仍不展开细则，仅登记影响面（逐条读上游 `docs/upgrade-guide/`，可用 https://github.com/deepseek-ai/deepseek-harness/tree/master/docs/upgrade-guide ）：
+
+- **Forge seam**：`ForgeFailure['code']` 新增 `'rate-limited'`（GraphQL RATE_LIMITED、HTTP 429、限流文案）；`ctx.forgeSession.registerCommands(rule)` 只绑定已注册命令（`ForgeCommandRule`）；`ForgeProvider` 新增必需 `hosts`、`label`、`changeRequestNoun`（`'pull-request' | 'merge-request'`）；`ctx.forge.register` 对大小写重复的 host 抛错；`ctx.forge.describe(forge)` → `ForgeDescription`；`ForgeReadiness.signIn: { command } | null`；`ForgeReviewData.reviewEvents`。
+- **CUA 改名（边界外，仅列名）**：`useSystemPointer` → `useSystemInput`、`systemPointer` → `systemInput`、`requireSystemPointerApproval` → `requireSystemInputApproval`，`MOUSE_CONTROL_*` / `MOUSE_APPROVAL_*` → `SYSTEM_INPUT_*` / `SYSTEM_INPUT_APPROVAL_*`；`cua-activity-helper` 增 `recentActivityWindowMs`，自定义 helper 增 `getHeldInputs({})` / `releaseHeldInputs({})`。
+- **Client / Web UI 跳过（保持 SKIP）**：`client-hmr-plugin-events-stream`（`GET /plugins/events`、`EVENTS_ENDPOINT`、`pluginEvents/follow`、`SyncedConfig`）、`session-panel-entries`、`session-retain-conversation-facet`、`settings-section-plugins-page`。

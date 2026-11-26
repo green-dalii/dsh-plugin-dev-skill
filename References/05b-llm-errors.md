@@ -1,6 +1,6 @@
 # 05b · LLM 适配器：错误处理与实现结构
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 本文件是 LLM 适配器开发指南的第 2/2 部分：涵盖错误处理（`LlmError` / 失败码 / 重试策略 / 流式超时）、实现结构建议与官方文档链接；第 1 部分见 `05-llm-adapter.md`（概述、最小实现、StreamChunk 协议、GenerateOptions、注册与使用）。
 
@@ -40,6 +40,22 @@
 - 多个 provider 的模型 ID 被移除（`opencode-go` 的 `deepseek-v4-flash`、`openrouter` 的 `anthropic/claude-sonnet-4`、`google-vertex` 的 `gemini-flash-latest` 等），**无自动替代**。自建 provider 或 preset 引用这些 ID 时必须逐个替换。
 - 过期的 `providers.<provider>.modelOverrides.<id>` 会报**缺失目录诊断**，且新覆盖被拒绝。
 - 部分模型的 `contextWindow` / `maxTokens` 下调。
+
+---
+
+## 9. DeepSeek 文件策略与图片缩放（0.2.3-alpha.2 起）
+
+### 9.1 `DeepSeekFilePolicy`
+- 现**必填** `uploadConcurrency`、`uploadMaxRetries`、`uploadRetryDelayMs`、`uploadTimeoutMs`。默认值用 `@deepseek-ai/dsh-llm-deepseek` 的 `resolveAdapterOptions(options).filePolicy` 取；自定义值走 `fileExpiresAfterSeconds`、`fileRefreshMarginSeconds`、`fileQuotaCleanupBatch`；`ensureUploaded` 会记录 Files API 返回的文件 id。
+
+### 9.2 图片缩放
+- `imageMaxBytes` 是**硬性的编码后字节上限**，`imageTargetBytes` 是优先目标；缩图按质量阶梯 85 / 75 / 60；连 1×1 都放不下时抛 `IMAGE_REQUEST_TOO_LARGE`。
+- DeepSeek `models` / `modelOverrides` 配置键 `imageMaxBytes` → `imageTargetBytes`（默认 2 MiB；旧键被拒），硬上限固定 32 MiB。
+- `ImageRequestTarget`：`maxBytes` → `maxImageBytes`，并新增 `imageTargetBytes`（须 ≤ `maxImageBytes`）；最终尺寸由 `readImageRequest` 给出。
+- DeepSeek 辅助：`resolveRequestImageTargetBytes`、`DEFAULT_REQUEST_IMAGE_TARGET_BYTES`；可调 `requestImageMinShrinkFactor`（1.1）、`requestImageByteHeadroom`（0.95）。
+
+### 9.3 `refusal` 停止原因
+- `stop_reason: "refusal"` 现产出 `CONTENT_REFUSED`（此前为 `MALFORMED_RESPONSE`），同样适用于 LLM 错误 finish 与失败轮次 `turn/end` 错误。
 
 ---
 

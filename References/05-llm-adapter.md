@@ -2,7 +2,7 @@
 
 > 精简提炼自 develop/practice/llm-adapter、reference/cookbook/adding-an-llm-adapter、reference/subsystems/llm-streaming。
 > 参考实现：`packages/llm/llm-deepseek`（直接 HTTP + SSE，`eventsource-parser` 分帧）、`packages/llm/llm-pi-ai`（封装 LLM 库）。
-> 术语以 `@deepseek-ai/dsh-llm` **0.2.2-rc.3**（cordis **4.1.0**）的类型为准：工具调用 id 是 `ToolCallId`，旧名 `CallId` 已删除、SDK 不再导出。**0.2.2-alpha.2 起 `GenerateOptions.purpose` 改为声明式**（`LlmRequestPurposeMap`），见 §4。逐版本变化见 `References/00-INDEX.md`。
+> 术语以 `@deepseek-ai/dsh-llm` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）的类型为准：工具调用 id 是 `ToolCallId`，旧名 `CallId` 已删除、SDK 不再导出。**0.2.2-alpha.2 起 `GenerateOptions.purpose` 改为声明式**（`LlmRequestPurposeMap`），见 §4。逐版本变化见 `References/00-INDEX.md`。
 
 ## 1. 概述
 
@@ -136,5 +136,14 @@ cordis.yml 中使用：
         provider: my-provider
         model: my-model-v1
 ```
+
+### 5.1 `ctx.deepseekAuth`：统一鉴权（0.2.3-alpha.2 起）
+
+- 新服务来自 `@deepseek-ai/dsh-deepseek-auth`，由 `base` 与 `sdk-minimal` 挂载。配套 peer 包：`@deepseek-ai/dsh-llm-deepseek-api-key`、`@deepseek-ai/dsh-llm-deepseek-account`、`@deepseek-ai/dsh-web-deepseek-api`、`@deepseek-ai/dsh-web-search-deepseek`。
+- 调用范式：`ctx.deepseekAuth.authorize({ consumer, accepts, destination })` → 把返回的 `headers` 附上请求；HTTP 401 调 `reject()`；`revoked` signal abort 时结束请求；`candidates()` 用于存在性检查。
+- 移除的导出：`@deepseek-ai/dsh-llm-deepseek` 不再导出 `resolveDeepSeekApiKey`、`deepSeekApiKeyConfigured`、`resolveDeepSeekAccountToken`、`rejectDeepSeekAccountToken`；`@deepseek-ai/dsh-llm` 不再导出 `normalizeApiKey`、`assertUsableApiKey`。替代入口在 `@deepseek-ai/dsh-credentials`：`normalizeApiKey(raw)`、`resolveCredentialRef(ctx, ref)`、`credentialRefConfigured(ctx, ref)`。
+- `DeepSeekAdapterOptions.resolveAuth(connection, endpoint)` → `DeepSeekRequestAuth | undefined`（可带 `revoked`），新增 `missingCredential` 选项。
+- `DeepSeekSearchProviderOptions` 的 `resolveAccountToken`/`rejectAccountToken`/`resolveApiKey` 统一为 `authorize(endpoint, signal)`。账户错误码：`ACCOUNT_SIGN_IN_REQUIRED`（model 侧）、`WEB_PROVIDER_ERROR`（Search/Fetch 侧）。
+- api-key/account provider 包移除 `plainOptions`/`resolveAdapterOptions` 等，改用各自的 `Config`。
 
 > 本主题的官方文档链接见 `05b-llm-errors.md` 末尾。

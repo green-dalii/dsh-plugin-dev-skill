@@ -1,6 +1,6 @@
 # 09b · Cordis ctx API 速查
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 本文件是 Cordis 入门指南的第 2/2 部分：速查 ctx 继承面与常用 API（事件、注册表、副作用、服务存储、上下文派生、环境句柄、框架继承事件）；第 1 部分见 `09-cordis-primer.md`（核心概念、分发模式、Waterfall 语义、Plugin / Fiber / Loader / 实践规则）。
 

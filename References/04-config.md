@@ -1,6 +1,6 @@
 # 04 · 插件配置与 Schemastery
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 精简提炼自 develop/basic/config、cordis-tutorial 第 5 章。
 
@@ -116,6 +116,18 @@ export function apply(ctx: Context, config: Config) {
 - `validate` 在**写入**时拒绝，而不是留到下次使用才发现。
 - 字段上加 `role('secret')` 的值不会出现在任何响应里。
 - 完整示例（含浏览器半侧与打包要求）见官方 Cookbook。
+
+## 8. Loader 1.0.0-rc.9 / Include 1.2.0：YAML 与条目解析（0.2.3-alpha.2）
+
+`@deepseek-ai/cordis-plugin-loader`（Loader **1.0.0-rc.9**）与 `@deepseek-ai/cordis-plugin-include`（Include **1.2.0**）在 `Include` 与 `parseEntryYaml` 中均按 **YAML 1.2 core schema** 解析（不再是 js-yaml 的 JSON schema）：`0b101` 现在读成字符串 `'0b101'`（不再是数字 5）；空的 `!!js` 标量变成空表达式 → `undefined`。
+
+**条目选项校验**（不合规即整条拒绝）：`name` 必须是字符串，`group` 必须是布尔，`disabled` 必须是布尔或 `!!js` 表达式，`group: true` **必须带 `config` 列表**（可为空），`inject` 是字符串列表或映射，`isolate` 是映射且值只能为 `true` 或字符串。被拒条目**不阻断兄弟条目**；required 条目（如 `webserver`）被拒会**终止启动**，其余只告警。Include 文件里某条目不是映射 → **整个文件被拒**。含 `:` 的 id 仍被接受。错误位置写成 `file:line:column`。模块找不到 → `ModuleNotFoundError`（不再带 `imported from`），但 `code` 仍是 `ERR_MODULE_NOT_FOUND`。
+
+**`applyEntryPatches(data, patches, warn)`** 现在返回 **`{ data, index }`**（不再是条目列表），并把生成的 id 写回 `patches` 中被替换 group 的匿名 `config` 条目；要保持入参不变就传 `structuredClone(patches)`。`parseEntryYaml` 改为抛 `yaml` 包的 **`YAMLError`**（原 js-yaml `YAMLException`）；`entryYamlErrorPosition(error)` 不变。
+
+## 9. DeepSeek 网页搜索默认（0.2.3-alpha.2）
+
+base 组合不再固定 `web.searchProvider: deepseek-search-api`；`dsh-web` 按路由选 provider：`deepseek-official` / `deepseek-account` → `deepseek-official` provider（发一次辅助 Messages 请求，并向 Session 日志追加 `web/deepseek-search-llm-request`）。端点链：`web-search-deepseek.baseURL` → `$DEEPSEEK_SEARCH_BASE_URL` → `https://api.deepseek.com/anthropic/v1`；key 走 `web-search-deepseek.apiKeyEnv`（默认 `DEEPSEEK_API_KEY`）。环境变量 `DSH_WEB_SEARCH_PROVIDER` 可覆盖；UI 菜单新增 **Automatic**，未存任何选择时为默认。显式在组合/profile 里设 `web.searchProvider` 的行为不变。
 
 ---
 

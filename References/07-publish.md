@@ -1,6 +1,6 @@
 # 07 · 打包与安装插件
 
-> 精简提炼自 develop/basic/publish 与 `apps/cli/reference`（CLI 行为参考）。SDK 基线 `@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）；§2 的版本契约、bundle 清单迁包与 executor 挂载要求已按 0.2.1-rc.2 ~ 0.2.2-rc.3 修订。
+> 精简提炼自 develop/basic/publish 与 `apps/cli/reference`（CLI 行为参考）。SDK 基线 `@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）；§2 的版本契约、bundle 清单迁包与 executor 挂载要求已按 0.2.1-rc.2 ~ 0.2.2-rc.3 修订。
 
 ## 1. 两个概念：组合包（bundle）与 profile
 
@@ -88,7 +88,7 @@ dsh plugin --profile demo remove dsh-hello-plugin  # 同时移除依赖和对应
 - `dsh plugin --profile <name> <args>`（`--profile` 必填）在 profile 目录内转发给 pnpm，所有 pnpm 子命令可用；DSH 自有子命令会**先被拦截**：`version-exemptions`、`allow-version <package@version> --dsh-version <exact> --accept-risk`、`revoke-version …`（精确版本豁免记录在 profile 的 `compatibility.json`）。`add`/`install` 具名包会在跑 pnpm 前做兼容检查，被拒时打印确切的 `allow-version` 命令；**没有** `dsh plugin build`/`pack`/`publish`。`add` 支持：本地目录/checkout、`github:you/repo`、npm 包名、tarball；相对 spec（`.`、`../plugin` 及 `file:`/`link:` 形式）会先锚定到调用目录，避免在插件 checkout 里执行 `add .` 时错误地自链 profile。
 - 每次成功后 `dsh.profile.bundles` 按安装状态重算：声明了 `dsh.bundle` 的依赖按依赖顺序追加；`update` 后才获得该声明的依赖会自动激活；被移除或不再声明的会移出层栈。
 - **组合包成员变化需要重启 profile**（正在运行的 profile 保持本次启动的组合包集合）。配置热重载现在是**YAML 组合的属性**（manifest 的 `patchReload` 已删除）：base 的 `hmr` 行（包名由 `@deepseek-ai/cordis-plugin-hmr` 变为 **`@deepseek-ai/dsh-hmr`**）在 base 系 profile（含 `web`）**默认启用**，profile 与 home 的 `cordis.patch.yml` 编辑即热重载；其 `config.root: []` 意味着监听**源码模块**仍需 opt-in（在 profile patch 里改成 `root: ["."]`）。`headless` / `sdk` / `acp` bundle 显式 `disabled: true`（仅启动时加载），`sdk-minimal` 没有该行；launcher 自身不再安装任何 watcher。
-- **持久安装走 Plugin Manager**：`@deepseek-ai/dsh-plugin-manager` 已随 0.2.0 发行版交付（`apps/cli` 与 base bundle 的依赖），提供 `plugin_manager` 工具（`install_bundle` / `set_bundle` / `set_plugin` / `remove_bundle` / `list_version_exemptions` / `set_version_exemption`）与 Web「插件」页，改动**跨会话持久**。`dsh-tool-cordis` 现在**只读**（`cordis_inspect_list` / `cordis_inspect_query`），`cordis_define` / `cordis_run` **已移除**，不能再当作进程内动态扩展路径。
+- **持久安装走 Plugin Manager**：`@deepseek-ai/dsh-plugin-manager` 已随 0.2.0 发行版交付（`apps/cli` 与 base bundle 的依赖），提供 `plugin_manager` 工具（`install_bundle` / `set_bundle` / `set_plugin` / `remove_bundle` / `list_version_exemptions` / `set_version_exemption`）与 Web「插件」页，改动**跨会话持久**。`dsh-tool-cordis` 现在**只读**，两探针已合并为单个 `cordis_inspect`（用法见 `07b-publish-advanced.md` §10），`cordis_define` / `cordis_run` **已移除**，不能再当作进程内动态扩展路径。
 - **可选展示元数据**：`locale/en.json`（及其他语言）里的 `meta.title` / `meta.description`，配合 `exports: { "./locale/*.json": … }`、`files`，以及顶层 `icon`（SVG/PNG/JPEG/WebP，≤256 KiB，路径必须在包内且真实路径不得逃逸）；用 `pnpm run verify-package-meta` 校验。这些只显示在 Plugin Manager 的卡片/详情上，**不激活插件**。
 
 ## 5. 配置层顺序（生效配置）

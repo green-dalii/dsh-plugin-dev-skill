@@ -20,7 +20,7 @@ plus the operating manual in `References/`. Verify with `bash scripts/verify.sh`
    not the `main` branch URL, to avoid raw.githubusercontent.com CDN cache lag right after a release.
 2. **State the SDK baseline**: every API statement in `SKILL.md` and `References/` is verified
    against the version pair `metadata.sdk-baseline` (in `SKILL.md` frontmatter) and `cordis`
-   at the `4.1.0` floor. If you write a code template, target that pair.
+   at the version shipped by that baseline (currently `4.2.0-alpha.1`; the `4.1.0` API facts remain valid). If you write a code template, target that pair.
 3. **Run `bash scripts/verify.sh`** before claiming a change is complete. It checks:
    - `SKILL.md` YAML frontmatter is legal (kebab-case `name`, `description`, full `metadata`),
    - the version triple `VERSION` / `SKILL.md` `metadata.version` / `CHANGELOG.md` heading

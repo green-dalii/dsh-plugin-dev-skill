@@ -1,6 +1,6 @@
 # 03b · 工具进阶：后台任务、执行策略与 UI 卡片
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 本文件是工具参考的第 2/3 部分，覆盖后台任务、执行策略与观测钩子、UI 卡片。
 > 第 1 部分见 `03-tools.md`，第 3 部分见 `03c-tools-pipeline.md`。

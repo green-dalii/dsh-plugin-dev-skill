@@ -1,6 +1,6 @@
 # 06 · 服务与依赖
 
-> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis **4.1.0** + `@deepseek-ai/*` **0.2.2-rc.3**）为准。逐版本变化见 `References/00-INDEX.md`。
+> 精简提炼自 develop/framework/service、develop/framework/events、reference/event-producer-consumer、reference/cordis-primer、reference/defensive-patterns。API 与分发模式以本地 SDK 类型（cordis **4.2.0-alpha.1** + `@deepseek-ai/*` **0.2.3-alpha.2**）为准。逐版本变化见 `References/00-INDEX.md`。
 
 本文覆盖服务与依赖模型（§1-§5）与实践规则（§8）。事件系统与 Harness 常用事件速览见 06b-events.md。
 
@@ -115,6 +115,7 @@ declare module '@deepseek-ai/cordis' {
 - 每个注册都应有对应 disposer：`ctx.effect()` 返回一个，或使用 Cordis 自动处理的 API。
 - 事件监听器也是 effect：`ctx.on()` 注册的监听器随插件卸载自动移除。
 - 清理只发信号不等待会留下孤儿进程：dispose 必须**达到完全停稳**（await 到工作真正结束），而不是只请求停止。
+- **0.2.3-alpha.2 seam 迁移**：`ctx.sessionQuery.inspectSession(sessionId, read, signal?)` 已移除（类型调用编译失败、无类型运行时 reject）；改用 `using observation = await ctx.sessionQuery.observeSession(sessionId, { signal })`，再读 `observation.projections?.values[key]`——live 与冷会话都算到日志末尾，无需 attach/resume；非 wire 状态一律经其属主服务读取（应同时登记 `12b-migration-errors.md` 迁移表）。同理 `ctx.subagentModelSelection.allowedRoutes()` 每次调用现算，服务不再注入 `sessions` / `sessionProjections`。
 
 ---
 

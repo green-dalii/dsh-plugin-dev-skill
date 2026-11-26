@@ -1,6 +1,6 @@
 # 03c · 工具流水线：作用域、PTC mode 与执行器插件
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 本文件是工具参考的第 3/3 部分，覆盖作用域与步骤准入、PTC mode 自动触达、工具执行器插件与官方文档链接。
 > 第 1 部分见 `03-tools.md`，第 2 部分见 `03b-tools-advanced.md`。
@@ -57,13 +57,13 @@ try {
 dsh --profile headless --patch ./ptc.yml "task"
 ```
 
-`ptc` 执行下，注册表只向模型暴露保留的 `run_code` 工具加一份生成的 SDK 提示词，因此 **model-direct 调用只能写 `run_code`**，写别的工具名会在策略流水线之前以 `UNKNOWN_TOOL` 拒绝；`run_code` 程序内的子分派（带 `parent` token）才能调用全部可见工具。`ptc` 要求存在带已注册 SDK 渲染器的 `ctx.ptcRuntime`（抽象服务 `@deepseek-ai/dsh-ptc-runtime`，提供方是 `@deepseek-ai/dsh-ptc-runtime-node`，另有实验性 `@deepseek-ai/dsh-experimental-ptc-runtime-python`；语言仍为 TypeScript / Python（0.2.2-rc.3 起工具 executor 只接受声明 TypeScript 语言的 provider，Python 运行时包仍存在但不会被 executor 采用——见 §9），缺失或语言无渲染器时在提示词组装阶段响亮失败（`load a ctx.ptcRuntime implementation (e.g. @deepseek-ai/dsh-ptc-runtime-node) or set tools mode to "native"`）。
+`ptc` 执行下，注册表只向模型暴露保留的 `run_code` 工具加一份生成的 SDK 提示词，因此 **model-direct 调用只能写 `run_code`**，写别的工具名会在策略流水线之前以 `UNKNOWN_TOOL` 拒绝；`run_code` 程序内的子分派（带 `parent` token）才能调用全部可见工具。`ptc` 要求存在带已注册 SDK 渲染器的 `ctx.ptcRuntime`（抽象服务 `@deepseek-ai/dsh-ptc-runtime`；Node 提供方 `@deepseek-ai/dsh-ptc-runtime-node`，另有实验性 `@deepseek-ai/dsh-experimental-ptc-runtime-python`，但工具 executor 不采用后者——见 `03d-ptc-runtime.md` §6），缺失或语言无渲染器时在提示词组装阶段响亮失败（`load a ctx.ptcRuntime implementation (e.g. @deepseek-ai/dsh-ptc-runtime-node) or set tools mode to "native"`）。
 
 程序内每个可见工具都可通过 `await tools.<name>(args)` 调用，无需额外集成；成功解析为策略处理后的**最终规范 JSON 值**（不是渲染文本），失败以生成的 `ToolCallError` reject——程序只能读 `name`/`toolName`/`message`，拿不到内部错误码或失败联合。因此**把 `output.schema` 设计为实用的程序化 API**：直接返回句柄与字段；确属结果时允许标量/数组/null 根；面向人的解释放 `output.render`。
 
 程序内中间值不被持久化，不受提示词上限与 spill 流水线约束，只有外层 `run_code` 的日志/结果受限；子调用并发上限现在在 **PTC executor 的配置**里（默认 10），仍然只对 `isConcurrencySafe` 为 `true` 的调用并行、独占调用形成屏障（设为 `1` 即严格串行）。
 
-**PTC 程序格式与状态保留（0.2.1-rc.2 起）**：`PtcRuntime.programFormat` 从 `'function-body' | 'repl'` 扩展为含 **`'script'`**（Node 侧用 `executionMode: vm-script` 开启，接受 Script 语句与顶层 await，**无顶层 `return`**；`scriptPersistence` 独立决定跨调用记忆）。**不要手写这个联合类型**——从 `@deepseek-ai/dsh-ptc-runtime` 导入 `PtcProgramFormat`。判断 provider 是否保留 `stateOwner` 的记忆，用 **`runtime.retainsState`**（基类返回 `false`），不要再用 `programFormat === 'repl'` 推断；保留记忆的自定义 provider 必须覆写 `retainsState` 并继续实现 `release(owner)`。
+**PTC 运行时细节**（程序格式 / `retainsState` / `executionMode` / 输出截断 / `inspect` / MCP 图片 / 子调用额度）已移至 `03d-ptc-runtime.md`。
 
 **取消语义（0.2.1-rc.3 起）**：**调用方取消**正在运行的 `run_code` 时，`tool/result` 的错误由 `CodeRunFailedError` / `CODE_RUN_FAILED` 改为 **`AbortError` / `ABORTED`**，结果内容变为 `Error: tool call aborted`；具体取消原因记录在 `turn/end`（`data.reason.kind === 'aborted'` 时读 `data.reason.reason`）。运行时自身失败（超时、清理失败）与运行时本地取消仍是 `CODE_RUN_FAILED`。读取历史结果时保留 `CODE_RUN_FAILED` 分支。
 
@@ -97,8 +97,6 @@ dsh --profile headless --patch ./ptc.yml "task"
   - `@deepseek-ai/dsh-tool-executor-ptc` —— PTC SDK 渲染器与 `CodeRunFailedError`。
   - `@deepseek-ai/dsh-tool-executor-ptc/types` —— 共享 dispatch 事件与 `ptc-mode` message-source 声明；Host 侧策略扩展用 `import type { PtcDispatchLog } from '@deepseek-ai/dsh-tool-executor-ptc'`。
 - `maxParallelSubCalls` 现在在 PTC executor 配置里；`agent-loop.maxParallelToolCalls`（默认 `10`）仍在原处，**实时编辑只影响下一批**（不再是下一个 tool group）。
-- **`tool-executor-ptc` 的调用额度（0.2.2-rc.3 起）**：新增 `maxSubCallsPerMinute`（默认 **`1024`**）——按解析后的 runtime 超时折算的**每分钟子调用额度**，含失败调用，用来兜住模型写出的死循环。超限抛 `ToolCallLimitExceededError`，message 指出第几次调用未被派发并建议检查循环终止或拆分 `run_code` 调用。
-- **非 TypeScript PTC provider（0.2.2-rc.3 起）**：executor 只接受声明 TypeScript 语言的 provider；用其它语言建 `/run-code` 工具或组装提示词会以 `ToolContextUnavailableError` / `TOOL_CONTEXT_UNAVAILABLE` 失败。
 
 ---
 

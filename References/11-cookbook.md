@@ -1,6 +1,6 @@
 # 11 · 扩展模式（Extension Cookbook）
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 精简提炼自 reference/cookbook/extension-cookbook 与 reference/subsystems/conversation。
 > 代码片段省略 import 与辅助实现，不可直接复制运行——它们是模式参考。
@@ -123,6 +123,17 @@ export function apply(ctx: Context) {
 `system-prompt/assemble` 是专家协作式的整体装配变换：**返回的装配结果具有权威性**，监听器作者有责任保留活跃的 PTC mode 与结构化输出协议的贡献。需要展示/查找/执行对齐的工具过滤，优先用 `ctx.tools.restrict()`。
 
 > ⚠️ **0.2.1-rc.2 起该 waterfall 不再携带工具数组**：输入是 sections / contexts / variables（`PromptPresentation`），返回的 `tools` 字段被**忽略**；读 `assembly.tools` 得到 `undefined` 并在运行时失败。**想在装配时增删工具声明，改用注册项的 `when` 条件**（`ctx.tools.register(def, { when })`）；想在提示词里描述本步可用的工具，用 section 回调并把 `context.toolSet` 传给 `ctx.tools.get()` / `ctx.tools.schemas()`。
+
+### 0.2.2-rc.5 起：system 消息改为「段更新」
+
+装配不再把整段系统提示词交给下游：后续 `system/message` 事件携带的是 **section（段）更新**，消费方须保留全部存活的 system 消息（只留最后一条会丢掉未变更段）。装配校验按 **source 文本与顺序** 比对已记录状态：accepted 装配必须与日志一致；disposal 只对「曾提交过、且已无任何存活注册」的 source 产生 retirement；rejected 装配不提交任何东西。无 `source.sections` 的旧消息仍可读。
+
+- **`section()` 解析**：名字可重复——最近可见 scope 优先，其次该 scope 内最新存活的注册；dispose 一个 override 会恢复下一个定义。Plan mode 保留条件指令，并追加 active/inactive 状态更新。
+- **存储布局**：section 在插值**之后**裁剪、作为独立文本块存储，系统服务**不插入任何空白分隔符**。每条活跃记录带 `contentIndex` 指向其真实文本（含「空文本更新」）；retired 记录无 `contentIndex`。可选 `noticeIndex` 数组标注属于某 source 的 replacement / retirement 文本块；整提示词 supersession 通知无归属（unattributed）；retirement 通知必须非空。
+- **插件作者义务**：保持 section 名稳定；独立指令用不同名字，仅在需要覆盖时复用同名；指令生效期间保持注册存活，撤回时 dispose。可选提供字面 `retirement` 文本与 `replacement` 通知，`replacement` 留空则抑制通知。
+- **自定义消费方**（transcript / SDK / adapter / viewer）：必须累加各 section，并用 `contentIndex` / `noticeIndex` 区分真实文本与通知；保留 section 内有意义的空白；**不要用纯空白 section 当分隔符**（分隔符由 adapter 决定）。自定义 composition 必须先加载 `session-projection` 再加载 `system-prompt`。
+- **自定义 agent loop**：停止消费 `systemMessages`，改为在**每次模型尝试前**（含溢出重试）调用 `PromptAssembly.systemUpdates(retry)`；按序 append 每个返回的 `{ message, intent }` 为 `system/message` 事件，**不得 yield**；首次尝试传 `false`、后续传 `true`（后续只收到重建压缩所需的更新）；重试复用同一 assembly。
+- **自检**：未变更的段不发送任何内容；变更的段发送更新；最后一个可见注册离开后发送一条 retirement。
 
 ---
 

@@ -1,6 +1,6 @@
 # 10 · 论文解读：《A Programming Paradigm for Spatiotemporal Composability》
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 
 > 扩展阅读。**Agent 写 DSH 插件不需要读这篇**——`01-dsh-architecture.md` 的"心智模型"已经覆盖所需的全部直觉。本文件给对 Cordis 框架理论来源感兴趣的人类读者。
 
@@ -76,6 +76,17 @@ Koishi 是构建在 Cordis 上的开源聊天机器人框架，4000+ 社区插�
 - `inject` 就是 reactive coeffect：服务消失/恢复自动重载，就是通知机制。
 - cordis.yml 对账、HMR 事务性重载、服务隔离（isolate）、拦截（intercept）都直接对应论文机制。
 - **组件作者的义务**：效应携带的逆必须真的恢复它伴随的效应（运行时不验证 witness）；系统边界外的排放（如已发送的邮件）恢复不了，需要 withhold 或补偿——所以工具描述要如实、破坏性操作要走审批/沙箱。
+
+---
+
+## 8. 附：SDK prompt 时间时区（0.2.3-alpha.2 起）
+
+提示词里的时间不再默认 `unavailable`：改用传入的 `timeZone`，取值必须是 `UTC` 或 IANA `Area/Location`（显式传入非法时区会让请求失败；进程时区不符合该格式时仍报 `unavailable`）。
+
+- TS：`session.run(input, { timeZone })`、`harness.run(input, { timeZone })`、`client.prompt(sessionId, blocks, { timeZone })`。
+- Python：`session.run(input, time_zone=...)`、`harness.run(input, time_zone=...)`、`client.session_prompt(session_id, blocks, time_zone=...)`。
+- JSON-RPC：`session/prompt` / `session/query` 上新增 `"timeZone"` 参数。
+- 原生斜杠命令（native slash commands）不受影响。
 
 ---
 

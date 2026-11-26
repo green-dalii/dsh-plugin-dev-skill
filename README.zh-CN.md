@@ -3,14 +3,14 @@
 [English](README.md) | **简体中文**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Updated](https://img.shields.io/badge/updated-2026--11--15-informational)](CHANGELOG.md)
-[![Skill version](https://img.shields.io/badge/skill-0.9.1-brightgreen)](VERSION)
+[![Updated](https://img.shields.io/badge/updated-2026--11--26-informational)](CHANGELOG.md)
+[![Skill version](https://img.shields.io/badge/skill-0.10.0-brightgreen)](VERSION)
 [![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 **可在以下编码 Agent 中加载：**<br>
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.2--rc.3%20%C2%B7%20official%20compatible-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3) [![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-informational)](https://code.claude.com/docs/en/skills) [![Codex CLI](https://img.shields.io/badge/Codex%20CLI-compatible-informational)](https://github.com/openai/codex) [![Pi](https://img.shields.io/badge/Pi-compatible-informational)](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md) [![Cursor](https://img.shields.io/badge/Cursor-compatible-informational)](https://cursor.com/docs/context/skills) ![Google Antigravity](https://img.shields.io/badge/Google%20Antigravity-compatible-informational) [![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-compatible-informational)](https://code.visualstudio.com/docs/copilot/customization/agent-skills) [![OpenCode](https://img.shields.io/badge/OpenCode-compatible-informational)](https://opencode.ai/docs/skills/) [![Amp](https://img.shields.io/badge/Amp-compatible-informational)](https://ampcode.com/docs) [![Cline](https://img.shields.io/badge/Cline-compatible-informational)](https://docs.cline.bot) [![Goose](https://img.shields.io/badge/Goose-compatible-informational)](https://goose-docs.ai) [![Kiro](https://img.shields.io/badge/Kiro-compatible-informational)](https://kiro.dev/docs/skills/) [![Kimi Code](https://img.shields.io/badge/Kimi%20Code-compatible-informational)](https://code.kimi.com) ![ZCode](https://img.shields.io/badge/ZCode-compatible-informational) ![Minimax Code](https://img.shields.io/badge/Minimax%20Code-compatible-informational) [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-standard-brightgreen)](https://agentskills.io/clients)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.3--alpha.2%20%C2%B7%20official%20compatible-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.3-alpha.2) [![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-informational)](https://code.claude.com/docs/en/skills) [![Codex CLI](https://img.shields.io/badge/Codex%20CLI-compatible-informational)](https://github.com/openai/codex) [![Pi](https://img.shields.io/badge/Pi-compatible-informational)](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md) [![Cursor](https://img.shields.io/badge/Cursor-compatible-informational)](https://cursor.com/docs/context/skills) ![Google Antigravity](https://img.shields.io/badge/Google%20Antigravity-compatible-informational) [![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-compatible-informational)](https://code.visualstudio.com/docs/copilot/customization/agent-skills) [![OpenCode](https://img.shields.io/badge/OpenCode-compatible-informational)](https://opencode.ai/docs/skills/) [![Amp](https://img.shields.io/badge/Amp-compatible-informational)](https://ampcode.com/docs) [![Cline](https://img.shields.io/badge/Cline-compatible-informational)](https://docs.cline.bot) [![Goose](https://img.shields.io/badge/Goose-compatible-informational)](https://goose-docs.ai) [![Kiro](https://img.shields.io/badge/Kiro-compatible-informational)](https://kiro.dev/docs/skills/) [![Kimi Code](https://img.shields.io/badge/Kimi%20Code-compatible-informational)](https://code.kimi.com) ![ZCode](https://img.shields.io/badge/ZCode-compatible-informational) ![Minimax Code](https://img.shields.io/badge/Minimax%20Code-compatible-informational) [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-standard-brightgreen)](https://agentskills.io/clients)
 
 **一份教任何 AI 编码 Agent 正确、高效、符合规范地开发 [DeepSeek Harness（DSH）](https://github.com/deepseek-ai/deepseek-harness) 插件的技能包。** 它由一个路由索引（[`SKILL.md`](SKILL.md)）与 25 篇参考文档组成，每篇都压在 8,192 字符以内，以便完整穿过 DSH 的 tool-result 剪枝。
 
@@ -44,10 +44,10 @@
 
 > 给我的 profile 加一个插件，把某个会话导出成 Markdown。
 
-1. 创作模式调 `cordis_inspect_query`，确认当前版本 `ctx.sessions` / `ctx.storage` 的真实签名。
+1. 创作模式调 `cordis_inspect`，确认当前版本 `ctx.sessions` / `ctx.storage` 的真实签名。
 2. 本技能给出 `defineTool` / service 骨架与铁律——副作用归 effect 托管、用 `inject` 而不是 `ctx.get`、所有可调值进 `Config`——于是第一版草稿就已经符合规范。
 3. 创作模式用 `plugin_manager` 的 `install_bundle` 装进 profile，并读回 `application: applied`。
-4. 遇到不认识的 API 时，[`References/12b-migration-errors.md`](References/12b-migration-errors.md) 告诉你它是从哪个版本开始变的，[`References/13-upgrade-guides.md`](References/13-upgrade-guides.md) 给出上游指南原文链接。
+4. 遇到不认识的 API 时，[`References/12b-migration-errors.md`](References/12b-migration-errors.md) / [`12c-migration-errors.md`](References/12c-migration-errors.md) 告诉你它是从哪个版本开始变的，[`References/13-upgrade-guides.md`](References/13-upgrade-guides.md) 给出上游指南原文链接。
 
 分流不是靠运气：[`SKILL.md`](SKILL.md) §0 内置了这张分工表，两个技能都加载的 Agent 会按任务自己选，而不是猜。
 
@@ -81,7 +81,7 @@ Agent 介入仓库时的约定（加载、检查、不能动哪些文件）见 [
 
 写一个 DSH 的 "Hello World" 插件只需一行。但要写出**正确的**插件——`defineTool` 输出契约遵守、可逆效应替代手工清理、`inject` 依赖语义、Standard Schema 配置校验、事件分发模式选型、真正能装上车的打包——才是本技能编码的内容。
 
-它**基于第一性原理**：每条规则都扎根于底层框架 Cordis 的学术基础（[arXiv:2608.25512](https://arxiv.org/abs/2608.25512)），再落地成可直接照抄的代码模板。每条 API 陈述都对照真实 SDK 类型在声明基线（`@deepseek-ai/*` 0.2.2-rc.3、cordis 4.1.0）实测过；模板在撰写时已对照该基线校验，但**不在 CI 中做类型检查**——DSH SDK 不是公开 npm 包。
+它**基于第一性原理**：每条规则都扎根于底层框架 Cordis 的学术基础（[arXiv:2608.25512](https://arxiv.org/abs/2608.25512)），再落地成可直接照抄的代码模板。每条 API 陈述都对照真实 SDK 类型在声明基线（`@deepseek-ai/*` 0.2.3-alpha.2、cordis 4.2.0-alpha.1）实测过；模板在撰写时已对照该基线校验，但**不在 CI 中做类型检查**——DSH SDK 不是公开 npm 包。
 ## 项目结构
 
 ```
@@ -95,13 +95,14 @@ dsh-plugin-dev-skill/
 ├── CONTRIBUTING.md              # 贡献指南
 ├── SECURITY.md                  # 安全政策
 ├── LICENSE                      # MIT
-├── References/                  # 操作手册正文（25 篇，每篇 ≤ 8192 字符）
+├── References/                  # 操作手册正文（27 篇，每篇 ≤ 8192 字符）
 │   ├── 00-INDEX.md              # 文件总览、SDK 基线、上游重命名术语对照
 │   ├── 01-dsh-architecture.md   # DSH 架构：CLI、profile/bundle、配置层、插件加载
 │   ├── 02-plugin-basics.md      # 插件形态、运行时与包地图、inject/effect、Fiber、HMR
 │   ├── 03-tools.md              # 工具基础：defineTool、execute 契约、schema 词汇
 │   ├── 03b-tools-advanced.md    # 后台任务、执行策略、UI 卡片
-│   ├── 03c-tools-pipeline.md    # 步骤准入（when）、PTC mode、executor 插件
+│   ├── 03c-tools-pipeline.md    # 步骤准入（when）、executor 插件
+│   ├── 03d-ptc-runtime.md       # PTC 程序格式、scoped REPL、截断、检查
 │   ├── 04-config.md             # 插件配置与 Schemastery
 │   ├── 05-llm-adapter.md        # LLM 适配器：StreamChunk 协议、GenerateOptions、注册
 │   ├── 05b-llm-errors.md        # LLM 失败码、retryChoice、fromFailure、pi-ai 1.3.0
@@ -117,7 +118,8 @@ dsh-plugin-dev-skill/
 │   ├── 10-spatiotemporal.md     # 论文解读（时空可组合性）
 │   ├── 11-cookbook.md           # 扩展模式（钩子/UI/协议桥/功能→机制）
 │   ├── 12-mistakes.md           # 通用错误与修正（与版本无关）
-│   ├── 12b-migration-errors.md  # 版本迁移错误（破坏性变更对照）
+│   ├── 12b-migration-errors.md  # 版本迁移错误（至 rc.3）
+│   ├── 12c-migration-errors.md  # 版本迁移错误（rc.4 ~ 0.2.3-alpha.2）
 │   ├── 13-upgrade-guides.md     # 升级指南索引、官方链接、与 dsh-doc 的分工
 │   ├── 14-workflow-and-scope.md # 开发流程四阶段 + 覆盖范围边界
 │   └── 15-self-update.md        # 本技能的自我更新流程
@@ -217,7 +219,7 @@ DeepSeek Harness 是一个 Agent Harness SDK：其中每一项能力——工具
 
 ### 它适配哪个 DeepSeek Harness 版本？
 
-`@deepseek-ai/*` **0.2.2-rc.3** 与 cordis **4.1.0**——所有 API 陈述都是对该版本实测验证的。自 0.2.0 以来的关键变化：`ctx.codeRuntime` → `ctx.ptcRuntime` 改名、Plugin Manager 随发行版交付、E2B 系移除改由 SSH 家族接管；0.2.1-rc.1 ~ 0.2.2-alpha.2 是一次大重构（executor 插件、`when` 步骤准入）；0.2.2-rc.3 重构错误契约（`@deepseek-ai/dsh-error`、`LLM_FAILURE_CODES`）。完整差异见 [`CHANGELOG.md`](CHANGELOG.md) 与 [`References/12b-migration-errors.md`](References/12b-migration-errors.md)。
+`@deepseek-ai/*` **0.2.3-alpha.2** 与 cordis **4.2.0-alpha.1**——所有 API 陈述都是对该版本实测验证的。自 0.2.0 以来的关键变化：`ctx.codeRuntime` → `ctx.ptcRuntime` 改名、Plugin Manager 随发行版交付、E2B 系移除改由 SSH 家族接管；0.2.1-rc.1 ~ 0.2.2-alpha.2 是一次大重构（executor 插件、`when` 步骤准入）；0.2.2-rc.3 重构错误契约（`@deepseek-ai/dsh-error`、`LLM_FAILURE_CODES`）；rc.4 ~ 0.2.3-alpha.2 则统一了 `cordis_inspect`、把 PTC 默认改为 scoped REPL、新增 `ctx.deepseekAuth`、系统消息改增量 section、移除若干工具与服务。完整差异见 [`CHANGELOG.md`](CHANGELOG.md)、[`12b-migration-errors.md`](References/12b-migration-errors.md) 与 [`12c-migration-errors.md`](References/12c-migration-errors.md)。
 
 ### 如何保持最新？
 
@@ -230,7 +232,7 @@ DeepSeek Harness 是一个 Agent Harness SDK：其中每一项能力——工具
 
 - 官方文档站（中文/英文）：https://deepseek-harness.github.io/deepseek-harness/develop/basic/
 - 源码仓库：https://github.com/deepseek-ai/deepseek-harness
-- 最新 tag 发布：https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3
+- 最新 tag 发布：https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.3-alpha.2
 - 论文：《A Programming Paradigm for Spatiotemporal Composability》（Cordis 框架的学术基础，arXiv:2608.25512）：https://arxiv.org/abs/2608.25512
 
 所有参考文档均为**精简提炼**（不是官方文档照搬），以「开发出正确、高效、符合规范的插件」为目标组织。

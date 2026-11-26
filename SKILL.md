@@ -3,15 +3,15 @@ name: dsh-plugin-dev-skill
 description: 指导任何 Agent 正确、高效、符合规范地开发 DeepSeek Harness（DSH）插件。涵盖 Tool（defineTool）、LLM 适配器、服务与依赖、事件系统、配置、打包发布，以及 Cordis 框架的心智模型、代码模板与验证清单。
 whenToUse: 当任务涉及为 DeepSeek Harness 编写/修改/调试插件（tool、LLM adapter、服务提供方、钩子、UI、协议桥等），编写或修改 cordis.yml / cordis.patch.yml / dsh.profile / dsh.bundle 配置，使用 dsh plugin 命令，或需要理解 ctx.tools、ctx.llm、ctx.agents、ctx.sessions 等服务与 tools/*、agent/*、session/event 等事件时，加载本技能。
 metadata:
-  version: 0.9.1
+  version: 0.10.0
   upstream: https://github.com/green-dalii/dsh-plugin-dev-skill
-  sdk-baseline: 0.2.2-rc.3
+  sdk-baseline: 0.2.3-alpha.2
 ---
 
 # DeepSeek Harness Plugin Dev Skill
 
 > **本文件是索引与铁律，不是手册。** 操作手册正文在 `References/`（每篇都在 8,192 字符以内，可安全整篇读取）。
-> **SDK 基线**：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。所有 API 陈述以此为准。
+> **SDK 基线**：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。所有 API 陈述以此为准。
 > ⚠️ **载入后先执行 §1**，再开始干活。
 
 ## 0. 与 DSH 内置 `dsh-doc` 的分工（两者并存，不是替代关系）
@@ -20,7 +20,7 @@ DSH 自带内置 skill **`dsh-doc`**（随 `@deepseek-ai/dsh-agent-preset` 发�
 
 | 场景 | 用哪个 |
 |---|---|
-| 查正在运行的 DSH 里某 Service / UI Slot 的**现役**签名；用现成工具管理**运行中 profile** 里的 bundle（`install_bundle`、启用停用、看 `application`/`warnings`）；连 MCP；写 agent preset | `dsh-doc`（创作模式下另有 `cordis_inspect_*` 活体探针） |
+| 查正在运行的 DSH 里某 Service / UI Slot 的**现役**签名；用现成工具管理**运行中 profile** 里的 bundle（`install_bundle`、启用停用、看 `application`/`warnings`）；连 MCP；写 agent preset | `dsh-doc`（创作模式下另有 `cordis_inspect` 活体探针；0.2.2-rc.4 起原 `cordis_inspect_list` / `cordis_inspect_query` 合并为它） |
 | **自己写/打包** bundle 与 `dsh plugin` 的安装语义、配置层顺序；离线 API 手册；可直接照抄的 TS 模板；跨版本「改了什么」累积清单；**非 DSH 宿主**（Claude Code / Codex / Cursor） | **本技能**（打包见 `07-publish.md` / `07b-publish-advanced.md`） |
 
 理由、`dsh-doc` 的设计取舍与完整分流表见 `References/13-upgrade-guides.md` §3。
@@ -58,7 +58,8 @@ DSH 自带内置 skill **`dsh-doc`**（随 `@deepseek-ai/dsh-agent-preset` 发�
 | 0.2.0 | 无特权内核定型；`ctx.codeRuntime`→`ctx.ptcRuntime`；删 `agent/session-start` 与 profile `patchReload`；去 E2B 改 SSH |
 | 0.2.1-alpha.1~4 | 基本无公共 API 破坏；`engines.dsh` 优先于 peer、`peers`→`requirements`；`plugin_market` 加入 |
 | 0.2.1-rc.1 ~ 0.2.2-alpha.2 | **大重构**：executor 拆成独立插件、工具声明改 `when` 准入、`agent/request` 不再公开、session 投影改异步 handle、`purpose` 改声明式 |
-| 0.2.2-alpha.3 ~ **rc.3（基线）** | cordis **4.1.0**；错误契约重构（`dsh-error`、`LLM_FAILURE_CODES`、`ToolGuardDenial`、`ApprovalError`）；`Session.append` 批量重载；子代理全面具名；`ctx.officeKit` |
+| 0.2.2-alpha.3 ~ rc.3 | cordis **4.1.0**；错误契约重构（`dsh-error`、`LLM_FAILURE_CODES`、`ToolGuardDenial`、`ApprovalError`）；`Session.append` 批量重载；子代理全面具名；`ctx.officeKit` |
+| 0.2.2-rc.4 ~ **0.2.3-alpha.2（基线）** | cordis **4.2.0-alpha.1**；`cordis_inspect` 合并双探针；PTC 默认 scoped REPL、协议 5；`ctx.deepseekAuth` 统一凭据；系统消息改增量 section；`working_directory` / `create_worktree` 工具移除；`list_agents` 结果改形；Node 要求 `^24.22.3` |
 
 ## 4. 索引：任务 → 读哪篇
 
@@ -69,7 +70,8 @@ DSH 自带内置 skill **`dsh-doc`**（随 `@deepseek-ai/dsh-agent-preset` 发�
 | 建立 DSH / Cordis 心智模型 | `01-dsh-architecture.md` + `09-cordis-primer.md` |
 | 写第一个插件（形态、inject、effect、生命周期、HMR） | `02-plugin-basics.md` |
 | 写 Tool：`defineTool`、schema、后台任务、UI 卡片 | `03-tools.md` → `03b-tools-advanced.md` |
-| 工具步骤准入 / PTC / executor 插件 | `03c-tools-pipeline.md` |
+| 工具步骤准入 / executor 插件 | `03c-tools-pipeline.md` |
+| PTC 运行时细节（程序格式、scoped REPL、截断、检查、图片值） | `03d-ptc-runtime.md` |
 | 插件配置（Schemastery、设置页） | `04-config.md` |
 | 写 LLM 适配器（StreamChunk、模型元数据） | `05-llm-adapter.md` |
 | LLM 错误码、`LLM_FAILURE_CODES`、`fromFailure` | `05b-llm-errors.md` |
@@ -82,7 +84,8 @@ DSH 自带内置 skill **`dsh-doc`**（随 `@deepseek-ai/dsh-agent-preset` 发�
 | `ctx` 上到底有哪些 API | `09b-cordis-ctx-api.md` |
 | 扩展模式与「功能 → 机制」映射 | `11-cookbook.md` |
 | 通用错误对照自查 | `12-mistakes.md` |
-| 版本破坏性变更对照 | `12b-migration-errors.md` |
+| 版本破坏性变更对照（至 rc.3） | `12b-migration-errors.md` |
+| 版本破坏性变更对照（rc.4 ~ 0.2.3-alpha.2） | `12c-migration-errors.md` |
 | 升级指南原文索引、官方链接、与 `dsh-doc` 的分工 | `13-upgrade-guides.md` |
 | 开发流程四阶段、覆盖范围边界（UI / Schedule / 子代理 / Web 搜索） | `14-workflow-and-scope.md` |
 | 本技能自我更新流程（完整版） | `15-self-update.md` |

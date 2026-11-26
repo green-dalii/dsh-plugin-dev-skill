@@ -1,13 +1,14 @@
 # 09 · Cordis 入门与 ctx API 速查
 
-> SDK 基线：`@deepseek-ai/*` **0.2.2-rc.3**（cordis **4.1.0**）。
+> SDK 基线：`@deepseek-ai/*` **0.2.3-alpha.2**（cordis **4.2.0-alpha.1**）。
 >
 > 精简提炼自 reference/cordis-primer、reference/cordis-api/*（context/events/fiber/registry/service/inherited）。ctx API 与分发模式已逐条对照本地 `@deepseek-ai/cordis` **4.1.0** 类型定义核实。
 >
-> **4.1.0 相对 4.0.6-alpha.1 的变化（本次基线）**：`src/*.ts` 有 6 个文件变动（`context.ts` / `events.ts` / `fiber.ts` / `logger.ts` / `reflect.ts` / `utils.ts`），公开 API 层面要注意三点：
+> **4.1.0 相对 4.0.6-alpha.1 的变化（上一个基线）**：`src/*.ts` 有 6 个文件变动（`context.ts` / `events.ts` / `fiber.ts` / `logger.ts` / `reflect.ts` / `utils.ts`），公开 API 层面要注意三点：
 > - **`Fiber.update()` 返回类型 `void` → `Awaitable<void>`**：loaded 路径会 `return fiber.restart()` / `task`，所以**可以直接 `await fiber.update(cfg)`**（见 §7）。
 > - **`LoggerLevel` 数值重排**：`ERROR=0` / **`WARN=1`** / **`INFO=2`** / `DEBUG=3`（4.0.x 是 `INFO=1` / `WARN=2`）。按数字下标比大小的 exporter 会静默错位——请用枚举名比较。
 > - **`internal/update` 监听器签名收窄**：`(config, noSave, next)` → **`(config, next)`**；`noSave` 仍是 `Fiber.update()` 的第二个实参，但不再传给监听器。
+> - **4.2.0-alpha.1 复核**：以上三点 API 与 ctx/分发模式均保留、继续有效。
 >
 > 其余为内部重构（`symbols.caller` 新增；reflect 条目由 `fiber` 改为 `ctx` 并新增 `dependents` / `release` / `isolate`；hook 表改用无原型对象；`Context.baseUrl` 类型放宽为 `string | undefined`），普通插件无需改代码。
 >
@@ -90,7 +91,11 @@ interface Plugin.Base<T> {
 
 ## 8. Loader 配置细节
 
-- `@deepseek-ai/cordis-plugin-include` 将 `!!js` 解析为表达式节点。
+- `@deepseek-ai/cordis-plugin-loader` **1.0.0-rc.9**；`@deepseek-ai/cordis-plugin-include` **1.2.0**（`!!js`→表达式节点）。
+- Include/`parseEntryYaml`：YAML 1.2 core schema（非 js-yaml JSON schema）；`0b101` → `'0b101'` 字符串；空 `!!js` 标量 → 空表达式 → `undefined`。
+- 校验：`name` string、`group` boolean、`disabled` boolean/`!!js`、`group:true` 需 `config` 列表（可空）、`inject` string[] 或映射、`isolate` 映射值 `true`/string；拒条目不影响同级，必需条目（如 `webserver`）停启动、其余告警，Include 条目非 mapping 整文件拒，含 `:` 的 id 仍接受，错带 `file:line:column`。
+- 缺模块：`ModuleNotFoundError`（无 `imported from`），`code` 仍 `ERR_MODULE_NOT_FOUND`。
+- `applyEntryPatches(data, patches, warn)` → `{ data, index }`（非条目数组），生成 id 写回 `patches` 中替换 group `config` 的匿名条目；保输入传 `structuredClone(patches)`。`parseEntryYaml` 抛 `yaml` 的 `YAMLError`（原 `YAMLException`）；`entryYamlErrorPosition(error)` 不变。
 - **volatile config**：`Schema.<field>().volatile()` 得到稳定引用，用 `.get()` 读取；此类字段提交时**不重挂载**插件、不经过 `internal/update`，只发出 `loader/volatile-update`（变更路径数组）。典型用途是运行中可调、但不应触发重启的参数。
 - Loader 在声明的注入激活后，基于插件上下文插值条目的 `config`；在每次挂载决策时基于 loader 上下文插值 `disabled`。其余条目元数据保持字面值。
 - 环境选择插件请用 overlay，不要塞 `!!js` 进 `name`。

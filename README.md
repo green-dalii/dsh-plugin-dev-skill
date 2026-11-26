@@ -3,14 +3,14 @@
 **English** | [简体中文](README.zh-CN.md)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Updated](https://img.shields.io/badge/updated-2026--11--15-informational)](CHANGELOG.md)
-[![Skill version](https://img.shields.io/badge/skill-0.9.1-brightgreen)](VERSION)
+[![Updated](https://img.shields.io/badge/updated-2026--11--26-informational)](CHANGELOG.md)
+[![Skill version](https://img.shields.io/badge/skill-0.10.0-brightgreen)](VERSION)
 [![deepseek-harness on GitHub](https://img.shields.io/github/stars/deepseek-ai/deepseek-harness?logo=github&label=deepseek-harness)](https://github.com/deepseek-ai/deepseek-harness)
 [![Docs](https://img.shields.io/badge/Docs-DeepSeek%20Harness-blue)](https://deepseek-harness.github.io/deepseek-harness/develop/basic/)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 **Loads in:**<br>
-[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.2--rc.3%20%C2%B7%20official%20compatible-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3) [![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-informational)](https://code.claude.com/docs/en/skills) [![Codex CLI](https://img.shields.io/badge/Codex%20CLI-compatible-informational)](https://github.com/openai/codex) [![Pi](https://img.shields.io/badge/Pi-compatible-informational)](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md) [![Cursor](https://img.shields.io/badge/Cursor-compatible-informational)](https://cursor.com/docs/context/skills) ![Google Antigravity](https://img.shields.io/badge/Google%20Antigravity-compatible-informational) [![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-compatible-informational)](https://code.visualstudio.com/docs/copilot/customization/agent-skills) [![OpenCode](https://img.shields.io/badge/OpenCode-compatible-informational)](https://opencode.ai/docs/skills/) [![Amp](https://img.shields.io/badge/Amp-compatible-informational)](https://ampcode.com/docs) [![Cline](https://img.shields.io/badge/Cline-compatible-informational)](https://docs.cline.bot) [![Goose](https://img.shields.io/badge/Goose-compatible-informational)](https://goose-docs.ai) [![Kiro](https://img.shields.io/badge/Kiro-compatible-informational)](https://kiro.dev/docs/skills/) [![Kimi Code](https://img.shields.io/badge/Kimi%20Code-compatible-informational)](https://code.kimi.com) ![ZCode](https://img.shields.io/badge/ZCode-compatible-informational) ![Minimax Code](https://img.shields.io/badge/Minimax%20Code-compatible-informational) [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-standard-brightgreen)](https://agentskills.io/clients)
+[![DeepSeek Harness](https://img.shields.io/badge/DeepSeek%20Harness-0.2.3--alpha.2%20%C2%B7%20official%20compatible-blue)](https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.3-alpha.2) [![Claude Code](https://img.shields.io/badge/Claude%20Code-compatible-informational)](https://code.claude.com/docs/en/skills) [![Codex CLI](https://img.shields.io/badge/Codex%20CLI-compatible-informational)](https://github.com/openai/codex) [![Pi](https://img.shields.io/badge/Pi-compatible-informational)](https://github.com/badlogic/pi-mono/blob/main/packages/coding-agent/docs/skills.md) [![Cursor](https://img.shields.io/badge/Cursor-compatible-informational)](https://cursor.com/docs/context/skills) ![Google Antigravity](https://img.shields.io/badge/Google%20Antigravity-compatible-informational) [![GitHub Copilot](https://img.shields.io/badge/GitHub%20Copilot-compatible-informational)](https://code.visualstudio.com/docs/copilot/customization/agent-skills) [![OpenCode](https://img.shields.io/badge/OpenCode-compatible-informational)](https://opencode.ai/docs/skills/) [![Amp](https://img.shields.io/badge/Amp-compatible-informational)](https://ampcode.com/docs) [![Cline](https://img.shields.io/badge/Cline-compatible-informational)](https://docs.cline.bot) [![Goose](https://img.shields.io/badge/Goose-compatible-informational)](https://goose-docs.ai) [![Kiro](https://img.shields.io/badge/Kiro-compatible-informational)](https://kiro.dev/docs/skills/) [![Kimi Code](https://img.shields.io/badge/Kimi%20Code-compatible-informational)](https://code.kimi.com) ![ZCode](https://img.shields.io/badge/ZCode-compatible-informational) ![Minimax Code](https://img.shields.io/badge/Minimax%20Code-compatible-informational) [![Agent Skills](https://img.shields.io/badge/Agent%20Skills-standard-brightgreen)](https://agentskills.io/clients)
 
 **An agent skill that teaches any AI coding agent how to develop [DeepSeek Harness (DSH)](https://github.com/deepseek-ai/deepseek-harness) plugins** — correctly, efficiently, and in line with the official conventions. It ships a routing index ([`SKILL.md`](SKILL.md)) plus 25 reference docs, each kept under 8,192 characters so it survives DSH's tool-result pruner intact.
 
@@ -44,10 +44,10 @@ If you drive DSH itself, you have two things available: **DSH's built-in Creator
 
 > Add a plugin to my profile that exports a session as Markdown.
 
-1. Creator mode calls `cordis_inspect_query` to confirm the live `ctx.sessions` / `ctx.storage` signatures.
+1. Creator mode calls `cordis_inspect` to confirm the live `ctx.sessions` / `ctx.storage` signatures.
 2. This skill supplies the `defineTool` / service skeleton and the invariants — effect-owned cleanup, `inject` instead of `ctx.get`, every tunable in `Config` — so the first draft is already conventional.
 3. Creator mode installs it via `plugin_manager` `install_bundle` and reads back `application: applied`.
-4. When an API looks unfamiliar, [`References/12b-migration-errors.md`](References/12b-migration-errors.md) says which release changed it, and [`References/13-upgrade-guides.md`](References/13-upgrade-guides.md) links the upstream guide.
+4. When an API looks unfamiliar, [`References/12b-migration-errors.md`](References/12b-migration-errors.md) / [`12c-migration-errors.md`](References/12c-migration-errors.md) says which release changed it, and [`References/13-upgrade-guides.md`](References/13-upgrade-guides.md) links the upstream guide.
 
 The routing is built in, not left to luck: [`SKILL.md`](SKILL.md) §0 carries the split table, so an agent that has both skills loaded picks per task instead of guessing.
 
@@ -81,7 +81,7 @@ For agent entry conventions (what an agent should do when it lands in this repo)
 
 Writing a "Hello World" DSH plugin is one line. Writing a plugin that **is right** — `defineTool` output contract honored, revertible-effect cleanup instead of manual teardown, `inject` dependency semantics, Standard-Schema configuration, correct event dispatch modes, packaging that actually installs — is what this skill encodes.
 
-It is **first-principles based**: every rule is grounded in the academic foundation of the underlying framework (Cordis, [arXiv:2608.25512](https://arxiv.org/abs/2608.25512)) and then turned into copy-pasteable code templates. Every API statement is verified against the real SDK types at the documented baseline (`@deepseek-ai/*` 0.2.2-rc.3, cordis 4.1.0); the templates were validated against those types when written — they are not typechecked in CI, because the DSH SDK is not a public npm package.
+It is **first-principles based**: every rule is grounded in the academic foundation of the underlying framework (Cordis, [arXiv:2608.25512](https://arxiv.org/abs/2608.25512)) and then turned into copy-pasteable code templates. Every API statement is verified against the real SDK types at the documented baseline (`@deepseek-ai/*` 0.2.3-alpha.2, cordis 4.2.0-alpha.1); the templates were validated against those types when written — they are not typechecked in CI, because the DSH SDK is not a public npm package.
 ## Structure
 
 ```
@@ -95,13 +95,14 @@ dsh-plugin-dev-skill/
 ├── CONTRIBUTING.md              # Contribution guide
 ├── SECURITY.md                  # Security policy
 ├── LICENSE                      # MIT
-├── References/                  # The operating manual (25 docs, each <= 8192 chars)
+├── References/                  # The operating manual (27 docs, each <= 8192 chars)
 │   ├── 00-INDEX.md              # File overview, SDK baseline, upstream rename glossary
 │   ├── 01-dsh-architecture.md   # DSH architecture: CLI, profile/bundle, config layers, loading
 │   ├── 02-plugin-basics.md      # Plugin shapes, runtime/package map, inject/effect, Fiber, HMR
 │   ├── 03-tools.md              # Tool basics: defineTool, execute contract, schema vocabulary
 │   ├── 03b-tools-advanced.md    # Background jobs, execution policies, UI cards
-│   ├── 03c-tools-pipeline.md    # Step admission (`when`), PTC mode, executor plugins
+│   ├── 03c-tools-pipeline.md    # Step admission (`when`), executor plugins
+│   ├── 03d-ptc-runtime.md       # PTC program formats, scoped REPL, truncation, inspection
 │   ├── 04-config.md             # Configuration & Schemastery
 │   ├── 05-llm-adapter.md        # LLM adapter: StreamChunk protocol, GenerateOptions, registration
 │   ├── 05b-llm-errors.md        # LLM failure codes, retryChoice, fromFailure, pi-ai 1.3.0
@@ -117,7 +118,8 @@ dsh-plugin-dev-skill/
 │   ├── 10-spatiotemporal.md     # Paper summary (spatiotemporal composability)
 │   ├── 11-cookbook.md           # Extension patterns (hooks/UI/protocol bridges/feature→mechanism)
 │   ├── 12-mistakes.md           # Common mistakes not tied to a version
-│   ├── 12b-migration-errors.md  # Version-tagged breaking changes
+│   ├── 12b-migration-errors.md  # Version-tagged breaking changes (up to rc.3)
+│   ├── 12c-migration-errors.md  # Version-tagged breaking changes (rc.4 ~ 0.2.3-alpha.2)
 │   ├── 13-upgrade-guides.md     # Upgrade-guide index, official links, dsh-doc split
 │   ├── 14-workflow-and-scope.md # Four-stage workflow + scope boundaries
 │   └── 15-self-update.md        # This skill's own update procedure
@@ -217,7 +219,7 @@ The skill body (`SKILL.md`) and reference docs are written in Chinese, matching 
 
 ### Which DeepSeek Harness version does it target?
 
-`@deepseek-ai/*` **0.2.2-rc.3** together with cordis **4.1.0** — the versions every API statement was verified against. Since 0.2.0 the headline changes are the `ctx.codeRuntime` → `ctx.ptcRuntime` rename, Plugin Manager shipping with the distribution, the E2B → SSH family swap, the 0.2.1-rc.1 ~ 0.2.2-alpha.2 restructuring (executor plugins, `when`-based tool admission), and the 0.2.2-rc.3 error-contract rework (`@deepseek-ai/dsh-error`, `LLM_FAILURE_CODES`). The full delta is in [`CHANGELOG.md`](CHANGELOG.md) and [`References/12b-migration-errors.md`](References/12b-migration-errors.md).
+`@deepseek-ai/*` **0.2.3-alpha.2** together with cordis **4.2.0-alpha.1** — the versions every API statement was verified against. Since 0.2.0 the headline changes are the `ctx.codeRuntime` → `ctx.ptcRuntime` rename, Plugin Manager shipping with the distribution, the E2B → SSH family swap, the 0.2.1-rc.1 ~ 0.2.2-alpha.2 restructuring (executor plugins, `when`-based tool admission), the 0.2.2-rc.3 error-contract rework (`@deepseek-ai/dsh-error`, `LLM_FAILURE_CODES`), and the rc.4 ~ 0.2.3-alpha.2 changes (unified `cordis_inspect`, PTC scoped REPL default, `ctx.deepseekAuth`, incremental system sections, tool/service removals). The full delta is in [`CHANGELOG.md`](CHANGELOG.md), [`12b-migration-errors.md`](References/12b-migration-errors.md) and [`12c-migration-errors.md`](References/12c-migration-errors.md).
 
 ### How do I keep the skill up to date?
 
@@ -230,7 +232,7 @@ Open an issue or a pull request — see [CONTRIBUTING.md](CONTRIBUTING.md). Ever
 
 - Official docs (中文 / English): https://deepseek-harness.github.io/deepseek-harness/develop/basic/
 - Source repository: https://github.com/deepseek-ai/deepseek-harness
-- Latest tagged release: https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.2-rc.3
+- Latest tagged release: https://github.com/deepseek-ai/deepseek-harness/releases/tag/dsh-v0.2.3-alpha.2
 - Paper: *A Programming Paradigm for Spatiotemporal Composability* (the academic foundation of Cordis; arXiv:2608.25512): https://arxiv.org/abs/2608.25512
 
 All reference docs are **condensed digests** (not verbatim copies of the official docs), organized around the goal of "developing correct, efficient, convention-compliant plugins".
